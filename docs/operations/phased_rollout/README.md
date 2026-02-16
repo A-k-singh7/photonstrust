@@ -216,6 +216,9 @@ A phase is approved only if:
 - Phase 62: GA release cycle (365-day plan continuation)
   - Folder: `phase_62_w49_w52_ga_release_cycle/`
   - Status: Complete (W49-W52 implemented 2026-02-16)
+- Phase 63: Post-GA hardening and attestation (365-day plan continuation)
+  - Folder: `phase_63_w53_w56_post_ga_hardening_and_attestation/`
+  - Status: Complete (W53-W56 implemented 2026-02-16)
 
 ## Planned phases (draft)
 

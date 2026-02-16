@@ -20,4 +20,6 @@ Archived milestone acceptance and gate artifacts for the 2026-02-16 GA cycle:
 - `rc_baseline_lock_2026-02-16.json`
 - `ga_release_bundle_manifest_2026-02-16.json`
 - `release_gate_packet_2026-02-16.json`
+- `release_gate_packet_2026-02-16.ed25519.sig.json`
+- `ga_replay_matrix_2026-02-16.json`
 - `release_gate_v1_0_2026-02-16.md`

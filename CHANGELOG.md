@@ -5,6 +5,7 @@
 - Evidence hardening: SBOM in bundle manifests and publish/fetch/verify-by-digest flows.
 - Adoption pipeline: citation/packaging metadata, open benchmark index refresh checks, pilot conversion packet templates.
 - GA cycle controls: RC baseline lock manifest, external reviewer severity closure checks, release gate packet, and GA bundle verification replay.
+- Post-GA hardening: packet hash/approval verification, Ed25519 packet signatures, replay matrix automation, and milestone archive completeness audits.
 
 ## v0.1.0
 - Physics layer: emitter, memory, detector models with QuTiP fallback
