@@ -1,0 +1,88 @@
+{
+  "schema_version": "0",
+  "benchmark_id": "demo1_quick_smoke",
+  "kind": "qkd_sweep",
+  "title": "PhotonTrust repro pack: demo1_quick_smoke",
+  "created_at": "2026-02-13T00:06:09.224794+00:00",
+  "engine": {
+    "photonstrust_version": "0.1.0"
+  },
+  "config": {
+    "scenario": {
+      "id": "demo1_quick_smoke",
+      "distance_km": {
+        "start": 0,
+        "stop": 20,
+        "step": 10
+      },
+      "band": "nir_850",
+      "wavelength_nm": null
+    },
+    "source": {
+      "type": "emitter_cavity",
+      "physics_backend": "analytic",
+      "rep_rate_mhz": 100,
+      "collection_efficiency": 0.35,
+      "coupling_efficiency": 0.6,
+      "radiative_lifetime_ns": 1.0,
+      "purcell_factor": 5,
+      "dephasing_rate_per_ns": 0.5,
+      "g2_0": 0.02,
+      "drive_strength": 0.05,
+      "pulse_window_ns": 5.0,
+      "mu": 0.05
+    },
+    "channel": {
+      "fiber_loss_db_per_km": null,
+      "connector_loss_db": 1.5,
+      "dispersion_ps_per_km": null
+    },
+    "detector": {
+      "class": "si_apd",
+      "pde": null,
+      "dark_counts_cps": null,
+      "jitter_ps_fwhm": null,
+      "dead_time_ns": null,
+      "afterpulsing_prob": null
+    },
+    "timing": {
+      "sync_drift_ps_rms": 10,
+      "coincidence_window_ps": null
+    },
+    "protocol": {
+      "name": "BBM92",
+      "sifting_factor": 0.5,
+      "ec_efficiency": 1.16
+    },
+    "uncertainty": {
+      "fiber_loss_db_per_km": 0.02,
+      "pde": 0.05,
+      "dark_counts": 1.0,
+      "jitter": 0.2,
+      "g2_0": 0.5,
+      "mu": 0.3
+    }
+  },
+  "defaults": {
+    "rel_tol": 1e-06,
+    "abs_tol": 1e-12
+  },
+  "expected": {
+    "qkd_sweeps": [
+      {
+        "scenario_id": "demo1_quick_smoke",
+        "band": "nir_850",
+        "distances_km": [
+          0.0,
+          10.0,
+          20.0
+        ],
+        "key_rate_bps": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    ]
+  }
+}

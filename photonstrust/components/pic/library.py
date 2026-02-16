@@ -1,0 +1,570 @@
+"""PIC component library (v1 minimal set).
+
+This module defines small, explicit, unit-tested component models used by
+ChipVerify workflows. The v1 philosophy:
+- support a small set of common building blocks
+- be explicit about assumptions (e.g., unidirectional propagation)
+- keep parameters simple and physical (loss in dB, phase in rad)
+"""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable
+
+import numpy as np
+
+from photonstrust.components.pic.touchstone import (
+    infer_touchstone_n_ports,
+    interpolate_s_matrix,
+    load_touchstone,
+    load_touchstone_2port,
+    load_touchstone_nport,
+)
+
+
+@dataclass(frozen=True)
+class ComponentPorts:
+    in_ports: tuple[str, ...]
+    out_ports: tuple[str, ...]
+
+
+def supported_component_kinds() -> set[str]:
+    return set(_LIB.keys())
+
+
+def component_ports(kind: str, params: dict | None = None) -> ComponentPorts:
+    kind = _normalize_kind(kind)
+    if kind not in _LIB:
+        raise KeyError(f"Unsupported PIC component kind: {kind}")
+
+    if kind == "pic.touchstone_nport":
+        if params is None:
+            params = {}
+        return _touchstone_nport_ports(params)
+
+    return _LIB[kind]["ports"]  # type: ignore[return-value]
+
+
+def component_forward_matrix(kind: str, params: dict, wavelength_nm: float | None = None) -> np.ndarray:
+    """Forward propagation matrix mapping input-port amplitudes to output amplitudes.
+
+    Shape: (n_out, n_in), complex dtype.
+    """
+
+    kind = _normalize_kind(kind)
+    if kind not in _LIB:
+        raise KeyError(f"Unsupported PIC component kind: {kind}")
+    fn: Callable[[dict, float | None], np.ndarray] = _LIB[kind]["matrix_fn"]  # type: ignore[assignment]
+    return fn(params, wavelength_nm)
+
+
+def component_all_ports(kind: str, params: dict | None = None) -> tuple[str, ...]:
+    ports = component_ports(kind, params=params)
+    return tuple([*ports.in_ports, *ports.out_ports])
+
+
+def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | None = None) -> np.ndarray:
+    """Bidirectional scattering matrix for a component.
+
+    Convention:
+    - Let `a[i]` be the complex incident wave into port i (from the connected network).
+    - Let `b[i]` be the complex outgoing wave from port i (into the connected network).
+    - Then b = S @ a.
+
+    Port ordering is `component_all_ports(kind)`.
+
+    Notes:
+    - For v1 native components we assume reciprocity and (by default) no reflections.
+    - For Touchstone-imported components we use the full 2x2 S matrix at the evaluated wavelength.
+    """
+
+    kind = _normalize_kind(kind)
+    ports = component_ports(kind, params=params)
+    all_ports = component_all_ports(kind, params=params)
+
+    def _rl_mag(db: float | None) -> float:
+        if db is None:
+            return 0.0
+        db = float(db)
+        if not math.isfinite(db):
+            return 0.0
+        # Return loss definition: RL(dB) = -20 log10 |Gamma|.
+        return float(10 ** (-db / 20.0))
+
+    def _port_reflection(
+        *,
+        rl_key: str,
+        phase_key: str,
+    ) -> complex:
+        rl_db = params.get(rl_key)
+        if rl_db is None:
+            rl_db = params.get("return_loss_db")
+        if rl_db is None:
+            return 0.0 + 0.0j
+
+        mag = _rl_mag(rl_db)
+        phase = params.get(phase_key)
+        if phase is None:
+            phase = params.get("reflection_phase_rad")
+        phase = float(phase or 0.0)
+        return complex(mag * math.cos(phase), mag * math.sin(phase))
+
+    def _assert_passive(smat: np.ndarray) -> None:
+        # Passivity: largest eigenvalue of S^H S <= 1.
+        h = smat.conj().T @ smat
+        vals = np.linalg.eigvalsh(h)
+        max_v = float(np.max(np.real(vals)))
+        if not math.isfinite(max_v) or max_v > 1.0 + 1e-12:
+            raise ValueError(f"Non-passive scattering matrix for kind={kind!r} (max_eig={max_v}).")
+
+    # 2-port elements: allow optional reflections; some kinds may be non-reciprocal.
+    if len(ports.in_ports) == 1 and len(ports.out_ports) == 1 and kind not in {"pic.touchstone_2port", "pic.touchstone_nport"}:
+        fwd = component_forward_matrix(kind, params, wavelength_nm=wavelength_nm)
+        if fwd.shape != (1, 1):
+            raise ValueError(f"Expected 1x1 forward matrix for 2-port component (kind={kind})")
+        t_fwd = complex(fwd[0, 0])
+        t_rev = t_fwd
+
+        if kind == "pic.isolator_2port":
+            # Model as a passive, non-reciprocal 2-port with specified isolation.
+            il_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
+            iso_db = float(params.get("isolation_db", 30.0) or 0.0)
+            il_db = max(0.0, il_db)
+            iso_db = max(0.0, iso_db)
+            mag_rev = float(10 ** (-(il_db + iso_db) / 20.0))
+            phi_fwd = math.atan2(t_fwd.imag, t_fwd.real)
+            phi_rev = params.get("reverse_phase_rad")
+            phi_rev = float(phi_rev) if phi_rev is not None else float(phi_fwd)
+            t_rev = complex(mag_rev * math.cos(phi_rev), mag_rev * math.sin(phi_rev))
+
+        r_in = _port_reflection(rl_key="return_loss_in_db", phase_key="reflection_in_phase_rad")
+        r_out = _port_reflection(rl_key="return_loss_out_db", phase_key="reflection_out_phase_rad")
+
+        # Port order: [in, out]
+        s = np.zeros((2, 2), dtype=np.complex128)
+        s[0, 0] = r_in
+        s[1, 1] = r_out
+        s[0, 1] = t_rev  # S12
+        s[1, 0] = t_fwd  # S21
+
+        if abs(r_in) > 0.0 or abs(r_out) > 0.0 or kind == "pic.isolator_2port":
+            _assert_passive(s)
+        return s
+
+    if kind == "pic.coupler":
+        # Build a 4-port reflectionless reciprocal model from the existing forward matrix.
+        # Port order: [in1, in2, out1, out2]
+        fwd = component_forward_matrix(kind, params, wavelength_nm=wavelength_nm)
+        if fwd.shape != (2, 2):
+            raise ValueError("pic.coupler forward matrix must be 2x2")
+        s = np.zeros((4, 4), dtype=np.complex128)
+        # b_out = M @ a_in
+        s[2:4, 0:2] = fwd
+        # b_in = M^T @ a_out (reciprocal reverse coupling)
+        s[0:2, 2:4] = fwd.T
+        return s
+
+    if kind == "pic.touchstone_2port":
+        # Use the full S-parameter matrix at the requested wavelength.
+        path = params.get("touchstone_path") or params.get("path")
+        if not path:
+            raise ValueError("pic.touchstone_2port requires params.touchstone_path (or params.path)")
+        if wavelength_nm is None:
+            raise ValueError("pic.touchstone_2port requires wavelength_nm to evaluate S-parameters")
+        allow_extrapolation = bool(params.get("allow_extrapolation", False))
+
+        ts_path = str(Path(str(path)).expanduser().resolve())
+        data = load_touchstone_2port(ts_path)
+
+        c_m_s = 299_792_458.0
+        lam_m = float(wavelength_nm) * 1e-9
+        if lam_m <= 0.0:
+            raise ValueError("wavelength_nm must be > 0 for touchstone evaluation")
+        freq_hz = c_m_s / lam_m
+        s = interpolate_s_matrix(data, freq_hz=float(freq_hz), allow_extrapolation=allow_extrapolation)
+        if s.shape != (2, 2):
+            raise ValueError("Touchstone interpolation returned non-2x2 S matrix")
+        return np.array(s, dtype=np.complex128)
+
+    if kind == "pic.touchstone_nport":
+        # Use the full S-parameter matrix at the requested wavelength.
+        path = params.get("touchstone_path") or params.get("path")
+        if not path:
+            raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
+        if wavelength_nm is None:
+            raise ValueError("pic.touchstone_nport requires wavelength_nm to evaluate S-parameters")
+
+        allow_extrapolation = bool(params.get("allow_extrapolation", False))
+
+        ts_path = str(Path(str(path)).expanduser().resolve())
+        n_ports = params.get("n_ports")
+        if n_ports is None:
+            n_ports = infer_touchstone_n_ports(ts_path)
+        if n_ports is None:
+            raise ValueError("pic.touchstone_nport requires n_ports or a .sNp filename")
+        n_ports = int(n_ports)
+        if n_ports <= 0:
+            raise ValueError("pic.touchstone_nport n_ports must be > 0")
+
+        data = load_touchstone_nport(ts_path, n_ports=n_ports)
+        if int(data.n_ports) != int(n_ports):
+            raise ValueError(f"Touchstone n_ports mismatch: expected {n_ports}, got {data.n_ports}")
+
+        c_m_s = 299_792_458.0
+        lam_m = float(wavelength_nm) * 1e-9
+        if lam_m <= 0.0:
+            raise ValueError("wavelength_nm must be > 0 for touchstone evaluation")
+        freq_hz = c_m_s / lam_m
+        s_full = interpolate_s_matrix(data, freq_hz=float(freq_hz), allow_extrapolation=allow_extrapolation)
+        if s_full.shape != (n_ports, n_ports):
+            raise ValueError("Touchstone interpolation returned wrong S matrix shape")
+
+        ports = component_ports(kind, params=params)
+        port_list = list([*ports.in_ports, *ports.out_ports])
+        idx = []
+        for p in port_list:
+            if not str(p).lower().startswith("p"):
+                raise ValueError("pic.touchstone_nport ports must be named like 'p1', 'p2', ...")
+            try:
+                k = int(str(p)[1:])
+            except Exception as exc:
+                raise ValueError(f"Invalid touchstone port name: {p!r}") from exc
+            if k < 1 or k > n_ports:
+                raise ValueError(f"Touchstone port out of range: {p!r}")
+            idx.append(k - 1)
+        s_perm = np.array(s_full, dtype=np.complex128)[np.ix_(idx, idx)]
+        return s_perm
+
+    raise ValueError(
+        f"No scattering model available for kind={kind!r} with ports={all_ports}. "
+        "(Only 2-port elements, pic.coupler, and pic.touchstone_2port are supported in v1 scattering mode.)"
+    )
+
+
+def component_power_transmission(kind: str, params: dict, wavelength_nm: float | None = None) -> float:
+    """Return scalar power transmission for 2-port components.
+
+    This is used by the fast chain solver. For multiport components (e.g.,
+    couplers) this raises.
+    """
+
+    ports = component_ports(kind, params=params)
+    if len(ports.in_ports) != 1 or len(ports.out_ports) != 1:
+        raise ValueError(f"power_transmission is defined for 2-port components only (kind={kind})")
+    mat = component_forward_matrix(kind, params, wavelength_nm=wavelength_nm)
+    if mat.shape != (1, 1):
+        raise ValueError(f"Expected 1x1 forward matrix for 2-port component (kind={kind})")
+    t = complex(mat[0, 0])
+    return float(abs(t) ** 2)
+
+
+def _normalize_kind(kind: str) -> str:
+    return str(kind).strip().lower()
+
+
+def _eta_from_loss_db(loss_db: float) -> float:
+    return 10 ** (-max(0.0, float(loss_db)) / 10.0)
+
+
+def _phase_from_params(params: dict, wavelength_nm: float | None) -> float:
+    if "phase_rad" in params and params["phase_rad"] is not None:
+        return float(params["phase_rad"])
+    if wavelength_nm is None:
+        return 0.0
+    if "n_eff" in params and params["n_eff"] is not None and "length_um" in params and params["length_um"] is not None:
+        n_eff = float(params["n_eff"])
+        length_um = float(params["length_um"])
+        lam_m = float(wavelength_nm) * 1e-9
+        length_m = length_um * 1e-6
+        if lam_m <= 0:
+            return 0.0
+        return float(2.0 * math.pi * n_eff * length_m / lam_m)
+    return 0.0
+
+
+def _two_port_scalar_matrix(t: complex) -> np.ndarray:
+    return np.array([[t]], dtype=np.complex128)
+
+
+def _matrix_waveguide(params: dict, wavelength_nm: float | None) -> np.ndarray:
+    length_um = float(params.get("length_um", 0.0) or 0.0)
+    loss_db_per_cm = float(params.get("loss_db_per_cm", 0.0) or 0.0)
+    length_cm = max(0.0, length_um) / 1e4
+    loss_db = max(0.0, loss_db_per_cm) * length_cm
+    eta = _eta_from_loss_db(loss_db)
+    phi = _phase_from_params(params, wavelength_nm)
+    t = math.sqrt(eta) * complex(math.cos(phi), math.sin(phi))
+    return _two_port_scalar_matrix(t)
+
+
+def _matrix_insertion_loss_2port(params: dict, wavelength_nm: float | None) -> np.ndarray:
+    loss_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
+    eta = _eta_from_loss_db(loss_db)
+    phi = _phase_from_params(params, wavelength_nm)
+    t = math.sqrt(eta) * complex(math.cos(phi), math.sin(phi))
+    return _two_port_scalar_matrix(t)
+
+
+def _matrix_phase_shifter(params: dict, wavelength_nm: float | None) -> np.ndarray:
+    # Explicit phase control is the core; loss is optional.
+    phi = float(params.get("phase_rad", 0.0) or 0.0)
+    loss_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
+    eta = _eta_from_loss_db(loss_db)
+    t = math.sqrt(eta) * complex(math.cos(phi), math.sin(phi))
+    return _two_port_scalar_matrix(t)
+
+
+def _matrix_ring(params: dict, wavelength_nm: float | None) -> np.ndarray:
+    """All-pass ring resonator (2-port) with a backwards-compatible fallback.
+
+    Backwards compatibility: if the caller provides only `insertion_loss_db`, we
+    keep the v0.1 placeholder behavior (lumped 2-port loss).
+
+    Resonator mode: enable by providing any of:
+      - coupling_ratio
+      - radius_um
+      - round_trip_length_um
+      - n_eff
+      - loss_db_per_cm
+
+    Model (all-pass through transfer):
+      H = (r - a*exp(-j*phi)) / (1 - r*a*exp(-j*phi))
+    """
+
+    has_resonator_params = any(
+        k in params and params.get(k) is not None
+        for k in ("coupling_ratio", "radius_um", "round_trip_length_um", "n_eff", "loss_db_per_cm")
+    )
+    if not has_resonator_params:
+        return _matrix_insertion_loss_2port(params, wavelength_nm)
+
+    if wavelength_nm is None:
+        raise ValueError("pic.ring requires wavelength_nm in resonator mode")
+
+    kappa = float(params.get("coupling_ratio", 0.002) or 0.0)
+    kappa = min(1.0, max(0.0, kappa))
+    r = math.sqrt(max(0.0, 1.0 - kappa))
+
+    if params.get("round_trip_length_um") is not None:
+        L_rt_um = float(params.get("round_trip_length_um") or 0.0)
+    elif params.get("radius_um") is not None:
+        radius_um = float(params.get("radius_um") or 0.0)
+        L_rt_um = 2.0 * math.pi * max(0.0, radius_um)
+    else:
+        raise ValueError("pic.ring resonator mode requires radius_um or round_trip_length_um")
+    if L_rt_um <= 0.0:
+        raise ValueError("pic.ring round-trip length must be > 0")
+
+    n_eff = params.get("n_eff")
+    if n_eff is None:
+        raise ValueError("pic.ring resonator mode requires n_eff")
+    n_eff = float(n_eff)
+    if not math.isfinite(n_eff) or n_eff <= 0.0:
+        raise ValueError("pic.ring n_eff must be finite and > 0")
+
+    loss_db_per_cm = float(params.get("loss_db_per_cm", 0.0) or 0.0)
+    length_cm = L_rt_um / 1e4
+    loss_db_rt = max(0.0, loss_db_per_cm) * length_cm
+
+    # Round-trip amplitude transmission.
+    a_rt = math.sqrt(_eta_from_loss_db(loss_db_rt))
+
+    lam_m = float(wavelength_nm) * 1e-9
+    if lam_m <= 0.0:
+        raise ValueError("wavelength_nm must be > 0 for pic.ring")
+    L_m = L_rt_um * 1e-6
+    phi = float(2.0 * math.pi * n_eff * L_m / lam_m)
+    e = complex(math.cos(phi), -math.sin(phi))  # exp(-j*phi)
+
+    num = complex(r) - complex(a_rt) * e
+    den = 1.0 - complex(r) * complex(a_rt) * e
+    if abs(den) < 1e-18:
+        # Avoid numeric blow-ups in pathological critical points.
+        t = 0.0 + 0.0j
+    else:
+        t = num / den
+
+    # Optional extra insertion loss on the bus.
+    il_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
+    eta_bus = _eta_from_loss_db(il_db)
+    t = math.sqrt(eta_bus) * t
+
+    return _two_port_scalar_matrix(t)
+
+
+def _matrix_coupler(params: dict, wavelength_nm: float | None) -> np.ndarray:
+    # Unidirectional 2x2 coupler model (no reflections, symmetric).
+    # out = M @ in, where in=[in1,in2], out=[out1,out2]
+    kappa = float(params.get("coupling_ratio", 0.5) or 0.0)
+    kappa = min(1.0, max(0.0, kappa))
+    il_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
+    eta = _eta_from_loss_db(il_db)
+    t = math.sqrt(1.0 - kappa)
+    k = math.sqrt(kappa)
+    m = np.array([[t, 1j * k], [1j * k, t]], dtype=np.complex128)
+    return math.sqrt(eta) * m
+
+
+def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.ndarray:
+    # Touchstone S-parameter import (2-port), mapped to a forward scalar transfer.
+    # Default mapping: S21 (port1 -> port2) == out due to in.
+    path = params.get("touchstone_path") or params.get("path")
+    if not path:
+        raise ValueError("pic.touchstone_2port requires params.touchstone_path (or params.path)")
+    if wavelength_nm is None:
+        raise ValueError("pic.touchstone_2port requires wavelength_nm to evaluate S-parameters")
+
+    forward = str(params.get("forward", "s21") or "s21").strip().lower()
+    allow_extrapolation = bool(params.get("allow_extrapolation", False))
+
+    # Resolve to an absolute path for stable caching and provenance behavior.
+    ts_path = str(Path(str(path)).expanduser().resolve())
+    data = load_touchstone_2port(ts_path)
+
+    c_m_s = 299_792_458.0
+    lam_m = float(wavelength_nm) * 1e-9
+    if lam_m <= 0.0:
+        raise ValueError("wavelength_nm must be > 0 for touchstone evaluation")
+    freq_hz = c_m_s / lam_m
+
+    s = interpolate_s_matrix(data, freq_hz=float(freq_hz), allow_extrapolation=allow_extrapolation)
+    if forward == "s21":
+        t = complex(s[1, 0])
+    elif forward == "s12":
+        t = complex(s[0, 1])
+    else:
+        raise ValueError("pic.touchstone_2port param 'forward' must be 's21' or 's12'")
+
+    return _two_port_scalar_matrix(t)
+
+
+def _touchstone_nport_ports(params: dict) -> ComponentPorts:
+    path = params.get("touchstone_path") or params.get("path")
+    if not path:
+        raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
+
+    n_ports = params.get("n_ports")
+    if n_ports is None:
+        n_ports = infer_touchstone_n_ports(str(path))
+    if n_ports is None:
+        raise ValueError("pic.touchstone_nport requires n_ports or a .sNp filename")
+    n_ports = int(n_ports)
+    if n_ports <= 0:
+        raise ValueError("pic.touchstone_nport n_ports must be > 0")
+
+    in_ports = params.get("in_ports")
+    out_ports = params.get("out_ports")
+    if in_ports is None and out_ports is None:
+        if n_ports % 2 != 0:
+            raise ValueError("pic.touchstone_nport requires in_ports/out_ports for odd n_ports")
+        half = n_ports // 2
+        in_ports = [f"p{i}" for i in range(1, half + 1)]
+        out_ports = [f"p{i}" for i in range(half + 1, n_ports + 1)]
+    else:
+        if in_ports is None or out_ports is None:
+            raise ValueError("pic.touchstone_nport requires both in_ports and out_ports when provided")
+        if not isinstance(in_ports, list) or not isinstance(out_ports, list):
+            raise ValueError("pic.touchstone_nport in_ports/out_ports must be arrays")
+        in_ports = [str(p) for p in in_ports]
+        out_ports = [str(p) for p in out_ports]
+
+    if not in_ports or not out_ports:
+        raise ValueError("pic.touchstone_nport in_ports and out_ports must be non-empty")
+
+    allowed = {f"p{i}" for i in range(1, n_ports + 1)}
+    all_ports = [*in_ports, *out_ports]
+    if any(p not in allowed for p in all_ports):
+        raise ValueError(f"pic.touchstone_nport ports must be named p1..p{n_ports}")
+    if len(set(in_ports)) != len(in_ports) or len(set(out_ports)) != len(out_ports):
+        raise ValueError("pic.touchstone_nport port lists must not contain duplicates")
+    if set(in_ports) & set(out_ports):
+        raise ValueError("pic.touchstone_nport in_ports and out_ports must be disjoint")
+    if set(all_ports) != allowed:
+        raise ValueError("pic.touchstone_nport in_ports+out_ports must cover all Touchstone ports")
+
+    return ComponentPorts(in_ports=tuple(in_ports), out_ports=tuple(out_ports))
+
+
+def _matrix_touchstone_nport(params: dict, wavelength_nm: float | None) -> np.ndarray:
+    path = params.get("touchstone_path") or params.get("path")
+    if not path:
+        raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
+    if wavelength_nm is None:
+        raise ValueError("pic.touchstone_nport requires wavelength_nm to evaluate S-parameters")
+
+    allow_extrapolation = bool(params.get("allow_extrapolation", False))
+
+    ts_path = str(Path(str(path)).expanduser().resolve())
+    n_ports = params.get("n_ports")
+    if n_ports is None:
+        n_ports = infer_touchstone_n_ports(ts_path)
+    if n_ports is None:
+        raise ValueError("pic.touchstone_nport requires n_ports or a .sNp filename")
+    n_ports = int(n_ports)
+    if n_ports <= 0:
+        raise ValueError("pic.touchstone_nport n_ports must be > 0")
+
+    data = load_touchstone_nport(ts_path, n_ports=n_ports)
+
+    c_m_s = 299_792_458.0
+    lam_m = float(wavelength_nm) * 1e-9
+    if lam_m <= 0.0:
+        raise ValueError("wavelength_nm must be > 0 for touchstone evaluation")
+    freq_hz = c_m_s / lam_m
+    s_full = interpolate_s_matrix(data, freq_hz=float(freq_hz), allow_extrapolation=allow_extrapolation)
+    if s_full.shape != (n_ports, n_ports):
+        raise ValueError("Touchstone interpolation returned wrong S matrix shape")
+
+    ports = _touchstone_nport_ports(params)
+    port_list = list([*ports.in_ports, *ports.out_ports])
+    idx = [int(str(p)[1:]) - 1 for p in port_list]
+    s_perm = np.array(s_full, dtype=np.complex128)[np.ix_(idx, idx)]
+
+    n_in = len(ports.in_ports)
+    # Forward-only approximation: map incident waves on in_ports to outgoing waves on out_ports.
+    return np.array(s_perm[n_in:, :n_in], dtype=np.complex128)
+
+
+_LIB: dict[str, dict] = {
+    "pic.waveguide": {
+        "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+        "matrix_fn": _matrix_waveguide,
+    },
+    "pic.grating_coupler": {
+        "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+        "matrix_fn": _matrix_insertion_loss_2port,
+    },
+    "pic.edge_coupler": {
+        "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+        "matrix_fn": _matrix_insertion_loss_2port,
+    },
+    "pic.phase_shifter": {
+        "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+        "matrix_fn": _matrix_phase_shifter,
+    },
+    "pic.isolator_2port": {
+        "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+        "matrix_fn": _matrix_insertion_loss_2port,
+    },
+    # v1 ring: treated as a 2-port lumped element (filter physics planned later).
+    "pic.ring": {
+        "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+        "matrix_fn": _matrix_ring,
+    },
+    "pic.coupler": {
+        "ports": ComponentPorts(in_ports=("in1", "in2"), out_ports=("out1", "out2")),
+        "matrix_fn": _matrix_coupler,
+    },
+    "pic.touchstone_2port": {
+        "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+        "matrix_fn": _matrix_touchstone_2port,
+    },
+    "pic.touchstone_nport": {
+        # Ports are derived from params (see _touchstone_nport_ports).
+        "ports": ComponentPorts(in_ports=(), out_ports=()),
+        "matrix_fn": _matrix_touchstone_nport,
+    },
+}

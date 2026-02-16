@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.pdk_manifest",
+  "generated_at": "2026-02-16T13:30:35.305405+00:00",
+  "execution_mode": "preview",
+  "source_run_id": "aaaaaaaaaaaa",
+  "adapter": "registry.v0",
+  "request": {
+    "name": null,
+    "manifest_path": null
+  },
+  "pdk": {
+    "name": "generic_silicon_photonics",
+    "version": "0",
+    "design_rules": {
+      "min_waveguide_width_um": 0.45,
+      "min_waveguide_gap_um": 0.2,
+      "min_bend_radius_um": 5.0
+    },
+    "notes": [
+      "Built-in demo PDK. Replace with a foundry PDK manifest for real tapeout workflows."
+    ]
+  },
+  "capabilities": {
+    "supports_layout": true,
+    "supports_performance_drc": true,
+    "supports_lvs_lite_signoff": true,
+    "supports_spice_export": true
+  }
+}

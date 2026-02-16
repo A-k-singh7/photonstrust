@@ -1,0 +1,7 @@
+{
+  "results": [
+    {"distance_km": 0, "entanglement_rate_hz": 1.1446e+06, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 0.0121888, "p_false": 1.608e-08, "loss_db": 1.5},
+    {"distance_km": 10, "entanglement_rate_hz": 50.1324, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 4.85245e-07, "p_false": 1.608e-08, "loss_db": 23.5},
+    {"distance_km": 20, "entanglement_rate_hz": 1.60993, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 1.93179e-11, "p_false": 1.608e-08, "loss_db": 45.5}
+  ]
+}

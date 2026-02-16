@@ -1,0 +1,38 @@
+{
+  "100": [
+    {"spacing_km": 10, "segments": 10, "link_distance_km": 10, "throughput_hz": 10099.4, "fidelity": 0.497782},
+    {"spacing_km": 20, "segments": 5, "link_distance_km": 20, "throughput_hz": 5170.61, "fidelity": 0.495686},
+    {"spacing_km": 30, "segments": 4, "link_distance_km": 25, "throughput_hz": 3578.38, "fidelity": 0.493791},
+    {"spacing_km": 40, "segments": 3, "link_distance_km": 33.3333, "throughput_hz": 1889.77, "fidelity": 0.488373},
+    {"spacing_km": 50, "segments": 2, "link_distance_km": 50, "throughput_hz": 501.014, "fidelity": 0.458894},
+    {"spacing_km": 60, "segments": 2, "link_distance_km": 50, "throughput_hz": 501.014, "fidelity": 0.458894},
+    {"spacing_km": 70, "segments": 2, "link_distance_km": 50, "throughput_hz": 501.014, "fidelity": 0.458894},
+    {"spacing_km": 80, "segments": 2, "link_distance_km": 50, "throughput_hz": 501.014, "fidelity": 0.458894},
+    {"spacing_km": 90, "segments": 2, "link_distance_km": 50, "throughput_hz": 501.014, "fidelity": 0.458894},
+    {"spacing_km": 100, "segments": 1, "link_distance_km": 100, "throughput_hz": 18.7267, "fidelity": 0.252045}
+  ],
+  "300": [
+    {"spacing_km": 10, "segments": 30, "link_distance_km": 10, "throughput_hz": 7404.5, "fidelity": 0.49698},
+    {"spacing_km": 20, "segments": 15, "link_distance_km": 20, "throughput_hz": 3557.99, "fidelity": 0.493756},
+    {"spacing_km": 30, "segments": 10, "link_distance_km": 30, "throughput_hz": 1607.08, "fidelity": 0.486384},
+    {"spacing_km": 40, "segments": 8, "link_distance_km": 37.5, "throughput_hz": 869.218, "fidelity": 0.47541},
+    {"spacing_km": 50, "segments": 6, "link_distance_km": 50, "throughput_hz": 306.744, "fidelity": 0.43643},
+    {"spacing_km": 60, "segments": 5, "link_distance_km": 60, "throughput_hz": 133.018, "fidelity": 0.377086},
+    {"spacing_km": 70, "segments": 5, "link_distance_km": 60, "throughput_hz": 133.018, "fidelity": 0.377086},
+    {"spacing_km": 80, "segments": 4, "link_distance_km": 75, "throughput_hz": 39.8632, "fidelity": 0.276147},
+    {"spacing_km": 90, "segments": 4, "link_distance_km": 75, "throughput_hz": 39.8632, "fidelity": 0.276147},
+    {"spacing_km": 100, "segments": 3, "link_distance_km": 100, "throughput_hz": 10.2145, "fidelity": 0.250037}
+  ],
+  "500": [
+    {"spacing_km": 10, "segments": 50, "link_distance_km": 10, "throughput_hz": 6574.69, "fidelity": 0.496601},
+    {"spacing_km": 20, "segments": 25, "link_distance_km": 20, "throughput_hz": 3093.91, "fidelity": 0.492832},
+    {"spacing_km": 30, "segments": 17, "link_distance_km": 29.4118, "throughput_hz": 1444.58, "fidelity": 0.4849},
+    {"spacing_km": 40, "segments": 13, "link_distance_km": 38.4615, "throughput_hz": 680.07, "fidelity": 0.469011},
+    {"spacing_km": 50, "segments": 10, "link_distance_km": 50, "throughput_hz": 256.582, "fidelity": 0.426037},
+    {"spacing_km": 60, "segments": 9, "link_distance_km": 55.5556, "throughput_hz": 160.28, "fidelity": 0.392586},
+    {"spacing_km": 70, "segments": 8, "link_distance_km": 62.5, "throughput_hz": 89.3834, "fidelity": 0.341338},
+    {"spacing_km": 80, "segments": 7, "link_distance_km": 71.4286, "throughput_hz": 43.08, "fidelity": 0.280949},
+    {"spacing_km": 90, "segments": 6, "link_distance_km": 83.3333, "throughput_hz": 17.9654, "fidelity": 0.251668},
+    {"spacing_km": 100, "segments": 5, "link_distance_km": 100, "throughput_hz": 8.20145, "fidelity": 0.250004}
+  ]
+}

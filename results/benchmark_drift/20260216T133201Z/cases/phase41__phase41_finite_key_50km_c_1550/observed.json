@@ -1,0 +1,21 @@
+[
+  {
+    "scenario_id": "canonical_phase41_finite_key",
+    "band": "c_1550",
+    "distances_km": [
+      50.0
+    ],
+    "key_rate_bps": [
+      11841.983639608989
+    ],
+    "qber": [
+      0.019801059054180038
+    ],
+    "raman_counts_cps": [
+      0.0
+    ],
+    "background_counts_cps": [
+      0.0
+    ]
+  }
+]

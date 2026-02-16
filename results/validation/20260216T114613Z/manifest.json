@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.validation_harness.manifest",
+  "run_id": "20260216T114613Z",
+  "files": [
+    "summary.json",
+    "manifest.json",
+    "cases/demo1_default_regression/observed.json",
+    "cases/phase41__phase41_finite_key_50km_c_1550/observed.json",
+    "cases/phase41__phase41_longhaul_120km_c_1550_abort/observed.json",
+    "cases/phase41__phase41_metro_25km_c_1550_coexistence/observed.json",
+    "cases/phase41__phase41_metro_25km_c_1550_realistic/observed.json",
+    "cases/phase41__phase41_regional_80km_c_1550_snspd/observed.json",
+    "cases/phase41__phase41_smoke_10km_c_1550_ideal/observed.json",
+    "cases/demo1_default_regression/comparison.json",
+    "cases/phase41__phase41_finite_key_50km_c_1550/comparison.json",
+    "cases/phase41__phase41_longhaul_120km_c_1550_abort/comparison.json",
+    "cases/phase41__phase41_metro_25km_c_1550_coexistence/comparison.json",
+    "cases/phase41__phase41_metro_25km_c_1550_realistic/comparison.json",
+    "cases/phase41__phase41_regional_80km_c_1550_snspd/comparison.json",
+    "cases/phase41__phase41_smoke_10km_c_1550_ideal/comparison.json"
+  ]
+}

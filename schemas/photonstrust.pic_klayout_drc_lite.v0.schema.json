@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_klayout_drc_lite.v0.schema.json",
+  "title": "PhotonTrust PIC KLayout DRC-Lite Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "summary", "issues", "metrics", "layers", "provenance"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "pic.klayout.drc_lite" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issue_count", "error_count"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "fail", "error"] },
+        "issue_count": { "type": "integer", "minimum": 0 },
+        "error_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["rule", "severity", "message"],
+        "properties": {
+          "rule": { "type": "string" },
+          "severity": { "type": "string", "enum": ["warning", "error"] },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "metrics": { "type": "object" },
+    "layers": { "type": "object" },
+    "provenance": { "type": "object" }
+  }
+}
+

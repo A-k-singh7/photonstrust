@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.multifidelity_report.v0.schema.json",
+  "title": "PhotonTrust multifidelity report schema v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "run_id",
+    "backend_results",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "multifidelity.report"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "backend_results": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "status",
+          "applicability",
+          "provenance"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "warn",
+              "fail",
+              "skipped"
+            ]
+          },
+          "summary": {
+            "type": "object"
+          },
+          "tolerances": {
+            "type": "object"
+          },
+          "applicability": {
+            "type": "object",
+            "required": [
+              "status",
+              "reasons"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pass",
+                  "warn",
+                  "fail"
+                ]
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "bounds": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": true
+          },
+          "provenance": {
+            "type": "object",
+            "required": [
+              "backend_name",
+              "backend_version"
+            ],
+            "properties": {
+              "backend_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "backend_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "seed": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "config_hash": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "photonstrust_version",
+        "python",
+        "platform"
+      ],
+      "properties": {
+        "photonstrust_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "python": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

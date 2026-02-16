@@ -1,0 +1,167 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "1970-01-01T00:00:00+00:00",
+  "kind": "photonstrust.canonical_baselines.phase41",
+  "configs": [
+    {
+      "config_relpath": "configs/canonical/phase41_finite_key_50km_c_1550.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase41_finite_key",
+          "band": "c_1550",
+          "distances_km": [
+            50.0
+          ],
+          "key_rate_bps": [
+            11841.983639609993
+          ],
+          "qber": [
+            0.019801059054174522
+          ],
+          "raman_counts_cps": [
+            0.0
+          ],
+          "background_counts_cps": [
+            0.0
+          ],
+          "finite_key_enabled": true
+        }
+      ]
+    },
+    {
+      "config_relpath": "configs/canonical/phase41_longhaul_120km_c_1550_abort.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase41_longhaul_abort",
+          "band": "c_1550",
+          "distances_km": [
+            120.0
+          ],
+          "key_rate_bps": [
+            2.2318210259262616
+          ],
+          "qber": [
+            0.015395477545535847
+          ],
+          "raman_counts_cps": [
+            0.0
+          ],
+          "background_counts_cps": [
+            0.0
+          ],
+          "finite_key_enabled": false
+        }
+      ]
+    },
+    {
+      "config_relpath": "configs/canonical/phase41_metro_25km_c_1550_coexistence.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase41_metro_coexistence",
+          "band": "c_1550",
+          "distances_km": [
+            25.0
+          ],
+          "key_rate_bps": [
+            269461.5052864295
+          ],
+          "qber": [
+            0.005108400740347218
+          ],
+          "raman_counts_cps": [
+            3794.733192202055
+          ],
+          "background_counts_cps": [
+            0.0
+          ],
+          "finite_key_enabled": false
+        }
+      ]
+    },
+    {
+      "config_relpath": "configs/canonical/phase41_metro_25km_c_1550_realistic.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase41_metro_realistic",
+          "band": "c_1550",
+          "distances_km": [
+            10.0,
+            25.0
+          ],
+          "key_rate_bps": [
+            1072902.5960975501,
+            269504.37886441464
+          ],
+          "qber": [
+            0.005097799988669574,
+            0.0050986928274777375
+          ],
+          "raman_counts_cps": [
+            0.0,
+            0.0
+          ],
+          "background_counts_cps": [
+            0.0,
+            0.0
+          ],
+          "finite_key_enabled": false
+        }
+      ]
+    },
+    {
+      "config_relpath": "configs/canonical/phase41_regional_80km_c_1550_snspd.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase41_regional_snspd",
+          "band": "c_1550",
+          "distances_km": [
+            50.0,
+            80.0
+          ],
+          "key_rate_bps": [
+            13159.698384809766,
+            830.3171210978452
+          ],
+          "qber": [
+            0.019801059054174522,
+            0.01980135387085722
+          ],
+          "raman_counts_cps": [
+            0.0,
+            0.0
+          ],
+          "background_counts_cps": [
+            0.0,
+            0.0
+          ],
+          "finite_key_enabled": false
+        }
+      ]
+    },
+    {
+      "config_relpath": "configs/canonical/phase41_smoke_10km_c_1550_ideal.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase41_smoke_ideal",
+          "band": "c_1550",
+          "distances_km": [
+            10.0
+          ],
+          "key_rate_bps": [
+            2103999.483190229
+          ],
+          "qber": [
+            9.78593416791987e-05
+          ],
+          "raman_counts_cps": [
+            0.0
+          ],
+          "background_counts_cps": [
+            0.0
+          ],
+          "finite_key_enabled": false
+        }
+      ]
+    }
+  ]
+}

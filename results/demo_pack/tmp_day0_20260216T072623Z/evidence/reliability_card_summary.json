@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "demo1_multiband_phase2e_demo",
+  "band": "c_1550",
+  "safe_use_label": "engineering_grade",
+  "key_rate_bps": 383433.4848778153,
+  "qber_total": 0.018557752173316833,
+  "critical_distance_km": 100.0,
+  "uncertainty": {
+    "key_rate_ci_low": 344549.0733044945,
+    "key_rate_ci_high": 447091.1131493069,
+    "outage_probability": 0.0
+  }
+}

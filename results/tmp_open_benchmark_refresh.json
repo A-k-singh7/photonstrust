@@ -1,0 +1,107 @@
+{
+  "schema_version": "0",
+  "benchmark_id": "open_demo_qkd_analytic_001",
+  "kind": "qkd_sweep",
+  "title": "Open benchmark: analytic emitter, fiber channel (o_1310 + c_1550)",
+  "created_at": "2026-02-16T07:54:41.448676+00:00",
+  "config": {
+    "scenario": {
+      "id": "open_demo_qkd",
+      "distance_km": {
+        "start": 0.0,
+        "stop": 50.0,
+        "step": 10.0
+      },
+      "band": [
+        "o_1310",
+        "c_1550"
+      ],
+      "wavelength_nm": null,
+      "execution_mode": "standard"
+    },
+    "source": {
+      "type": "emitter_cavity",
+      "physics_backend": "analytic",
+      "rep_rate_mhz": 100,
+      "collection_efficiency": 0.35,
+      "coupling_efficiency": 0.6,
+      "radiative_lifetime_ns": 1.0,
+      "purcell_factor": 5,
+      "dephasing_rate_per_ns": 0.5,
+      "g2_0": 0.02,
+      "pulse_window_ns": 5.0
+    },
+    "channel": {
+      "fiber_loss_db_per_km": null,
+      "connector_loss_db": 1.5,
+      "dispersion_ps_per_km": null
+    },
+    "detector": {
+      "class": "snspd",
+      "pde": null,
+      "dark_counts_cps": null,
+      "jitter_ps_fwhm": null,
+      "dead_time_ns": null,
+      "afterpulsing_prob": null
+    },
+    "timing": {
+      "sync_drift_ps_rms": 10,
+      "coincidence_window_ps": null
+    },
+    "protocol": {
+      "name": "BBM92",
+      "sifting_factor": 0.5,
+      "ec_efficiency": 1.16
+    },
+    "uncertainty": {}
+  },
+  "defaults": {
+    "rel_tol": 1e-06,
+    "abs_tol": 1e-12
+  },
+  "expected": {
+    "qkd_sweeps": [
+      {
+        "scenario_id": "open_demo_qkd",
+        "band": "o_1310",
+        "distances_km": [
+          0.0,
+          10.0,
+          20.0,
+          30.0,
+          40.0,
+          50.0
+        ],
+        "key_rate_bps": [
+          73210.98270590503,
+          16311.327690351794,
+          3584.9588892004645,
+          785.2650685256699,
+          171.84041278050952,
+          37.58507377682934
+        ]
+      },
+      {
+        "scenario_id": "open_demo_qkd",
+        "band": "c_1550",
+        "distances_km": [
+          0.0,
+          10.0,
+          20.0,
+          30.0,
+          40.0,
+          50.0
+        ],
+        "key_rate_bps": [
+          98856.36141484193,
+          40087.00373789369,
+          16084.709938375612,
+          6425.209736599317,
+          2561.7239178772384,
+          1020.4752997581429
+        ]
+      }
+    ]
+  },
+  "notes": "Generated in-repo as a stable open benchmark (analytic backend; no optional deps). | Refreshed against current engine outputs."
+}

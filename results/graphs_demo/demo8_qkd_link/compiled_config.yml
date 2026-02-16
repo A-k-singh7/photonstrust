@@ -1,0 +1,29 @@
+channel:
+  connector_loss_db: 1.5
+  model: fiber
+detector:
+  class: snspd
+finite_key: {}
+protocol:
+  ec_efficiency: 1.16
+  name: BBM92
+  sifting_factor: 0.5
+scenario:
+  band: c_1550
+  distance_km:
+    start: 0
+    step: 10
+    stop: 50
+  execution_mode: preview
+  id: demo8_qkd_link
+  wavelength_nm: 1550
+source:
+  collection_efficiency: 0.35
+  coupling_efficiency: 0.6
+  g2_0: 0.02
+  physics_backend: analytic
+  rep_rate_mhz: 100
+  type: emitter_cavity
+timing:
+  sync_drift_ps_rms: 10
+uncertainty: {}

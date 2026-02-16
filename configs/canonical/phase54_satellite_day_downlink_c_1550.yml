@@ -1,0 +1,69 @@
+scenario:
+  id: canonical_phase54_satellite_day_downlink
+  distance_km:
+    start: 500
+    stop: 900
+    step: 400
+  band: c_1550
+  wavelength_nm: null
+
+source:
+  type: emitter_cavity
+  physics_backend: analytic
+  rep_rate_mhz: 150
+  collection_efficiency: 0.38
+  coupling_efficiency: 0.62
+  radiative_lifetime_ns: 1.0
+  purcell_factor: 5
+  dephasing_rate_per_ns: 0.5
+  g2_0: 0.02
+
+channel:
+  model: satellite
+  connector_loss_db: 1.0
+  dispersion_ps_per_km: 0.0
+  elevation_deg: 45.0
+  tx_aperture_m: 0.12
+  rx_aperture_m: 0.30
+  beam_divergence_urad: 12.0
+  satellite_uplink_fraction: 0.45
+  uplink_elevation_deg: 35.0
+  downlink_elevation_deg: 55.0
+  pointing_jitter_urad: 1.5
+  pointing_model: deterministic
+  atmospheric_extinction_db_per_km: 0.02
+  turbulence_scintillation_index: 0.12
+  turbulence_model: deterministic
+  atmosphere_path_model: effective_thickness
+  atmosphere_effective_thickness_km: 20.0
+  background_model: radiance_proxy
+  background_day_night: day
+  background_fov_urad: 140.0
+  background_filter_bandwidth_nm: 1.2
+  background_detector_gate_ns: 1.2
+  background_site_light_pollution: 0.3
+
+detector:
+  class: snspd
+  pde: 0.3
+  dark_counts_cps: 100
+  jitter_ps_fwhm: 30
+  dead_time_ns: 100
+  afterpulsing_prob: 0.001
+
+timing:
+  sync_drift_ps_rms: 10
+  coincidence_window_ps: 250
+
+protocol:
+  name: BBM92
+  sifting_factor: 0.5
+  ec_efficiency: 1.16
+
+finite_key:
+  enabled: true
+  signals_per_block: 200000000
+  security_epsilon: 1.0e-10
+  parameter_estimation_fraction: 0.10
+
+uncertainty: {}

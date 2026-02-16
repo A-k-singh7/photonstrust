@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.routes",
+  "routes": [
+    {
+      "route_id": "e1:gc_in.out->wg_1.in",
+      "width_um": 0.45,
+      "points_um": [
+        [
+          60.0,
+          0.0
+        ],
+        [
+          90.0,
+          0.0
+        ]
+      ],
+      "source": {
+        "edge": {
+          "id": null,
+          "from": "gc_in",
+          "from_port": "out",
+          "to": "wg_1",
+          "to_port": "in",
+          "kind": "optical"
+        }
+      }
+    },
+    {
+      "route_id": "e2:wg_1.out->ec_out.in",
+      "width_um": 0.45,
+      "points_um": [
+        [
+          110.0,
+          0.0
+        ],
+        [
+          -10.0,
+          0.0
+        ]
+      ],
+      "source": {
+        "edge": {
+          "id": null,
+          "from": "wg_1",
+          "from_port": "out",
+          "to": "ec_out",
+          "to_port": "in",
+          "kind": "optical"
+        }
+      }
+    }
+  ]
+}

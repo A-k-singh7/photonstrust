@@ -1,0 +1,58 @@
+{
+  "ok": true,
+  "failures": [],
+  "metrics": [
+    {
+      "scenario_id": "canonical_phase41_metro_realistic",
+      "band": "c_1550",
+      "metric": "key_rate_bps",
+      "samples": 2,
+      "max_abs_delta": 1.3969838619232178e-08,
+      "max_rel_delta": 2.4405784094999378e-14,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "canonical_phase41_metro_realistic",
+      "band": "c_1550",
+      "metric": "qber",
+      "samples": 2,
+      "max_abs_delta": 1.5057399771478686e-15,
+      "max_rel_delta": 2.953188254512472e-13,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "canonical_phase41_metro_realistic",
+      "band": "c_1550",
+      "metric": "raman_counts_cps",
+      "samples": 2,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-09
+      }
+    },
+    {
+      "scenario_id": "canonical_phase41_metro_realistic",
+      "band": "c_1550",
+      "metric": "background_counts_cps",
+      "samples": 2,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-09
+      }
+    }
+  ]
+}

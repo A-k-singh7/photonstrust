@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.ports",
+  "ports": [
+    {
+      "node": "cpl_in",
+      "port": "in1",
+      "x_um": -10.0,
+      "y_um": -5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_in:in1"
+      }
+    },
+    {
+      "node": "cpl_in",
+      "port": "in2",
+      "x_um": -10.0,
+      "y_um": 5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_in:in2"
+      }
+    },
+    {
+      "node": "cpl_in",
+      "port": "out1",
+      "x_um": 10.0,
+      "y_um": -5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_in:out1"
+      }
+    },
+    {
+      "node": "cpl_in",
+      "port": "out2",
+      "x_um": 10.0,
+      "y_um": 5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_in:out2"
+      }
+    },
+    {
+      "node": "cpl_out",
+      "port": "in1",
+      "x_um": 40.0,
+      "y_um": -5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_out:in1"
+      }
+    },
+    {
+      "node": "cpl_out",
+      "port": "in2",
+      "x_um": 40.0,
+      "y_um": 5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_out:in2"
+      }
+    },
+    {
+      "node": "cpl_out",
+      "port": "out1",
+      "x_um": 60.0,
+      "y_um": -5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_out:out1"
+      }
+    },
+    {
+      "node": "cpl_out",
+      "port": "out2",
+      "x_um": 60.0,
+      "y_um": 5.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:cpl_out:out2"
+      }
+    },
+    {
+      "node": "ps1",
+      "port": "in",
+      "x_um": 90.0,
+      "y_um": 0.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:ps1:in"
+      }
+    },
+    {
+      "node": "ps1",
+      "port": "out",
+      "x_um": 110.0,
+      "y_um": 0.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:ps1:out"
+      }
+    },
+    {
+      "node": "ps2",
+      "port": "in",
+      "x_um": 140.0,
+      "y_um": 0.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:ps2:in"
+      }
+    },
+    {
+      "node": "ps2",
+      "port": "out",
+      "x_um": 160.0,
+      "y_um": 0.0,
+      "source": {
+        "layer": {
+          "layer": 10,
+          "datatype": 0
+        },
+        "text": "PTPORT:ps2:out"
+      }
+    }
+  ]
+}

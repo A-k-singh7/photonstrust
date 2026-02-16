@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.rc_artifact_pack.demo_references",
+  "generated_at": "2026-02-16T07:27:59.984698+00:00",
+  "phase2e_demo_packs": [
+    {
+      "run_label": "smoke_phase2e",
+      "generated_at": "2026-02-16T07:10:01.426857+00:00",
+      "index_path": "results/demo_pack/smoke_phase2e/demo_pack.json",
+      "fingerprint_sha256": "c286c3113d7fca4c6a3d78b53c50beb304543a691ffd515307d4106e722ccd34",
+      "scenario_id": "demo1_multiband_phase2e_demo",
+      "band": "c_1550",
+      "reliability_card": "results/demo_pack/smoke_phase2e/run/demo1_multiband_phase2e_demo/c_1550/reliability_card.json",
+      "uncertainty": "results/demo_pack/smoke_phase2e/run/demo1_multiband_phase2e_demo/c_1550/uncertainty.json",
+      "results": "results/demo_pack/smoke_phase2e/run/demo1_multiband_phase2e_demo/c_1550/results.json",
+      "evidence_manifest": "results/demo_pack/smoke_phase2e/evidence/artifact_manifest.json"
+    },
+    {
+      "run_label": "tmp_day0_20260216T072623Z",
+      "generated_at": "2026-02-16T07:26:28.951264+00:00",
+      "index_path": "results/demo_pack/tmp_day0_20260216T072623Z/demo_pack.json",
+      "fingerprint_sha256": "c286c3113d7fca4c6a3d78b53c50beb304543a691ffd515307d4106e722ccd34",
+      "scenario_id": "demo1_multiband_phase2e_demo",
+      "band": "c_1550",
+      "reliability_card": "results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/reliability_card.json",
+      "uncertainty": "results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/uncertainty.json",
+      "results": "results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/results.json",
+      "evidence_manifest": "results/demo_pack/tmp_day0_20260216T072623Z/evidence/artifact_manifest.json"
+    },
+    {
+      "run_label": "tmp_day0_v11_20260216T072652Z",
+      "generated_at": "2026-02-16T07:26:57.952442+00:00",
+      "index_path": "results/demo_pack/tmp_day0_v11_20260216T072652Z/demo_pack.json",
+      "fingerprint_sha256": "fbf38957447c658732a8f01d76386708dc7780685439b20250629d7c90e14f72",
+      "scenario_id": "pilot_day0_multiband_phase2e_demo",
+      "band": "c_1550",
+      "reliability_card": "results/demo_pack/tmp_day0_v11_20260216T072652Z/run/pilot_day0_multiband_phase2e_demo/c_1550/reliability_card.json",
+      "uncertainty": "results/demo_pack/tmp_day0_v11_20260216T072652Z/run/pilot_day0_multiband_phase2e_demo/c_1550/uncertainty.json",
+      "results": "results/demo_pack/tmp_day0_v11_20260216T072652Z/run/pilot_day0_multiband_phase2e_demo/c_1550/results.json",
+      "evidence_manifest": "results/demo_pack/tmp_day0_v11_20260216T072652Z/evidence/artifact_manifest.json"
+    }
+  ],
+  "measurement_artifact_pack_demos": [
+    {
+      "pack_id": "meas_demo_001_20260213T015750.469580+0000",
+      "generated_at": "2026-02-13T01:57:50.469580+00:00",
+      "manifest_path": "results/artifact_pack_demo/meas_demo_001_20260213T015750.469580+0000/artifact_pack_manifest.json",
+      "measurement_bundle_path": "results/artifact_pack_demo/meas_demo_001_20260213T015750.469580+0000/measurement_bundle.json",
+      "zip_path": "results/artifact_pack_demo/meas_demo_001_20260213T015750.469580+0000.zip",
+      "scan_status": "pass",
+      "bundle_hash": "1013277aeb5eec1e3402b0c5e2e43404e0aa2f05f9201c19d3df2f0033b2e40b"
+    }
+  ],
+  "repro_pack_demos": [
+    {
+      "pack_id": "demo1_quick_smoke",
+      "generated_at": "2026-02-13T00:06:09.224794+00:00",
+      "manifest_path": "results/repro_pack_demo1_quick_smoke/repro_pack_manifest.json",
+      "config_hash": "b5b0294aaebf3acb75cc1b84e3178f91a84504a781da2874aeb929fcd34f83bf",
+      "reference_outputs_dir": "results/repro_pack_demo1_quick_smoke/reference_outputs",
+      "verify_script": "results/repro_pack_demo1_quick_smoke/verify.py"
+    }
+  ],
+  "release_bundle": {
+    "root": "results/release_bundle",
+    "readme": "results/release_bundle/README.md",
+    "run_registry": "results/release_bundle/run_registry.json",
+    "present": true
+  }
+}

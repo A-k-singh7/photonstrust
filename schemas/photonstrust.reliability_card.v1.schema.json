@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.reliability_card.v1.schema.json",
+  "title": "PhotonTrust Reliability Card v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "scenario_id",
+    "band",
+    "wavelength_nm",
+    "inputs",
+    "derived",
+    "outputs",
+    "error_budget",
+    "safe_use_label",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "scenario_id": { "type": "string" },
+    "band": { "type": "string", "enum": ["nir_795", "nir_850", "o_1310", "c_1550"] },
+    "wavelength_nm": { "type": "number" },
+    "evidence_quality_tier": {
+      "type": "string",
+      "enum": ["simulated_only", "calibrated_lab", "field_validated"]
+    },
+    "benchmark_coverage": { "type": "string" },
+    "calibration_diagnostics": {
+      "type": ["object", "null"],
+      "properties": {
+        "status": { "type": "string" },
+        "gate_pass": { "type": ["boolean", "null"] },
+        "ess_ratio": { "type": ["number", "null"] },
+        "r_hat_proxy": { "type": ["number", "null"] },
+        "ppc_score": { "type": ["number", "null"] }
+      }
+    },
+    "reproducibility_artifact_uri": { "type": ["string", "null"] },
+    "notes": { "type": "string" },
+    "inputs": {
+      "type": "object",
+      "required": ["source", "channel", "detector", "timing", "protocol"],
+      "properties": {
+        "source": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["emitter_cavity", "spdc"] },
+            "physics_backend": { "type": "string", "enum": ["analytic", "qutip"] },
+            "emission_mode": { "type": "string", "enum": ["steady_state", "transient"] },
+            "rep_rate_mhz": { "type": "number" },
+            "collection_efficiency": { "type": "number" },
+            "coupling_efficiency": { "type": "number" },
+            "radiative_lifetime_ns": { "type": "number" },
+            "purcell_factor": { "type": "number" },
+            "dephasing_rate_per_ns": { "type": "number" },
+            "g2_0": { "type": "number" },
+            "drive_strength": { "type": "number" },
+            "pulse_window_ns": { "type": "number" },
+            "transient_steps": { "type": ["number", "null"] },
+            "mu": { "type": "number" },
+            "hom_visibility": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+            "indistinguishability": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+          }
+        },
+        "channel": {
+          "type": "object",
+          "properties": {
+            "fiber_loss_db_per_km": { "type": "number" },
+            "connector_loss_db": { "type": "number" },
+            "distance_km": { "type": "number" },
+            "dispersion_ps_per_km": { "type": "number" },
+            "polarization_coherence_length_km": { "type": "number" }
+          }
+        },
+        "detector": {
+          "type": "object",
+          "properties": {
+            "class": { "type": "string", "enum": ["si_apd", "ingaas", "snspd"] },
+            "physics_backend": { "type": "string", "enum": ["analytic", "stochastic"] },
+            "sample_count": { "type": "number" },
+            "time_bin_ps": { "type": "number" },
+            "afterpulse_delay_ns": { "type": "number" },
+            "gate_width_ns": { "type": ["number", "null"] },
+            "gate_period_ns": { "type": ["number", "null"] },
+            "saturation_count_rate_cps": { "type": ["number", "null"] },
+            "pde": { "type": "number" },
+            "dark_counts_cps": { "type": "number" },
+            "jitter_ps_fwhm": { "type": "number" },
+            "dead_time_ns": { "type": "number" },
+            "afterpulsing_prob": { "type": "number" }
+          }
+        },
+        "timing": {
+          "type": "object",
+          "properties": {
+            "sync_drift_ps_rms": { "type": "number" },
+            "coincidence_window_ps": { "type": "number" }
+          }
+        },
+        "protocol": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "sifting_factor": { "type": "number" },
+            "ec_efficiency": { "type": "number" },
+            "misalignment_prob": { "type": ["number", "null"], "minimum": 0, "maximum": 0.5 },
+            "optical_visibility": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "derived": {
+      "type": "object",
+      "required": ["loss_budget", "timing_budget", "multiphoton", "dark_counts", "timing_errors", "qber_total"],
+      "properties": {
+        "loss_budget": {
+          "type": "object",
+          "properties": {
+            "fiber_loss_db": { "type": "number" },
+            "connector_loss_db": { "type": "number" },
+            "total_loss_db": { "type": "number" }
+          }
+        },
+        "timing_budget": {
+          "type": "object",
+          "properties": {
+            "effective_jitter_ps": { "type": "number" },
+            "false_herald_prob": { "type": "number" }
+          }
+        },
+        "multiphoton": {
+          "type": "object",
+          "properties": {
+            "p_multi": { "type": "number" },
+            "qber_contrib": { "type": "number" }
+          }
+        },
+        "dark_counts": {
+          "type": "object",
+          "properties": { "qber_contrib": { "type": "number" } }
+        },
+        "timing_errors": {
+          "type": "object",
+          "properties": { "qber_contrib": { "type": "number" } }
+        },
+        "qber_total": { "type": "number" }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "required": ["entanglement_rate_hz", "key_rate_bps", "fidelity_est", "critical_distance_km", "uncertainty"],
+      "properties": {
+        "entanglement_rate_hz": { "type": "number" },
+        "key_rate_bps": { "type": "number" },
+        "fidelity_est": { "type": "number" },
+        "critical_distance_km": { "type": "number" },
+        "uncertainty": {
+          "type": ["object", "null"],
+          "properties": {
+            "key_rate_ci_low": { "type": "number" },
+            "key_rate_ci_high": { "type": "number" },
+            "outage_probability": { "type": ["number", "null"] }
+          }
+        }
+      }
+    },
+    "error_budget": {
+      "type": "object",
+      "required": ["dominant_error", "error_budget"],
+      "properties": {
+        "dominant_error": {
+          "type": "string",
+          "enum": ["loss", "detector", "background", "raman", "multiphoton", "timing", "misalignment", "source", "memory"]
+        },
+        "error_budget": {
+          "type": "object",
+          "properties": {
+            "loss_fraction": { "type": "number" },
+            "detector_fraction": { "type": "number" },
+            "background_fraction": { "type": "number" },
+            "raman_fraction": { "type": "number" },
+            "multiphoton_fraction": { "type": "number" },
+            "timing_fraction": { "type": "number" },
+            "misalignment_fraction": { "type": "number" },
+            "source_fraction": { "type": "number" }
+          }
+        }
+      }
+    },
+    "safe_use_label": {
+      "type": "object",
+      "required": ["label", "rationale"],
+      "properties": {
+        "label": { "type": "string", "enum": ["qualitative", "security_target_ready", "engineering_grade"] },
+        "rationale": { "type": "string" }
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "properties": {
+        "config_hash": { "type": "string" },
+        "model_hash": { "type": ["string", "null"] },
+        "seed": { "type": "number" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "plots": {
+          "type": "object",
+          "properties": {
+            "key_rate_vs_distance_path": { "type": "string" },
+            "qber_vs_distance_path": { "type": "string" }
+          }
+        },
+        "card_path": { "type": ["string", "null"] },
+        "report_html_path": { "type": ["string", "null"] },
+        "report_pdf_path": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

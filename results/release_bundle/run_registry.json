@@ -1,0 +1,138 @@
+[
+  {
+    "scenario_id": "demo1_c_1550",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_c_1550/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_multiband",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_multiband/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_multiband",
+    "band": "nir_795",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_multiband/nir_795/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_multiband",
+    "band": "nir_850",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_multiband/nir_850/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_multiband",
+    "band": "o_1310",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_multiband/o_1310/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_nir_795",
+    "band": "nir_795",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_nir_795/nir_795/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_nir_850",
+    "band": "nir_850",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_nir_850/nir_850/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_o_1310",
+    "band": "o_1310",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_o_1310/o_1310/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_quick_smoke",
+    "band": "nir_850",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_quick_smoke/nir_850/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo5_satellite_downlink",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo5_satellite_downlink/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo6_transient_emitter",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo6_transient_emitter/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo7_multifidelity_certification",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo7_multifidelity_certification/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo7_multifidelity_preview",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo7_multifidelity_preview/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "pilot_day0_c1550_phase2e_demo",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.21647027436174365,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/pilot_day0_c1550_phase2e_demo/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo1_multiband_phase2e_demo",
+    "band": "c_1550",
+    "key_rate_bps": 383433.4848778153,
+    "qber": 0.018557752173316833,
+    "safe_use": "engineering_grade",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_multiband_phase2e_demo/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "pilot_day0_multiband_phase2e_demo",
+    "band": "c_1550",
+    "key_rate_bps": 383433.4848778153,
+    "qber": 0.018557752173316833,
+    "safe_use": "engineering_grade",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/pilot_day0_multiband_phase2e_demo/c_1550/reliability_card.json"
+  },
+  {
+    "scenario_id": "demo8_qkd_link",
+    "band": "c_1550",
+    "key_rate_bps": 0.0,
+    "qber": 0.5,
+    "safe_use": "qualitative",
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo8_qkd_link/c_1550/reliability_card.json"
+  }
+]

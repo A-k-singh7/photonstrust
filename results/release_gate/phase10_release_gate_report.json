@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-02-13T01:01:33.590441+00:00",
+  "checks": [
+    {
+      "name": "tests",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "output": "..............................................................           [100%]\n62 passed in 6.49s"
+    },
+    {
+      "name": "benchmark_drift",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "scripts/check_benchmark_drift.py"
+      ],
+      "output": "Benchmark drift check: PASS"
+    },
+    {
+      "name": "open_benchmarks",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "scripts/check_open_benchmarks.py"
+      ],
+      "output": "Open benchmarks: PASS"
+    }
+  ],
+  "pass": true
+}

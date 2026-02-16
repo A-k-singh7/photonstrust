@@ -1,0 +1,70 @@
+:root {
+  --pt-bg: #f7f3ea;
+  --pt-ink: #0f1417;
+  --pt-muted: rgba(15, 20, 23, 0.62);
+  --pt-faint: rgba(15, 20, 23, 0.12);
+  --pt-border: rgba(15, 20, 23, 0.16);
+  --pt-panel: rgba(255, 255, 255, 0.7);
+  --pt-panel-2: rgba(255, 255, 255, 0.9);
+  --pt-shadow: 0 16px 40px rgba(15, 20, 23, 0.12);
+
+  --pt-accent: #2ee6d6;
+  --pt-accent-2: #e7343f;
+  --pt-accent-ink: #06201d;
+
+  --pt-radius: 14px;
+  --pt-radius-sm: 10px;
+
+  color-scheme: light;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  line-height: 1.25;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--pt-ink);
+  background: var(--pt-bg);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 900px at 18% 12%, rgba(46, 230, 214, 0.14), transparent 60%),
+    radial-gradient(900px 700px at 92% 20%, rgba(231, 52, 63, 0.1), transparent 62%),
+    radial-gradient(900px 700px at 55% 110%, rgba(15, 20, 23, 0.08), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(15, 20, 23, 0.035), rgba(15, 20, 23, 0.035) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(90deg, rgba(15, 20, 23, 0.022), rgba(15, 20, 23, 0.022) 1px, transparent 1px, transparent 24px);
+  opacity: 0.9;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(15, 20, 23, 0.26);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration-color: rgba(231, 52, 63, 0.55);
+}

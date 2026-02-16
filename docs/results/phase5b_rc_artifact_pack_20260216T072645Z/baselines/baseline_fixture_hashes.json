@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.rc_artifact_pack.baseline_fixture_hashes",
+  "generated_at": "2026-02-16T07:26:45.812169+00:00",
+  "fixtures": [
+    {
+      "path": "tests/fixtures/baselines.json",
+      "sha256": "806091811352519250d838f6befccebe4d9b1dd4387142fe4b061a89e2775e16",
+      "size_bytes": 5927,
+      "modified_at": "2026-02-16T07:22:10.199243+00:00",
+      "entries": 4,
+      "scenario_ids": [
+        "demo1_multiband"
+      ]
+    },
+    {
+      "path": "tests/fixtures/canonical_phase41_baselines.json",
+      "sha256": "07dd4d9be51ea1099a552077a0f0ef5058925940b741880355ac81c4615215d7",
+      "size_bytes": 3967,
+      "modified_at": "2026-02-16T07:22:28.247018+00:00",
+      "config_entries": 6,
+      "total_baseline_rows": 6,
+      "fixture_generated_at": "1970-01-01T00:00:00+00:00"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_workflow_invdesign_chain_report.v0.schema.json",
+  "title": "PhotonTrust PIC Workflow Invdesign Chain Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "kind", "inputs", "steps", "summary", "provenance"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string" },
+    "kind": { "type": "string", "const": "pic.workflow.invdesign_chain" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "graph_hash",
+        "invdesign_kind",
+        "invdesign_settings_hash",
+        "layout_settings_hash",
+        "lvs_lite_settings_hash",
+        "klayout_settings_hash",
+        "spice_settings_hash"
+      ],
+      "properties": {
+        "project_id": { "type": "string" },
+        "graph_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "invdesign_kind": { "type": "string", "enum": ["mzi_phase", "coupler_ratio"] },
+        "invdesign_settings_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "layout_settings_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "lvs_lite_settings_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "klayout_settings_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "spice_settings_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "replayed_from_run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" }
+      }
+    },
+    "steps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invdesign", "layout_build", "lvs_lite", "klayout_pack", "spice_export"],
+      "properties": {
+        "invdesign": { "$ref": "#/$defs/step_with_kind" },
+        "layout_build": { "$ref": "#/$defs/step_basic" },
+        "lvs_lite": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["run_id", "pass"],
+          "properties": {
+            "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+            "pass": { "type": "boolean" },
+            "artifact_relpaths": { "$ref": "#/$defs/artifact_relpaths" }
+          }
+        },
+        "klayout_pack": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": { "type": "string" },
+            "run_id": {
+              "anyOf": [
+                { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+                { "type": "null" }
+              ]
+            },
+            "note": { "type": "string" },
+            "reason": { "type": "string" },
+            "error": { "type": "string" },
+            "artifact_relpaths": { "$ref": "#/$defs/artifact_relpaths" }
+          }
+        },
+        "spice_export": { "$ref": "#/$defs/step_basic" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "fail"] }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["photonstrust_version", "python", "platform"],
+      "properties": {
+        "photonstrust_version": { "type": "string" },
+        "python": { "type": "string" },
+        "platform": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "artifact_relpaths": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+    "step_basic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id"],
+      "properties": {
+        "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+        "artifact_relpaths": { "$ref": "#/$defs/artifact_relpaths" }
+      }
+    },
+    "step_with_kind": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id"],
+      "properties": {
+        "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+        "kind": { "type": "string" },
+        "artifact_relpaths": { "$ref": "#/$defs/artifact_relpaths" }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PhotonTrust Repro Pack Manifest (v0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "pack_id",
+    "benchmark_bundle_path",
+    "reference_outputs_dir"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0" },
+    "generated_at": { "type": "string" },
+    "pack_id": { "type": "string" },
+    "benchmark_bundle_path": { "type": "string" },
+    "reference_outputs_dir": { "type": "string" },
+    "env": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "python": { "type": "string" },
+        "platform": { "type": "string" },
+        "pip_freeze_path": { "type": "string" }
+      }
+    },
+    "scripts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_ps1": { "type": "string" },
+        "run_sh": { "type": "string" },
+        "verify_py": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config_hash": { "type": "string" }
+      }
+    }
+  }
+}

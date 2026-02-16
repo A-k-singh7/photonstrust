@@ -1,0 +1,6 @@
+[
+  {"scenario_id": "demo1_multiband", "band": "nir_795", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\smoke\demo1\demo1_multiband\nir_795\reliability_card.json"},
+  {"scenario_id": "demo1_multiband", "band": "nir_850", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\smoke\demo1\demo1_multiband\nir_850\reliability_card.json"},
+  {"scenario_id": "demo1_multiband", "band": "o_1310", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\smoke\demo1\demo1_multiband\o_1310\reliability_card.json"},
+  {"scenario_id": "demo1_multiband", "band": "c_1550", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\smoke\demo1\demo1_multiband\c_1550\reliability_card.json"}
+]

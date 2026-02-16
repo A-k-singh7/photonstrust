@@ -1,0 +1,11 @@
+[
+  {
+    "benchmark_id": "open_demo_qkd_analytic_001",
+    "kind": "qkd_sweep",
+    "title": "Open benchmark: analytic emitter, fiber channel (o_1310 + c_1550)",
+    "created_at": "2026-02-16T07:54:41.448676+00:00",
+    "ingested_at": "2026-02-16T07:54:41.968656+00:00",
+    "bundle_path": "open_demo_qkd_analytic_001/benchmark_bundle.json",
+    "bundle_hash": "5e2505bf3c37361eeea7aa85cd666716a54cb9a7a9b5197f3cc71e77565dcfaf"
+  }
+]

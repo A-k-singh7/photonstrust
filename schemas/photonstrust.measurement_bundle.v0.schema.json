@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.measurement_bundle.v0.schema.json",
+  "title": "PhotonTrust Measurement Bundle v0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "kind",
+    "title",
+    "created_at",
+    "license",
+    "share_level",
+    "restrictions",
+    "files"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "dataset_id": { "type": "string" },
+    "kind": { "type": "string" },
+    "title": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "license": { "type": "string" },
+    "share_level": { "type": "string", "enum": ["private", "internal", "public"] },
+    "restrictions": {
+      "type": "object",
+      "required": ["contains_personal_data", "contains_export_controlled", "contains_proprietary"],
+      "properties": {
+        "contains_personal_data": { "type": "boolean" },
+        "contains_export_controlled": { "type": "boolean" },
+        "contains_proprietary": { "type": "boolean" },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "provenance": { "type": "object" },
+    "links": {
+      "type": "object",
+      "properties": {
+        "calibration_bundle_id": { "type": ["string", "null"] },
+        "graph_id": { "type": ["string", "null"] },
+        "config_hash": { "type": ["string", "null"] }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256", "content_type"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "content_type": { "type": "string" },
+          "description": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
+

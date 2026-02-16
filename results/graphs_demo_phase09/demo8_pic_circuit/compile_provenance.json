@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-02-13T00:50:15.247918+00:00",
+  "graph_id": "demo8_pic_circuit",
+  "graph_schema_version": "0.1",
+  "profile": "pic_circuit",
+  "graph_hash": "5518d6f8bd399c1a6eb7f7ae5f54f8cad6c2dad25acae4e1e7f4c93a6084147d",
+  "compiler": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "artifacts": {
+    "graph_path": "graph.json",
+    "compiled_path": "compiled_netlist.json",
+    "assumptions_path": "assumptions.md"
+  },
+  "warnings": []
+}

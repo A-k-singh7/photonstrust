@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.orbit_pass_results.v0.schema.json",
+  "title": "PhotonTrust Orbit Pass Results v0",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "pass_id", "band", "wavelength_nm", "dt_s", "trust_label", "cases"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "pass_id": { "type": "string" },
+    "band": { "type": "string", "enum": ["nir_795", "nir_850", "o_1310", "c_1550"] },
+    "wavelength_nm": { "type": "number" },
+    "dt_s": { "type": "number" },
+    "pass_metadata": { "type": "object" },
+    "finite_key": { "type": "object" },
+    "provenance": { "type": "object" },
+    "assumptions": { "type": "object" },
+    "trust_label": {
+      "type": "object",
+      "required": ["mode", "label", "regime", "applicability_bounds", "caveats"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["preview", "certification"] },
+        "label": { "type": "string" },
+        "regime": { "type": "string" },
+        "applicability_bounds": { "type": "object" },
+        "caveats": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case_id", "points", "summary"],
+        "properties": {
+          "case_id": { "type": "string" },
+          "label": { "type": ["string", "null"] },
+          "effective_channel": { "type": "object" },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["t_s", "distance_km", "elevation_deg", "background_counts_cps", "qkd", "channel_diag"],
+              "properties": {
+                "t_s": { "type": "number" },
+                "distance_km": { "type": "number" },
+                "elevation_deg": { "type": "number" },
+                "background_counts_cps": { "type": "number" },
+                "background_model": { "type": "string" },
+                "background_day_night": { "type": "string" },
+                "background_uncertainty_cps": { "type": "object" },
+                "qkd": {
+                  "type": "object",
+                  "properties": {
+                    "key_rate_bps": { "type": "number" },
+                    "entanglement_rate_hz": { "type": "number" },
+                    "qber_total": { "type": "number" },
+                    "fidelity": { "type": "number" },
+                    "loss_db": { "type": "number" }
+                  }
+                },
+                "channel_diag": { "type": "object" }
+              }
+            }
+          },
+            "summary": {
+              "type": "object",
+              "required": ["total_keys_bits", "expected_total_keys_bits", "avg_key_rate_bps", "min_key_rate_bps", "max_key_rate_bps"],
+              "properties": {
+                "total_keys_bits": { "type": "number" },
+                "expected_total_keys_bits": { "type": "number" },
+                "avg_key_rate_bps": { "type": "number" },
+                "min_key_rate_bps": { "type": "number" },
+                "max_key_rate_bps": { "type": "number" },
+                "min_loss_db": { "type": "number" },
+                "max_loss_db": { "type": "number" },
+                "avg_channel_outage_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+                "max_channel_outage_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+                "background_model": { "type": "string" },
+                "background_day_night": { "type": "string" },
+                "avg_background_counts_cps": { "type": "number" },
+                "min_background_counts_cps": { "type": "number" },
+                "max_background_counts_cps": { "type": "number" },
+                "avg_background_uncertainty_sigma_cps": { "type": "number" },
+                "max_background_uncertainty_sigma_cps": { "type": "number" },
+                "finite_key": { "type": "object" }
+              }
+            }
+        }
+      }
+    }
+  }
+}

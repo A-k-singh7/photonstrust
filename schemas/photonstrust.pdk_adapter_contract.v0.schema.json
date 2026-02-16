@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pdk_adapter_contract.v0.schema.json",
+  "title": "PhotonTrust PDK Adapter Contract Snapshot (v0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "adapter", "request", "pdk", "capabilities"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0" },
+    "adapter": { "type": "string", "minLength": 1 },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "manifest_path"],
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "manifest_path": { "type": ["string", "null"] }
+      }
+    },
+    "pdk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "design_rules", "notes"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "design_rules": { "type": "object" },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supports_layout",
+        "supports_performance_drc",
+        "supports_lvs_lite_signoff",
+        "supports_spice_export"
+      ],
+      "properties": {
+        "supports_layout": { "type": "boolean" },
+        "supports_performance_drc": { "type": "boolean" },
+        "supports_lvs_lite_signoff": { "type": "boolean" },
+        "supports_spice_export": { "type": "boolean" }
+      }
+    }
+  }
+}

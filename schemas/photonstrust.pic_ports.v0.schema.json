@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_ports.v0.schema.json",
+  "title": "PhotonTrust PIC Ports Sidecar (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "ports"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "pic.ports" },
+    "ports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["node", "port", "x_um", "y_um"],
+        "properties": {
+          "node": { "type": "string" },
+          "port": { "type": "string" },
+          "x_um": { "type": "number" },
+          "y_um": { "type": "number" },
+          "role": { "type": "string" },
+          "kind": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+

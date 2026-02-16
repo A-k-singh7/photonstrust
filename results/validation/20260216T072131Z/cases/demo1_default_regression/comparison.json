@@ -1,0 +1,110 @@
+{
+  "ok": true,
+  "failures": [],
+  "metrics": [
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "nir_795",
+      "metric": "key_rate_bps",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "nir_795",
+      "metric": "qber",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "nir_850",
+      "metric": "key_rate_bps",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "nir_850",
+      "metric": "qber",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "o_1310",
+      "metric": "key_rate_bps",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "o_1310",
+      "metric": "qber",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "c_1550",
+      "metric": "key_rate_bps",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "demo1_multiband",
+      "band": "c_1550",
+      "metric": "qber",
+      "samples": 21,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "run_id": "7f9330a996f9",
+  "run_type": "pic_layout_build",
+  "generated_at": "2026-02-14T18:09:09.258327+00:00",
+  "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-09-07\\run_7f9330a996f9",
+  "input": {
+    "project_id": "default",
+    "graph_hash": "3417d95e0edf40b314069061567192e3e4dff84b491c312fe390c9f473591a00",
+    "pdk": "generic_silicon_photonics",
+    "settings_hash": "100770d54ccef1b7823118f25552d4b1ab946cd9cf7c35586073ef4a0da07dd4"
+  },
+  "outputs_summary": {
+    "pic_layout": {
+      "nodes": 4,
+      "edges": 4,
+      "ports": 12,
+      "routes": 4,
+      "gds_emitted": true,
+      "pdk": "generic_silicon_photonics"
+    }
+  },
+  "artifacts": {
+    "layout_build_report_json": "layout_build_report.json",
+    "ports_json": "ports.json",
+    "routes_json": "routes.json",
+    "layout_provenance_json": "layout_provenance.json",
+    "layout_gds": "layout.gds"
+  },
+  "provenance": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

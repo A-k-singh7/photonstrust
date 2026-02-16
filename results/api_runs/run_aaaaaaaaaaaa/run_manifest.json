@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "run_id": "aaaaaaaaaaaa",
+  "run_type": "manual_layout_drop",
+  "generated_at": "2026-02-16T00:00:00+00:00",
+  "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_aaaaaaaaaaaa",
+  "input": {
+    "project_id": "default"
+  },
+  "outputs_summary": {},
+  "artifacts": {
+    "layout_gds": "layout.gds"
+  },
+  "provenance": {
+    "python": "0",
+    "platform": "0"
+  }
+}

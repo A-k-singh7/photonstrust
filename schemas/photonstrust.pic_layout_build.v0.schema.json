@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_layout_build.v0.schema.json",
+  "title": "PhotonTrust PIC Layout Build Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "graph_id", "pdk", "settings", "summary", "artifacts", "warnings"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "graph_id": { "type": "string" },
+    "pdk": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "version", "design_rules", "notes"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "design_rules": { "type": "object" },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "settings": { "type": "object" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "ports", "routes", "gds_emitted"],
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0 },
+        "ports": { "type": "integer", "minimum": 0 },
+        "routes": { "type": "integer", "minimum": 0 },
+        "gds_emitted": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routes_json_path", "ports_json_path", "layout_provenance_json_path", "layout_gds_path"],
+      "properties": {
+        "routes_json_path": { "type": "string" },
+        "ports_json_path": { "type": "string" },
+        "layout_provenance_json_path": { "type": "string" },
+        "layout_gds_path": { "type": ["string", "null"] }
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}
+

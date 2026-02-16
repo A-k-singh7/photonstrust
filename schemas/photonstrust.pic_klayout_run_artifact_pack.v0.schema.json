@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_klayout_run_artifact_pack.v0.schema.json",
+  "title": "PhotonTrust PIC KLayout Run Artifact Pack (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "pack_id",
+    "status",
+    "inputs",
+    "execution",
+    "outputs",
+    "output_hashes",
+    "summary",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "pack_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["pass", "fail", "skipped", "error"] },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_gds_path", "input_gds_sha256", "macro_path", "macro_sha256", "variables"],
+      "properties": {
+        "input_gds_path": { "type": "string" },
+        "input_gds_sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "macro_path": { "type": "string" },
+        "macro_sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "variables": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend", "ok", "returncode", "command", "stdout_path", "stderr_path", "error"],
+      "properties": {
+        "backend": { "type": "string", "enum": ["klayout_cli", "pya_inprocess"] },
+        "ok": { "type": "boolean" },
+        "returncode": { "type": ["integer", "null"] },
+        "command": { "type": ["array", "null"], "items": { "type": "string" } },
+        "stdout_path": { "type": "string" },
+        "stderr_path": { "type": "string" },
+        "error": { "type": ["string", "null"] }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ports_extracted_json", "routes_extracted_json", "drc_lite_json", "macro_provenance_json"],
+      "properties": {
+        "ports_extracted_json": { "type": ["string", "null"] },
+        "routes_extracted_json": { "type": ["string", "null"] },
+        "drc_lite_json": { "type": ["string", "null"] },
+        "macro_provenance_json": { "type": ["string", "null"] }
+      }
+    },
+    "output_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ports_extracted", "routes_extracted", "drc_status", "issue_count", "error_count"],
+      "properties": {
+        "ports_extracted": { "type": ["integer", "null"], "minimum": 0 },
+        "routes_extracted": { "type": ["integer", "null"], "minimum": 0 },
+        "drc_status": { "type": ["string", "null"] },
+        "issue_count": { "type": ["integer", "null"], "minimum": 0 },
+        "error_count": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "platform"],
+      "properties": {
+        "python": { "type": "string" },
+        "platform": { "type": "string" }
+      }
+    }
+  }
+}
+

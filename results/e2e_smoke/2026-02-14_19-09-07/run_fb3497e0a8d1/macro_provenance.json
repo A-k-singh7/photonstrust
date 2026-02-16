@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1",
+  "generated_by": "pt_pic_extract_and_drc_lite",
+  "inputs": {
+    "input_gds": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-09-07\\run_7f9330a996f9\\layout.gds",
+    "top_cell": "TOP",
+    "dbu_um": 0.001
+  },
+  "settings": {
+    "label_prefix": "PTPORT",
+    "min_waveguide_width_um": 0.5,
+    "endpoint_snap_tol_um": 2.0
+  },
+  "layers": {
+    "waveguide": {
+      "layer": 1,
+      "datatype": 0
+    },
+    "label": {
+      "layer": 10,
+      "datatype": 0
+    }
+  },
+  "outputs": {
+    "ports_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-09-07\\run_fb3497e0a8d1\\ports_extracted.json",
+    "routes_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-09-07\\run_fb3497e0a8d1\\routes_extracted.json",
+    "drc_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-09-07\\run_fb3497e0a8d1\\drc_lite.json"
+  },
+  "metrics": {
+    "ports_extracted": 12,
+    "routes_extracted": 4,
+    "routes_skipped_polygons": 0,
+    "routes_skipped_other": 0,
+    "label_parse_errors": 0
+  }
+}

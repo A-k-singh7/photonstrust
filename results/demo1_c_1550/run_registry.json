@@ -1,0 +1,3 @@
+[
+  {"scenario_id": "demo1_c_1550", "band": "c_1550", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\demo1_c_1550\demo1_c_1550\c_1550\reliability_card.json"}
+]

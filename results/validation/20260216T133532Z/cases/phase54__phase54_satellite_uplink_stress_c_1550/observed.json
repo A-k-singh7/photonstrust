@@ -1,0 +1,26 @@
+[
+  {
+    "scenario_id": "canonical_phase54_satellite_uplink_stress",
+    "band": "c_1550",
+    "distances_km": [
+      400.0,
+      800.0
+    ],
+    "key_rate_bps": [
+      0.00010221581453352007,
+      0.0
+    ],
+    "qber": [
+      0.06112723510784465,
+      0.3448116840649532
+    ],
+    "raman_counts_cps": [
+      0.0,
+      0.0
+    ],
+    "background_counts_cps": [
+      308.0,
+      308.0
+    ]
+  }
+]

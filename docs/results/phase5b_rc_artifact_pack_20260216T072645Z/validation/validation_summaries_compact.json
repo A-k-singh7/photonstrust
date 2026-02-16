@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.rc_artifact_pack.validation_summaries",
+  "generated_at": "2026-02-16T07:26:45.812169+00:00",
+  "sources": {
+    "validation": {
+      "run_dir": "results/validation/20260216T072221Z",
+      "summary_path": "results/validation/20260216T072221Z/summary.json",
+      "manifest_path": "results/validation/20260216T072221Z/manifest.json",
+      "run_id": "20260216T072221Z",
+      "ok": true,
+      "case_count": 7,
+      "failed_cases": 0,
+      "total_failures": 0
+    },
+    "validation_ci_smoke": {
+      "run_dir": "results/validation_ci_smoke/20260216T072217Z",
+      "summary_path": "results/validation_ci_smoke/20260216T072217Z/summary.json",
+      "manifest_path": "results/validation_ci_smoke/20260216T072217Z/manifest.json",
+      "run_id": "20260216T072217Z",
+      "ok": true,
+      "case_count": 1,
+      "failed_cases": 0,
+      "total_failures": 0
+    }
+  }
+}

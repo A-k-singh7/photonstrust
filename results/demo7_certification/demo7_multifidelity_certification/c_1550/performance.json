@@ -1,0 +1,6 @@
+{
+  "execution_mode": "certification",
+  "uncertainty_samples": 500,
+  "detector_sample_scale": 1.5,
+  "elapsed_s": 2.535407800009125
+}

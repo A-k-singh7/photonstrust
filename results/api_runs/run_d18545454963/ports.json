@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.ports",
+  "ports": [
+    {
+      "node": "ec_out",
+      "kind": "pic.edge_coupler",
+      "port": "in",
+      "role": "in",
+      "x_um": -10.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "ec_out",
+      "kind": "pic.edge_coupler",
+      "port": "out",
+      "role": "out",
+      "x_um": 10.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "gc_in",
+      "kind": "pic.grating_coupler",
+      "port": "in",
+      "role": "in",
+      "x_um": 40.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "gc_in",
+      "kind": "pic.grating_coupler",
+      "port": "out",
+      "role": "out",
+      "x_um": 60.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "wg_1",
+      "kind": "pic.waveguide",
+      "port": "in",
+      "role": "in",
+      "x_um": 90.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "wg_1",
+      "kind": "pic.waveguide",
+      "port": "out",
+      "role": "out",
+      "x_um": 110.0,
+      "y_um": 0.0
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "schema_version": "0.1",
+  "graph_id": "phase57_w32_canonical_pic_chain",
+  "profile": "pic_circuit",
+  "metadata": {
+    "title": "Phase57 W32 canonical PIC chain graph",
+    "description": "Deterministic fixture for graph-layout-klayout-lvs-spice chain tests",
+    "created_at": "2026-02-16"
+  },
+  "circuit": {
+    "id": "phase57_w32_canonical_pic_chain",
+    "wavelength_nm": 1550.0
+  },
+  "nodes": [
+    {
+      "id": "gc_in",
+      "kind": "pic.grating_coupler",
+      "params": {
+        "insertion_loss_db": 2.5
+      }
+    },
+    {
+      "id": "wg_1",
+      "kind": "pic.waveguide",
+      "params": {
+        "length_um": 2000.0,
+        "loss_db_per_cm": 2.0
+      }
+    },
+    {
+      "id": "ec_out",
+      "kind": "pic.edge_coupler",
+      "params": {
+        "insertion_loss_db": 1.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "gc_in",
+      "to": "wg_1",
+      "kind": "optical"
+    },
+    {
+      "id": "e2",
+      "from": "wg_1",
+      "to": "ec_out",
+      "kind": "optical"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "dataset_id": "meas_demo_001",
+    "kind": "pic_component_measurements",
+    "title": "Demo measurement bundle (loss vs wavelength)",
+    "created_at": "2026-02-13T00:00:00Z",
+    "share_level": "public",
+    "restrictions": {
+      "contains_personal_data": false,
+      "contains_export_controlled": false,
+      "contains_proprietary": false,
+      "notes": "Synthetic demo data for unit tests."
+    },
+    "ingested_at": "2026-02-13T01:57:50.496652+00:00",
+    "manifest_path": "meas_demo_001/measurement_bundle.json",
+    "bundle_hash": "1013277aeb5eec1e3402b0c5e2e43404e0aa2f05f9201c19d3df2f0033b2e40b"
+  }
+]

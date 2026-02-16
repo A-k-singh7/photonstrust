@@ -1,0 +1,85 @@
+{
+  "schema_version": "0",
+  "generated_at": "2026-02-16T13:30:46.779285+00:00",
+  "run_id": "0a866b3065b8",
+  "check": {
+    "kind": "pic.parallel_waveguide_crosstalk",
+    "inputs": {
+      "gap_um": 0.6,
+      "parallel_length_um": 1000.0,
+      "wavelength_sweep_nm": [
+        1550.0
+      ],
+      "target_xt_db": -40.0,
+      "model": null,
+      "corner": null,
+      "pdk": {
+        "name": "generic_silicon_photonics",
+        "version": "0",
+        "design_rules": {
+          "min_waveguide_width_um": 0.45,
+          "min_waveguide_gap_um": 0.2,
+          "min_bend_radius_um": 5.0
+        }
+      }
+    }
+  },
+  "results": {
+    "status": "fail",
+    "points": [
+      {
+        "wavelength_nm": 1550.0,
+        "xt_db": -26.057668914195105,
+        "margin_db": -13.942331085804895,
+        "pass": false
+      }
+    ],
+    "worst_xt_db": -26.057668914195105,
+    "worst_margin_db": -13.942331085804895,
+    "recommended_min_gap_um": 0.9210340371976182,
+    "drc": {
+      "pass": true,
+      "violations": [],
+      "violations_annotated": []
+    },
+    "layout": null,
+    "loss_budget": null,
+    "signoff_bundle": null,
+    "violations": [
+      {
+        "id": "pdrc.crosstalk_target:1550.0",
+        "source": "performance_drc.crosstalk",
+        "code": "pdrc.crosstalk_target",
+        "severity": "error",
+        "applicability": "blocking",
+        "entity_ref": "wavelength_nm:1550.0",
+        "message": "xt_db exceeds target at wavelength_nm=1550.0",
+        "location": {
+          "wavelength_nm": 1550.0
+        }
+      }
+    ],
+    "violation_summary": {
+      "total": 1,
+      "by_severity": {
+        "error": 1
+      },
+      "by_applicability": {
+        "blocking": 1
+      },
+      "blocking": 1
+    }
+  },
+  "artifacts": {
+    "report_json_path": null,
+    "report_html_path": null
+  },
+  "provenance": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "input_hash": "69aca66bf10bc12d538713a87a055bb1fad87be3c3147417858c8b56726c3c5b",
+    "model_hash": "8e9fd9fcbb59349ae17db0a8e8e3f120248a3daad080bc6552f86f2ec99ea1f6",
+    "layout_hash": null
+  }
+}

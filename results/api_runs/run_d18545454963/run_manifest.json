@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.1",
+  "run_id": "d18545454963",
+  "run_type": "pic_layout_build",
+  "generated_at": "2026-02-16T13:30:20.877028+00:00",
+  "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_d18545454963",
+  "input": {
+    "project_id": "default",
+    "graph_hash": "3c30a7a8b6233fa3e469eb67e56393c111341d647fd5577226b075f11920b28f",
+    "execution_mode": "preview",
+    "pdk": "generic_silicon_photonics",
+    "settings_hash": "100770d54ccef1b7823118f25552d4b1ab946cd9cf7c35586073ef4a0da07dd4"
+  },
+  "outputs_summary": {
+    "pic_layout": {
+      "nodes": 3,
+      "edges": 2,
+      "ports": 6,
+      "routes": 2,
+      "gds_emitted": true,
+      "pdk": "generic_silicon_photonics"
+    }
+  },
+  "artifacts": {
+    "layout_build_report_json": "layout_build_report.json",
+    "ports_json": "ports.json",
+    "routes_json": "routes.json",
+    "layout_provenance_json": "layout_provenance.json",
+    "layout_gds": "layout.gds",
+    "pdk_manifest_json": "pdk_manifest.json"
+  },
+  "provenance": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

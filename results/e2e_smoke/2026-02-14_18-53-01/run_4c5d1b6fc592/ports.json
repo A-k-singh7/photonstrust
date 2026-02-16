@@ -1,0 +1,102 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.ports",
+  "ports": [
+    {
+      "node": "cpl_in",
+      "kind": "pic.coupler",
+      "port": "in1",
+      "role": "in",
+      "x_um": -10.0,
+      "y_um": -5.0
+    },
+    {
+      "node": "cpl_in",
+      "kind": "pic.coupler",
+      "port": "in2",
+      "role": "in",
+      "x_um": -10.0,
+      "y_um": 5.0
+    },
+    {
+      "node": "cpl_in",
+      "kind": "pic.coupler",
+      "port": "out1",
+      "role": "out",
+      "x_um": 10.0,
+      "y_um": -5.0
+    },
+    {
+      "node": "cpl_in",
+      "kind": "pic.coupler",
+      "port": "out2",
+      "role": "out",
+      "x_um": 10.0,
+      "y_um": 5.0
+    },
+    {
+      "node": "cpl_out",
+      "kind": "pic.coupler",
+      "port": "in1",
+      "role": "in",
+      "x_um": 40.0,
+      "y_um": -5.0
+    },
+    {
+      "node": "cpl_out",
+      "kind": "pic.coupler",
+      "port": "in2",
+      "role": "in",
+      "x_um": 40.0,
+      "y_um": 5.0
+    },
+    {
+      "node": "cpl_out",
+      "kind": "pic.coupler",
+      "port": "out1",
+      "role": "out",
+      "x_um": 60.0,
+      "y_um": -5.0
+    },
+    {
+      "node": "cpl_out",
+      "kind": "pic.coupler",
+      "port": "out2",
+      "role": "out",
+      "x_um": 60.0,
+      "y_um": 5.0
+    },
+    {
+      "node": "ps1",
+      "kind": "pic.phase_shifter",
+      "port": "in",
+      "role": "in",
+      "x_um": 90.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "ps1",
+      "kind": "pic.phase_shifter",
+      "port": "out",
+      "role": "out",
+      "x_um": 110.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "ps2",
+      "kind": "pic.phase_shifter",
+      "port": "in",
+      "role": "in",
+      "x_um": 140.0,
+      "y_um": 0.0
+    },
+    {
+      "node": "ps2",
+      "kind": "pic.phase_shifter",
+      "port": "out",
+      "role": "out",
+      "x_um": 160.0,
+      "y_um": 0.0
+    }
+  ]
+}

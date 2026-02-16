@@ -1,0 +1,31 @@
+{
+  "schema_version": "0",
+  "dataset_id": "meas_demo_001",
+  "kind": "pic_component_measurements",
+  "title": "Demo measurement bundle (loss vs wavelength)",
+  "created_at": "2026-02-13T00:00:00Z",
+  "license": "CC-BY-4.0",
+  "share_level": "public",
+  "restrictions": {
+    "contains_personal_data": false,
+    "contains_export_controlled": false,
+    "contains_proprietary": false,
+    "notes": "Synthetic demo data for unit tests."
+  },
+  "provenance": {
+    "description": "Synthetic example for PhotonTrust tests."
+  },
+  "links": {
+    "config_hash": null,
+    "graph_id": null,
+    "calibration_bundle_id": null
+  },
+  "files": [
+    {
+      "path": "data/demo_measurements.csv",
+      "sha256": "19259c0f0da1c91e21e44c22f16c5d43f64f15fd6fdb09f40ff6b0ae8c56de6a",
+      "content_type": "text/csv",
+      "description": "Synthetic loss measurements."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PhotonTrust Dataset Entry",
+  "type": "object",
+  "required": ["scenario_id", "config", "results", "metadata"],
+  "properties": {
+    "scenario_id": { "type": "string" },
+    "config": { "type": "object" },
+    "results": { "type": "object" },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "generated_at": { "type": "string" },
+        "seed": { "type": "number" },
+        "version": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "schema_version": "0.1",
+  "profile": "pic_circuit",
+  "graph_id": "demo8_pic_circuit",
+  "circuit": {
+    "id": "demo8_pic_circuit",
+    "wavelength_nm": 1550
+  },
+  "nodes": [
+    {
+      "id": "ec_out",
+      "kind": "pic.edge_coupler",
+      "label": "Edge Out",
+      "params": {
+        "insertion_loss_db": 1.5
+      }
+    },
+    {
+      "id": "gc_in",
+      "kind": "pic.grating_coupler",
+      "label": "GC In",
+      "params": {
+        "insertion_loss_db": 2.5
+      }
+    },
+    {
+      "id": "ring_1",
+      "kind": "pic.ring",
+      "label": "Ring",
+      "params": {
+        "fsr_ghz": 100,
+        "q_loaded": 100000
+      }
+    },
+    {
+      "id": "wg_1",
+      "kind": "pic.waveguide",
+      "label": "WG 1",
+      "params": {
+        "length_um": 2000,
+        "loss_db_per_cm": 2.0
+      }
+    },
+    {
+      "id": "wg_2",
+      "kind": "pic.waveguide",
+      "label": "WG 2",
+      "params": {
+        "length_um": 1500,
+        "loss_db_per_cm": 2.0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": null,
+      "from": "gc_in",
+      "from_port": "out",
+      "to": "wg_1",
+      "to_port": "in",
+      "kind": "optical",
+      "label": null
+    },
+    {
+      "id": null,
+      "from": "ring_1",
+      "from_port": "out",
+      "to": "wg_2",
+      "to_port": "in",
+      "kind": "optical",
+      "label": null
+    },
+    {
+      "id": null,
+      "from": "wg_1",
+      "from_port": "out",
+      "to": "ring_1",
+      "to_port": "in",
+      "kind": "optical",
+      "label": null
+    },
+    {
+      "id": null,
+      "from": "wg_2",
+      "from_port": "out",
+      "to": "ec_out",
+      "to_port": "in",
+      "kind": "optical",
+      "label": null
+    }
+  ],
+  "topology": {
+    "is_dag": true,
+    "topological_order": [
+      "gc_in",
+      "wg_1",
+      "ring_1",
+      "wg_2",
+      "ec_out"
+    ]
+  }
+}

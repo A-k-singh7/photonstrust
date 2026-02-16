@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.performance_drc.v0.schema.json",
+  "title": "PhotonTrust Performance DRC Report v0",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "check", "results", "provenance"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "run_id": { "type": ["string", "null"] },
+    "check": {
+      "type": "object",
+      "required": ["kind", "inputs"],
+      "properties": {
+        "kind": { "type": "string" },
+        "inputs": {
+          "type": "object",
+          "required": ["gap_um", "parallel_length_um", "wavelength_sweep_nm"],
+          "properties": {
+            "gap_um": { "type": "number", "minimum": 0.0 },
+            "parallel_length_um": { "type": "number", "minimum": 0.0 },
+            "wavelength_sweep_nm": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "number", "minimum": 1.0 }
+            },
+            "target_xt_db": { "type": ["number", "null"] },
+            "model": { "type": ["object", "null"] },
+            "corner": { "type": ["object", "null"] },
+            "pdk": { "type": ["object", "null"] },
+            "loss_budget": { "type": ["object", "null"] },
+            "routes": { "type": ["array", "null"] },
+            "layout_extract": { "type": ["object", "null"] },
+            "signoff_bundle": { "type": ["object", "null"] }
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "required": ["status", "points", "worst_xt_db", "recommended_min_gap_um", "drc"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "fail", "warn", "warning"] },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["wavelength_nm", "xt_db"],
+            "properties": {
+              "wavelength_nm": { "type": "number" },
+              "xt_db": { "type": "number" },
+              "pass": { "type": ["boolean", "null"] },
+              "margin_db": { "type": ["number", "null"] },
+              "worst_run_ref": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "worst_xt_db": { "type": "number" },
+        "worst_margin_db": { "type": ["number", "null"] },
+        "recommended_min_gap_um": { "type": ["number", "null"] },
+        "drc": {
+          "type": "object",
+          "required": ["pass", "violations"],
+          "properties": {
+            "pass": { "type": "boolean" },
+            "violations": { "type": "array", "items": { "type": "string" } },
+            "violations_annotated": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/annotated_violation" }
+            }
+          }
+        },
+        "layout": { "type": ["object", "null"] },
+        "loss_budget": {
+          "type": ["object", "null"],
+          "properties": {
+            "pass": { "type": "boolean" },
+            "settings": { "type": "object" },
+            "route_count": { "type": "integer", "minimum": 0 },
+            "worst_route_id": { "type": ["string", "null"] },
+            "worst_route_loss_db": { "type": "number" },
+            "routes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "route_id",
+                  "length_um",
+                  "bend_count",
+                  "crossing_count",
+                  "propagation_loss_db",
+                  "bend_loss_db",
+                  "crossing_loss_db",
+                  "route_loss_db",
+                  "risk_level"
+                ],
+                "properties": {
+                  "route_id": { "type": "string" },
+                  "length_um": { "type": "number" },
+                  "bend_count": { "type": "integer", "minimum": 0 },
+                  "crossing_count": { "type": "integer", "minimum": 0 },
+                  "propagation_loss_db": { "type": "number" },
+                  "bend_loss_db": { "type": "number" },
+                  "crossing_loss_db": { "type": "number" },
+                  "route_loss_db": { "type": "number" },
+                  "risk_level": { "type": "string" },
+                  "pass": { "type": "boolean" }
+                }
+              }
+            },
+            "crossings": { "type": "array", "items": { "type": "object" } },
+            "violations": { "type": "array", "items": { "type": "string" } },
+            "violations_annotated": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/annotated_violation" }
+            }
+          }
+        },
+        "signoff_bundle": { "type": ["object", "null"] },
+        "violations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/annotated_violation" }
+        },
+        "violation_summary": {
+          "type": "object",
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "blocking": { "type": "integer", "minimum": 0 },
+            "by_severity": {
+              "type": "object",
+              "additionalProperties": { "type": "integer", "minimum": 0 }
+            },
+            "by_applicability": {
+              "type": "object",
+              "additionalProperties": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "report_json_path": { "type": ["string", "null"] },
+        "report_html_path": { "type": ["string", "null"] }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["photonstrust_version", "python", "platform", "input_hash", "model_hash"],
+      "properties": {
+        "photonstrust_version": { "type": ["string", "null"] },
+        "python": { "type": "string" },
+        "platform": { "type": "string" },
+        "input_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "model_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "layout_hash": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  },
+  "$defs": {
+    "annotated_violation": {
+      "type": "object",
+      "required": ["id", "source", "code", "severity", "applicability", "entity_ref", "message", "location"],
+      "properties": {
+        "id": { "type": "string" },
+        "source": { "type": "string" },
+        "code": { "type": "string" },
+        "severity": { "type": "string" },
+        "applicability": { "type": "string" },
+        "entity_ref": { "type": "string" },
+        "message": { "type": "string" },
+        "location": { "type": ["object", "null"] }
+      }
+    }
+  }
+}

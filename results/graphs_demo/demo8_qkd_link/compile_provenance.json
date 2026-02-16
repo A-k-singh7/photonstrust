@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-02-16T12:31:32.091000+00:00",
+  "graph_id": "demo8_qkd_link",
+  "graph_schema_version": "0.1",
+  "profile": "qkd_link",
+  "graph_hash": "46cbbd85469ca091614057dad3da81f5a4ac262991fd575112646618068d2155",
+  "compiler": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "artifacts": {
+    "graph_path": "graph.json",
+    "compiled_path": "compiled_config.yml",
+    "assumptions_path": "assumptions.md"
+  },
+  "warnings": []
+}

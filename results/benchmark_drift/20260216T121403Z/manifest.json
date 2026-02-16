@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.validation_harness.manifest",
+  "run_id": "20260216T121403Z",
+  "files": [
+    "summary.json",
+    "manifest.json",
+    "cases/single_case_drift/observed.json",
+    "cases/single_case_drift/comparison.json"
+  ]
+}

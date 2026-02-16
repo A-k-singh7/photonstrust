@@ -1,0 +1,188 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-02-16T07:26:28.815048+00:00",
+  "scenario_id": "demo1_multiband_phase2e_demo",
+  "band": "c_1550",
+  "wavelength_nm": 1550,
+  "evidence_quality_tier": "simulated_only",
+  "benchmark_coverage": "internal_demo",
+  "calibration_diagnostics": {
+    "status": "not_calibrated",
+    "gate_pass": false
+  },
+  "reproducibility_artifact_uri": null,
+  "notes": "Fiber coexistence disabled: no Raman term applied.",
+  "inputs": {
+    "source": {
+      "type": "emitter_cavity",
+      "physics_backend": "qutip",
+      "rep_rate_mhz": 100,
+      "collection_efficiency": 0.35,
+      "coupling_efficiency": 0.6,
+      "radiative_lifetime_ns": 1.0,
+      "purcell_factor": 5,
+      "dephasing_rate_per_ns": 0.5,
+      "g2_0": 0.02,
+      "drive_strength": 0.05,
+      "pulse_window_ns": 5.0,
+      "mu": 0.05,
+      "emission_mode": "steady_state",
+      "transient_steps": 64
+    },
+    "channel": {
+      "fiber_loss_db_per_km": 0.2,
+      "connector_loss_db": 1.5,
+      "dispersion_ps_per_km": 5.0,
+      "model": "fiber",
+      "distance_km": 0.0
+    },
+    "detector": {
+      "class": "si_apd",
+      "pde": 0.7,
+      "dark_counts_cps": 100,
+      "jitter_ps_fwhm": 50,
+      "dead_time_ns": 50,
+      "afterpulsing_prob": 0.005,
+      "physics_backend": "analytic",
+      "sample_count": 500,
+      "time_bin_ps": 10.0,
+      "afterpulse_delay_ns": 50.0
+    },
+    "timing": {
+      "sync_drift_ps_rms": 10,
+      "coincidence_window_ps": null
+    },
+    "protocol": {
+      "name": "BBM92",
+      "sifting_factor": 0.5,
+      "ec_efficiency": 1.16
+    },
+    "finite_key": {}
+  },
+  "derived": {
+    "loss_budget": {
+      "fiber_loss_db": 0.0,
+      "connector_loss_db": 1.5,
+      "total_loss_db": 1.5
+    },
+    "timing_budget": {
+      "effective_jitter_ps": 50,
+      "false_herald_prob": 0.000422416328895156
+    },
+    "multiphoton": {
+      "p_multi": 0.0196078431372549,
+      "qber_contrib": 0.01855756608240388
+    },
+    "dark_counts": {
+      "qber_contrib": 1.8609091295326003e-07
+    },
+    "background_counts": {
+      "qber_contrib": 0.0
+    },
+    "raman_counts": {
+      "qber_contrib": 0.0
+    },
+    "timing_errors": {
+      "qber_contrib": 0.0
+    },
+    "misalignment": {
+      "qber_contrib": 0.0
+    },
+    "source_visibility": {
+      "qber_contrib": 0.0
+    },
+    "finite_key": {
+      "enabled": false,
+      "privacy_term_asymptotic": 0.7121490799967866,
+      "privacy_term_effective": 0.7121490799967866,
+      "penalty": 0.0
+    },
+    "noise_counts_cps": {
+      "background": 0.0,
+      "raman": 0.0
+    },
+    "qber_total": 0.018557752173316833
+  },
+  "outputs": {
+    "entanglement_rate_hz": 1076834.8809200048,
+    "key_rate_bps": 383433.4848778153,
+    "fidelity_est": 0.9814422478266832,
+    "critical_distance_km": 100.0,
+    "uncertainty": {
+      "key_rate_ci_low": 344549.0733044945,
+      "key_rate_ci_high": 447091.1131493069,
+      "outage_probability": 0.0
+    }
+  },
+  "error_budget": {
+    "dominant_error": "loss",
+    "error_budget": {
+      "loss_fraction": 0.940254226823892,
+      "detector_fraction": 5.991105696209528e-07,
+      "background_fraction": 0.0,
+      "raman_fraction": 0.0,
+      "multiphoton_fraction": 0.05974517406553833,
+      "timing_fraction": 0.0,
+      "misalignment_fraction": 0.0,
+      "source_fraction": 0.0
+    }
+  },
+  "safe_use_label": {
+    "label": "engineering_grade",
+    "rationale": "Low QBER with stable key rate."
+  },
+  "reproducibility": {
+    "config_hash": "ff331de815515a4663cf95ba4c40f776c411bfdb0d0fefef41e0f92a519fb477",
+    "model_hash": null,
+    "seed": 20260216
+  },
+  "artifacts": {
+    "plots": {},
+    "report_html_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/report.html",
+    "report_pdf_path": null,
+    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/reliability_card.json"
+  },
+  "security_assumptions_metadata": {
+    "security_model": "asymptotic_with_optional_finite_key_surrogate",
+    "trusted_device_model": "trusted_source_and_detector",
+    "assume_iid": true,
+    "assume_phase_randomization": true,
+    "decoy_state_assumption": false,
+    "notes": "Security assumptions are scenario-declared metadata and must be reviewed against deployment conditions."
+  },
+  "finite_key_epsilon_ledger": {
+    "enabled": false,
+    "signals_per_block": null,
+    "epsilon_total": null,
+    "epsilon_correctness": null,
+    "epsilon_secrecy": null,
+    "epsilon_parameter_estimation": null,
+    "epsilon_error_correction": null,
+    "epsilon_privacy_amplification": null,
+    "notes": "Unset fields indicate the scenario did not provide a full composable epsilon decomposition."
+  },
+  "confidence_intervals": {
+    "key_rate_bps": {
+      "low": 344549.0733044945,
+      "high": 447091.1131493069,
+      "confidence_level": 0.95,
+      "method": "bootstrap"
+    },
+    "fidelity_est": null,
+    "qber_total": null
+  },
+  "model_provenance": {
+    "protocol_family": "BBM92",
+    "protocol_normalized": "bbm92",
+    "channel_model": "fiber",
+    "source_model": "emitter_cavity",
+    "detector_model": "si_apd",
+    "finite_key_model": "asymptotic",
+    "parameter_sources": {
+      "source": "scenario",
+      "channel": "scenario",
+      "detector": "scenario",
+      "protocol": "scenario"
+    }
+  }
+}

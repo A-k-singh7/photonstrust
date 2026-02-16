@@ -1,0 +1,4 @@
+! Touchstone S2P fixture with reciprocal transmission (2-port, RI format).
+# GHZ S RI R 50
+193000  0 0   0.5 0   0.5 0   0 0
+194000  0 0   0.5 0   0.5 0   0 0

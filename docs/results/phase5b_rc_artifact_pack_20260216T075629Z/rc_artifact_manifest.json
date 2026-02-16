@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.rc_artifact_pack.manifest",
+  "pack_id": "phase5b_rc_artifact_pack_20260216T075629Z",
+  "generated_at": "2026-02-16T07:56:29.754952+00:00",
+  "file_count": 9,
+  "files": [
+    {
+      "path": "RC_READINESS_NOTE.md",
+      "size_bytes": 669,
+      "sha256": "23f94da4592e3a678b5a6ec4c258ce12b6ecc5f68e83240f830c0c62aa4abd73"
+    },
+    {
+      "path": "README.md",
+      "size_bytes": 632,
+      "sha256": "7f2785fec5cbd7b26830d58331eb8d89501770ce602646c692bdd9b638da8594"
+    },
+    {
+      "path": "baselines/baseline_fixture_hashes.json",
+      "size_bytes": 518,
+      "sha256": "78c39b260865ae3b1577b9e9433cba2746d632466b40ddb9e04ca5e9558b7596"
+    },
+    {
+      "path": "demos/demo_pack_references.json",
+      "size_bytes": 3470,
+      "sha256": "67a17c5a85964cb521470abd12726800b5889d2affb729a066b2bcb6b4206565"
+    },
+    {
+      "path": "validation/latest_validation_ci_smoke_manifest.json",
+      "size_bytes": 275,
+      "sha256": "2b40e14c29b40571349aeef52996199093e74b635c189dadf2fdf02455777809"
+    },
+    {
+      "path": "validation/latest_validation_ci_smoke_summary.json",
+      "size_bytes": 1629,
+      "sha256": "1c62e987daefaf9826caef008a4d3e095ca8ec9bc209b300bb8ab1a06134475c"
+    },
+    {
+      "path": "validation/latest_validation_manifest.json",
+      "size_bytes": 1139,
+      "sha256": "0c650612b9cef0312205683da1226526f4287926e9088f914b92e2f892336218"
+    },
+    {
+      "path": "validation/latest_validation_summary.json",
+      "size_bytes": 4349,
+      "sha256": "8b37016ff380ec7d9ce5b27823899b88afe291dd903aa1186b51992c05677010"
+    },
+    {
+      "path": "validation/validation_summaries_compact.json",
+      "size_bytes": 6436,
+      "sha256": "e96e8d6ccd5bab1d64af22613b10abc86b222c821fbb05ebfb77a95e6a79f363"
+    }
+  ]
+}

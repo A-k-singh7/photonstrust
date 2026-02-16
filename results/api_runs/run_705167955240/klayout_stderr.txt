@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\Users\aksin\Desktop\Qutip+qskit projects\photonstrust\tools\klayout\macros\pt_pic_extract_and_drc_lite.py", line 411, in <module>
+    rc = _main()
+         ^^^^^^^
+  File "C:\Users\aksin\Desktop\Qutip+qskit projects\photonstrust\tools\klayout\macros\pt_pic_extract_and_drc_lite.py", line 128, in _main
+    layout.read(input_gds)
+RuntimeError: Stream has unknown format: C:\Users\aksin\Desktop\Qutip+qskit projects\photonstrust\results\api_runs\run_aaaaaaaaaaaa\layout.gds in Layout.read
+

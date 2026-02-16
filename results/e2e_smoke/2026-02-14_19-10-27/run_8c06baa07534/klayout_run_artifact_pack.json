@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-02-14T18:10:29.727113+00:00",
+  "pack_id": "a9df7e6cb0b9",
+  "status": "pass",
+  "inputs": {
+    "input_gds_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_4117a61d1e8c\\layout.gds",
+    "input_gds_sha256": "10f4fe4590047cd78de64c547023ce5a01e1295c8f74d7ea765fc806d002633d",
+    "macro_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tools\\klayout\\macros\\pt_pic_extract_and_drc_lite.py",
+    "macro_sha256": "38af2f6eb612ca9c6e1d86ba2139fbcddefb9a7ad890fb26b0f10741d27df1fa",
+    "variables": {
+      "drc_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\drc_lite.json",
+      "endpoint_snap_tol_um": 2.0,
+      "input_gds": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_4117a61d1e8c\\layout.gds",
+      "label_datatype": 0,
+      "label_layer": 10,
+      "label_prefix": "PTPORT",
+      "min_waveguide_width_um": 0.45,
+      "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534",
+      "ports_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\ports_extracted.json",
+      "provenance_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\macro_provenance.json",
+      "routes_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\routes_extracted.json",
+      "top_cell": "TOP",
+      "wg_datatype": 0,
+      "wg_layer": 1
+    }
+  },
+  "execution": {
+    "backend": "klayout_cli",
+    "ok": true,
+    "returncode": 0,
+    "command": [
+      "C:\\Users\\aksin\\AppData\\Roaming\\KLayout\\klayout_app.exe",
+      "-b",
+      "-r",
+      "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tools\\klayout\\macros\\pt_pic_extract_and_drc_lite.py",
+      "-rd",
+      "drc_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\drc_lite.json",
+      "-rd",
+      "endpoint_snap_tol_um=2.0",
+      "-rd",
+      "input_gds=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_4117a61d1e8c\\layout.gds",
+      "-rd",
+      "label_datatype=0",
+      "-rd",
+      "label_layer=10",
+      "-rd",
+      "label_prefix=PTPORT",
+      "-rd",
+      "min_waveguide_width_um=0.45",
+      "-rd",
+      "output_dir=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534",
+      "-rd",
+      "ports_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\ports_extracted.json",
+      "-rd",
+      "provenance_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\macro_provenance.json",
+      "-rd",
+      "routes_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534\\routes_extracted.json",
+      "-rd",
+      "top_cell=TOP",
+      "-rd",
+      "wg_datatype=0",
+      "-rd",
+      "wg_layer=1"
+    ],
+    "stdout_path": "klayout_stdout.txt",
+    "stderr_path": "klayout_stderr.txt",
+    "error": null
+  },
+  "outputs": {
+    "ports_extracted_json": "ports_extracted.json",
+    "routes_extracted_json": "routes_extracted.json",
+    "drc_lite_json": "drc_lite.json",
+    "macro_provenance_json": "macro_provenance.json"
+  },
+  "output_hashes": {
+    "ports_extracted_sha256": "bcef5c3717b4971f6af3296390d809ce344c067d9a8cc1b2f8f9334d0359caa4",
+    "routes_extracted_sha256": "4ce103bf1b8fca0808dc594a8ff2334fab24b3da5fe0e67573972e0fde46bd80",
+    "drc_lite_sha256": "9cb852017af5ec471ae43ebcd8c559f7167d369f88693fc27662062695583c78",
+    "macro_provenance_sha256": "6b05facfe68ea5d547e30f067b8ab30e3e43222ef7ff994cfcc4fde19c0e3607"
+  },
+  "summary": {
+    "ports_extracted": 12,
+    "routes_extracted": 4,
+    "drc_status": "pass",
+    "issue_count": 0,
+    "error_count": 0
+  },
+  "provenance": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

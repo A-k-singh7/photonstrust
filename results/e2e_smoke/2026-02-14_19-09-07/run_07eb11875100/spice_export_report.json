@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-02-14T18:09:11.636569+00:00",
+  "graph_id": "e2e_pic_mzi",
+  "artifacts": {
+    "netlist_path": "netlist.sp",
+    "spice_map_path": "spice_map.json",
+    "spice_provenance_path": "spice_provenance.json"
+  },
+  "summary": {
+    "instances": 4,
+    "nets": 8,
+    "stub_subckts_included": true
+  },
+  "warnings": []
+}

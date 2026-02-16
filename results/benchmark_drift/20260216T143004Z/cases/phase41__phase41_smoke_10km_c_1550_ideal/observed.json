@@ -1,0 +1,21 @@
+[
+  {
+    "scenario_id": "canonical_phase41_smoke_ideal",
+    "band": "c_1550",
+    "distances_km": [
+      10.0
+    ],
+    "key_rate_bps": [
+      2103999.483190229
+    ],
+    "qber": [
+      9.78593416791987e-05
+    ],
+    "raman_counts_cps": [
+      0.0
+    ],
+    "background_counts_cps": [
+      0.0
+    ]
+  }
+]

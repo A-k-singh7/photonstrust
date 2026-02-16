@@ -1,0 +1,32 @@
+name: qutip-parity-optional
+
+on:
+  workflow_dispatch:
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps (optional lane)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev,qutip]
+
+      - name: Run QuTiP parity lane (strict, non-blocking job)
+        run: python scripts/run_qutip_parity_lane.py --strict
+
+      - name: Upload parity artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qutip-parity-report
+          path: results/qutip_parity/

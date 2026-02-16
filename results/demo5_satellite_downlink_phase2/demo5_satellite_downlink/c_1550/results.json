@@ -1,0 +1,11 @@
+{
+  "results": [
+    {"distance_km": 300, "entanglement_rate_hz": 15.3374, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 2.14957e-09, "p_false": 1.001e-07, "loss_db": 31.7882},
+    {"distance_km": 450, "entanglement_rate_hz": 15.024, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 6.01809e-11, "p_false": 1.001e-07, "loss_db": 39.5527},
+    {"distance_km": 600, "entanglement_rate_hz": 15.0154, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 2.69883e-12, "p_false": 1.001e-07, "loss_db": 46.2941},
+    {"distance_km": 750, "entanglement_rate_hz": 15.015, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 1.56678e-13, "p_false": 1.001e-07, "loss_db": 52.4749},
+    {"distance_km": 900, "entanglement_rate_hz": 15.015, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 1.07091e-14, "p_false": 1.001e-07, "loss_db": 58.3012},
+    {"distance_km": 1050, "entanglement_rate_hz": 15.015, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 8.19292e-16, "p_false": 1.001e-07, "loss_db": 63.8828},
+    {"distance_km": 1200, "entanglement_rate_hz": 15.015, "key_rate_bps": 0, "qber_total": 0.5, "fidelity": 0.5, "p_pair": 6.8068e-17, "p_false": 1.001e-07, "loss_db": 69.2853}
+  ]
+}

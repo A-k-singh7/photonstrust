@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_routes.v0.schema.json",
+  "title": "PhotonTrust PIC Routes Sidecar (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "routes"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "pic.routes" },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["route_id", "points_um"],
+        "properties": {
+          "route_id": { "type": "string" },
+          "width_um": { "type": "number", "minimum": 0 },
+          "points_um": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

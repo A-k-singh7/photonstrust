@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.layout_parallel_runs.v0_1.schema.json",
+  "title": "PhotonTrust Layout Parallel Run Segments (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "settings", "summary", "parallel_runs"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "pic.parallel_run_segments" },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_gap_um", "min_parallel_length_um", "coord_tol_um"],
+      "properties": {
+        "max_gap_um": { "type": ["number", "null"], "minimum": 0.0 },
+        "min_parallel_length_um": { "type": "number", "minimum": 0.0 },
+        "coord_tol_um": { "type": "number", "exclusiveMinimum": 0.0 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parallel_runs_count", "min_gap_um", "max_parallel_length_um"],
+      "properties": {
+        "parallel_runs_count": { "type": "integer", "minimum": 0 },
+        "min_gap_um": { "type": ["number", "null"] },
+        "max_parallel_length_um": { "type": ["number", "null"] }
+      }
+    },
+    "parallel_runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["route_a", "route_b", "orientation", "gap_um", "centerline_sep_um", "parallel_length_um"],
+        "properties": {
+          "route_a": { "type": "string" },
+          "route_b": { "type": "string" },
+          "a_seg_index": { "type": "integer", "minimum": 0 },
+          "b_seg_index": { "type": "integer", "minimum": 0 },
+          "orientation": { "type": "string", "enum": ["horizontal", "vertical"] },
+          "gap_um": { "type": "number" },
+          "centerline_sep_um": { "type": "number", "minimum": 0.0 },
+          "parallel_length_um": { "type": "number", "minimum": 0.0 },
+          "width_a_um": { "type": "number", "minimum": 0.0 },
+          "width_b_um": { "type": "number", "minimum": 0.0 },
+          "overlap": { "type": "object" }
+        }
+      }
+    }
+  }
+}
+

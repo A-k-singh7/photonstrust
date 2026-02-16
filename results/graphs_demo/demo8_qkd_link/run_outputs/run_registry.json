@@ -1,0 +1,3 @@
+[
+  {"scenario_id": "demo8_qkd_link", "band": "c_1550", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\graphs_demo\demo8_qkd_link\run_outputs\demo8_qkd_link\c_1550\reliability_card.json"}
+]

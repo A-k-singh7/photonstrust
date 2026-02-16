@@ -1,0 +1,18 @@
+{
+  "name": "toy_pdk",
+  "version": "1",
+  "design_rules": {
+    "min_waveguide_width_um": 0.42,
+    "min_waveguide_gap_um": 0.18,
+    "min_bend_radius_um": 4.0
+  },
+  "notes": [
+    "Toy PDK fixture for adapter contract tests."
+  ],
+  "capabilities": {
+    "supports_layout": true,
+    "supports_performance_drc": true,
+    "supports_lvs_lite_signoff": false,
+    "supports_spice_export": false
+  }
+}

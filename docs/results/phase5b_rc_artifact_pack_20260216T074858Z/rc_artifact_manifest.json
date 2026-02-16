@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.rc_artifact_pack.manifest",
+  "pack_id": "phase5b_rc_artifact_pack_20260216T074858Z",
+  "generated_at": "2026-02-16T07:48:58.692038+00:00",
+  "file_count": 9,
+  "files": [
+    {
+      "path": "RC_READINESS_NOTE.md",
+      "size_bytes": 745,
+      "sha256": "94adf9262c772d1cd9d0417f0524c962d5bf948b597b98d16b1e282da7811069"
+    },
+    {
+      "path": "README.md",
+      "size_bytes": 632,
+      "sha256": "8ea368a9ccb0c061b1c0bc9687447a977236eb481b027585719ef249340e11c6"
+    },
+    {
+      "path": "baselines/baseline_fixture_hashes.json",
+      "size_bytes": 518,
+      "sha256": "3ddd5a7c6d0a1b39fcf63321960c32a4b86190d37f4d4c32b98316b9d4dda02c"
+    },
+    {
+      "path": "demos/demo_pack_references.json",
+      "size_bytes": 3063,
+      "sha256": "841ba30008b111488909cfb43fa761a5ff03272ff1456ad6fcea2f13a41d5fb5"
+    },
+    {
+      "path": "validation/latest_validation_ci_smoke_manifest.json",
+      "size_bytes": 275,
+      "sha256": "2b40e14c29b40571349aeef52996199093e74b635c189dadf2fdf02455777809"
+    },
+    {
+      "path": "validation/latest_validation_ci_smoke_summary.json",
+      "size_bytes": 1629,
+      "sha256": "1c62e987daefaf9826caef008a4d3e095ca8ec9bc209b300bb8ab1a06134475c"
+    },
+    {
+      "path": "validation/latest_validation_manifest.json",
+      "size_bytes": 1139,
+      "sha256": "0c650612b9cef0312205683da1226526f4287926e9088f914b92e2f892336218"
+    },
+    {
+      "path": "validation/latest_validation_summary.json",
+      "size_bytes": 4349,
+      "sha256": "8b37016ff380ec7d9ce5b27823899b88afe291dd903aa1186b51992c05677010"
+    },
+    {
+      "path": "validation/validation_summaries_compact.json",
+      "size_bytes": 6436,
+      "sha256": "d2ead014e8fb961b47e05013f1c71bf9cefd831325fd7bc17895a788d9b7df25"
+    }
+  ]
+}

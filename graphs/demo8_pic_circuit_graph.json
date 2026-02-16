@@ -1,0 +1,53 @@
+{
+  "schema_version": "0.1",
+  "graph_id": "demo8_pic_circuit",
+  "profile": "pic_circuit",
+  "metadata": {
+    "title": "Demo 8: PIC Circuit Graph",
+    "description": "Graph -> normalized netlist (Phase 09 will execute).",
+    "created_at": "2026-02-13"
+  },
+  "circuit": {
+    "id": "demo8_pic_circuit",
+    "wavelength_nm": 1550
+  },
+  "nodes": [
+    {
+      "id": "gc_in",
+      "kind": "pic.grating_coupler",
+      "label": "GC In",
+      "params": { "insertion_loss_db": 2.5 }
+    },
+    {
+      "id": "wg_1",
+      "kind": "pic.waveguide",
+      "label": "WG 1",
+      "params": { "length_um": 2000, "loss_db_per_cm": 2.0 }
+    },
+    {
+      "id": "ring_1",
+      "kind": "pic.ring",
+      "label": "Ring",
+      "params": { "fsr_ghz": 100, "q_loaded": 100000 }
+    },
+    {
+      "id": "wg_2",
+      "kind": "pic.waveguide",
+      "label": "WG 2",
+      "params": { "length_um": 1500, "loss_db_per_cm": 2.0 }
+    },
+    {
+      "id": "ec_out",
+      "kind": "pic.edge_coupler",
+      "label": "Edge Out",
+      "params": { "insertion_loss_db": 1.5 }
+    }
+  ],
+  "edges": [
+    { "from": "gc_in", "to": "wg_1", "kind": "optical" },
+    { "from": "wg_1", "to": "ring_1", "kind": "optical" },
+    { "from": "ring_1", "to": "wg_2", "kind": "optical" },
+    { "from": "wg_2", "to": "ec_out", "kind": "optical" }
+  ]
+}
+

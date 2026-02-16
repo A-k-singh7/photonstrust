@@ -1,0 +1,372 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.invdesign.mzi_phase",
+  "inputs": {
+    "target_output": {
+      "node": "cpl_out",
+      "port": "out1"
+    },
+    "target_power_fraction": 0.9,
+    "wavelengths_nm": [
+      1550.0
+    ],
+    "steps": 61,
+    "robustness": {
+      "wavelength_objective_agg": "mean",
+      "case_objective_agg": "mean",
+      "cases": [
+        {
+          "id": "nominal",
+          "label": "Nominal",
+          "overrides": {}
+        }
+      ]
+    }
+  },
+  "design": {
+    "node_id": "ps1",
+    "param": "phase_rad",
+    "search": {
+      "method": "grid",
+      "steps": 61,
+      "bounds": [
+        0.0,
+        6.283185307179586
+      ]
+    }
+  },
+  "best": {
+    "value": 3.5021032859689494,
+    "objective": 1.4407208446122649e-06,
+    "achieved_fraction_nominal_mean": 0.9012003003143432,
+    "robustness_eval": {
+      "objective_agg": {
+        "wavelength": "mean",
+        "case": "mean"
+      },
+      "objective_agg_value": 1.4407208446122649e-06,
+      "cases": [
+        {
+          "case_id": "nominal",
+          "case_label": "Nominal",
+          "objective": 1.4407208446122649e-06,
+          "achieved_fraction_mean": 0.9012003003143432,
+          "by_wavelength": [
+            {
+              "wavelength_nm": 1550.0,
+              "achieved_fraction": 0.9012003003143432,
+              "objective": 1.4407208446122649e-06
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "curve": [
+    {
+      "value": 0.0,
+      "objective": 0.44910256777886315,
+      "achieved_fraction_nominal_mean": 0.2298488470659301
+    },
+    {
+      "value": 0.10300303782261618,
+      "objective": 0.5069151801885442,
+      "achieved_fraction_nominal_mean": 0.18802023891929057
+    },
+    {
+      "value": 0.20600607564523235,
+      "objective": 0.5632522105305021,
+      "achieved_fraction_nominal_mean": 0.14949869385156817
+    },
+    {
+      "value": 0.3090091134678485,
+      "objective": 0.616707791302689,
+      "achieved_fraction_nominal_mean": 0.11469254982351713
+    },
+    {
+      "value": 0.4120121512904647,
+      "objective": 0.665903719522142,
+      "achieved_fraction_nominal_mean": 0.08397076062058784
+    },
+    {
+      "value": 0.5150151891130808,
+      "objective": 0.7095383858022206,
+      "achieved_fraction_nominal_mean": 0.057658984851016226
+    },
+    {
+      "value": 0.618018226935697,
+      "objective": 0.7464335619548631,
+      "achieved_fraction_nominal_mean": 0.03603613388356163
+    },
+    {
+      "value": 0.7210212647583132,
+      "objective": 0.7755771560464776,
+      "achieved_fraction_nominal_mean": 0.019331415317613617
+    },
+    {
+      "value": 0.8240243025809294,
+      "objective": 0.7961602018048581,
+      "achieved_fraction_nominal_mean": 0.0077219033256178
+    },
+    {
+      "value": 0.9270273404035455,
+      "objective": 0.8076065797393195,
+      "achieved_fraction_nominal_mean": 0.001330661622797151
+    },
+    {
+      "value": 1.0300303782261615,
+      "objective": 0.8095942606926444,
+      "achieved_fraction_nominal_mean": 0.00022543896115600708
+    },
+    {
+      "value": 1.1330334160487778,
+      "objective": 0.8020672065342862,
+      "achieved_fraction_nominal_mean": 0.004417950975854928
+    },
+    {
+      "value": 1.236036453871394,
+      "objective": 0.7852374429365181,
+      "achieved_fraction_nominal_mean": 0.01386375599656344
+    },
+    {
+      "value": 1.33903949169401,
+      "objective": 0.7595772197269348,
+      "achieved_fraction_nominal_mean": 0.028462726140221335
+    },
+    {
+      "value": 1.4420425295166264,
+      "objective": 0.725801578402725,
+      "achieved_fraction_nominal_mean": 0.04806010869150811
+    },
+    {
+      "value": 1.5450455673392425,
+      "objective": 0.684842037095906,
+      "achieved_fraction_nominal_mean": 0.07244816652012309
+    },
+    {
+      "value": 1.6480486051618588,
+      "objective": 0.6378124642305509,
+      "achieved_fraction_nominal_mean": 0.10136838014604582
+    },
+    {
+      "value": 1.7510516429844747,
+      "objective": 0.585968528204378,
+      "achieved_fraction_nominal_mean": 0.13451418811033605
+    },
+    {
+      "value": 1.854054680807091,
+      "objective": 0.5306623684417742,
+      "achieved_fraction_nominal_mean": 0.17153423660286263
+    },
+    {
+      "value": 1.9570577186297073,
+      "objective": 0.47329432233695834,
+      "achieved_fraction_nominal_mean": 0.2120361039000969
+    },
+    {
+      "value": 2.060060756452323,
+      "objective": 0.41526365507159235,
+      "achieved_fraction_nominal_mean": 0.25559046013300485
+    },
+    {
+      "value": 2.1630637942749393,
+      "objective": 0.3579202704222917,
+      "achieved_fraction_nominal_mean": 0.3017356182904654
+    },
+    {
+      "value": 2.2660668320975557,
+      "objective": 0.30251932927068337,
+      "achieved_fraction_nominal_mean": 0.34998242821644027
+    },
+    {
+      "value": 2.3690698699201715,
+      "objective": 0.2501805708707542,
+      "achieved_fraction_nominal_mean": 0.3998194617233152
+    },
+    {
+      "value": 2.472072907742788,
+      "objective": 0.20185392567508184,
+      "achieved_fraction_nominal_mean": 0.4507184338579182
+    },
+    {
+      "value": 2.575075945565404,
+      "objective": 0.15829273647349734,
+      "achieved_fraction_nominal_mean": 0.5021398028534428
+    },
+    {
+      "value": 2.67807898338802,
+      "objective": 0.12003557832279887,
+      "achieved_fraction_nominal_mean": 0.5535384894064005
+    },
+    {
+      "value": 2.7810820212106364,
+      "objective": 0.08739730109008334,
+      "achieved_fraction_nominal_mean": 0.6043696546528362
+    },
+    {
+      "value": 2.8840850590332527,
+      "objective": 0.060469526932491274,
+      "achieved_fraction_nominal_mean": 0.6540944755958271
+    },
+    {
+      "value": 2.9870880968558686,
+      "objective": 0.03913043526447256,
+      "achieved_fraction_nominal_mean": 0.7021858567632927
+    },
+    {
+      "value": 3.090091134678485,
+      "objective": 0.023063276625161725,
+      "achieved_fraction_nominal_mean": 0.748134017551126
+    },
+    {
+      "value": 3.1930941725011013,
+      "objective": 0.011782690876694703,
+      "achieved_fraction_nominal_mean": 0.7914518960244137
+    },
+    {
+      "value": 3.2960972103237176,
+      "objective": 0.004667579782748777,
+      "achieved_fraction_nominal_mean": 0.8316803118951149
+    },
+    {
+      "value": 3.399100248146334,
+      "objective": 0.0009990129458801564,
+      "achieved_fraction_nominal_mean": 0.8683928339473442
+    },
+    {
+      "value": 3.5021032859689494,
+      "objective": 1.4407208446122649e-06,
+      "achieved_fraction_nominal_mean": 0.9012003003143432
+    },
+    {
+      "value": 3.6051063237915657,
+      "objective": 0.0008853566740594673,
+      "achieved_fraction_nominal_mean": 0.9297549436910821
+    },
+    {
+      "value": 3.708109361614182,
+      "objective": 0.0028895008752050856,
+      "achieved_fraction_nominal_mean": 0.9537540777542047
+    },
+    {
+      "value": 3.8111123994367984,
+      "objective": 0.00532072584824653,
+      "achieved_fraction_nominal_mean": 0.9729433057123581
+    },
+    {
+      "value": 3.9141154372594147,
+      "objective": 0.007589757966418224,
+      "achieved_fraction_nominal_mean": 0.9871192169754655
+    },
+    {
+      "value": 4.017118475082031,
+      "objective": 0.009241273628311224,
+      "achieved_fraction_nominal_mean": 0.9961315433575849
+    },
+    {
+      "value": 4.120121512904646,
+      "objective": 0.009976963673523853,
+      "achieved_fraction_nominal_mean": 0.9998847519570623
+    },
+    {
+      "value": 4.223124550727262,
+      "objective": 0.00967057029470606,
+      "achieved_fraction_nominal_mean": 0.9983390578290542
+    },
+    {
+      "value": 4.326127588549879,
+      "objective": 0.008374234883628436,
+      "achieved_fraction_nominal_mean": 0.9915108457158409
+    },
+    {
+      "value": 4.429130626372495,
+      "objective": 0.006315877678402738,
+      "achieved_fraction_nominal_mean": 0.9794724963644829
+    },
+    {
+      "value": 4.532133664195111,
+      "objective": 0.0038877244259519555,
+      "achieved_fraction_nominal_mean": 0.9623516192728943
+    },
+    {
+      "value": 4.635136702017728,
+      "objective": 0.0016264847018819415,
+      "achieved_fraction_nominal_mean": 0.9403296999974206
+    },
+    {
+      "value": 4.738139739840343,
+      "objective": 0.00018605441115353798,
+      "achieved_fraction_nominal_mean": 0.9136401763607931
+    },
+    {
+      "value": 4.841142777662959,
+      "objective": 0.0003039456128834152,
+      "achieved_fraction_nominal_mean": 0.8825659639531342
+    },
+    {
+      "value": 4.944145815485576,
+      "objective": 0.0027629260362790715,
+      "achieved_fraction_nominal_mean": 0.847436457156323
+    },
+    {
+      "value": 5.047148853308192,
+      "objective": 0.008349566526163732,
+      "achieved_fraction_nominal_mean": 0.8086240374816017
+    },
+    {
+      "value": 5.150151891130808,
+      "objective": 0.017811537905924994,
+      "achieved_fraction_nominal_mean": 0.7665401262329198
+    },
+    {
+      "value": 5.253154928953425,
+      "objective": 0.03181556318280764,
+      "achieved_fraction_nominal_mean": 0.7216308233387628
+    },
+    {
+      "value": 5.35615796677604,
+      "objective": 0.05090791379786295,
+      "achieved_fraction_nominal_mean": 0.6743721785819334
+    },
+    {
+      "value": 5.4591610045986565,
+      "objective": 0.07547924035767493,
+      "achieved_fraction_nominal_mean": 0.6252651453534246
+    },
+    {
+      "value": 5.562164042421273,
+      "objective": 0.10573535303392297,
+      "achieved_fraction_nominal_mean": 0.5748302704218565
+    },
+    {
+      "value": 5.665167080243889,
+      "objective": 0.1416753219057403,
+      "achieved_fraction_nominal_mean": 0.5236021760082289
+    },
+    {
+      "value": 5.7681701180665055,
+      "objective": 0.18307796323467232,
+      "achieved_fraction_nominal_mean": 0.47212389265738114
+    },
+    {
+      "value": 5.871173155889122,
+      "objective": 0.22949742681485494,
+      "achieved_fraction_nominal_mean": 0.4209411029791275
+    },
+    {
+      "value": 5.974176193711737,
+      "objective": 0.28026821692854875,
+      "achieved_fraction_nominal_mean": 0.37059635727684237
+    },
+    {
+      "value": 6.077179231534354,
+      "objective": 0.334519581215591,
+      "achieved_fraction_nominal_mean": 0.32162332237927255
+    },
+    {
+      "value": 6.18018226935697,
+      "objective": 0.39119880476735247,
+      "achieved_fraction_nominal_mean": 0.2745411246393953
+    }
+  ]
+}

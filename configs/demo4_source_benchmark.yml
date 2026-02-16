@@ -1,0 +1,47 @@
+source_benchmark:
+  id: demo4_source_benchmark
+  distance_km: 20
+
+  source:
+    type: emitter_cavity
+    physics_backend: qutip
+    rep_rate_mhz: 100
+    collection_efficiency: 0.35
+    coupling_efficiency: 0.60
+    radiative_lifetime_ns: 1.0
+    purcell_factor: 5
+    dephasing_rate_per_ns: 0.5
+    g2_0: 0.02
+    drive_strength: 0.05
+    pulse_window_ns: 5.0
+
+  link_scenario:
+    band: nir_850
+    wavelength_nm: 850
+    source:
+      type: emitter_cavity
+      rep_rate_mhz: 100
+      collection_efficiency: 0.35
+      coupling_efficiency: 0.60
+      radiative_lifetime_ns: 1.0
+      purcell_factor: 5
+      dephasing_rate_per_ns: 0.5
+      g2_0: 0.02
+    channel:
+      fiber_loss_db_per_km: 2.2
+      connector_loss_db: 1.5
+      dispersion_ps_per_km: 2
+    detector:
+      class: si_apd
+      pde: 0.70
+      dark_counts_cps: 100
+      jitter_ps_fwhm: 50
+      dead_time_ns: 50
+      afterpulsing_prob: 0.005
+    timing:
+      sync_drift_ps_rms: 10
+      coincidence_window_ps: null
+    protocol:
+      name: BBM92
+      sifting_factor: 0.5
+      ec_efficiency: 1.16

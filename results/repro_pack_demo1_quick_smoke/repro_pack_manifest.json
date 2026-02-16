@@ -1,0 +1,20 @@
+{
+  "schema_version": "0",
+  "generated_at": "2026-02-13T00:06:09.224794+00:00",
+  "pack_id": "demo1_quick_smoke",
+  "benchmark_bundle_path": "benchmark_bundle.json",
+  "reference_outputs_dir": "reference_outputs",
+  "env": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "pip_freeze_path": "env/pip_freeze.txt"
+  },
+  "scripts": {
+    "run_ps1": "run.ps1",
+    "run_sh": "run.sh",
+    "verify_py": "verify.py"
+  },
+  "provenance": {
+    "config_hash": "b5b0294aaebf3acb75cc1b84e3178f91a84504a781da2874aeb929fcd34f83bf"
+  }
+}

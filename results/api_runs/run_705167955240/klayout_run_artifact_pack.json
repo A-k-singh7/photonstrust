@@ -1,0 +1,87 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-02-16T13:30:35.307398+00:00",
+  "pack_id": "40513240e0ab",
+  "status": "error",
+  "inputs": {
+    "input_gds_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_aaaaaaaaaaaa\\layout.gds",
+    "input_gds_sha256": "4b68ab3847feda7d6c62c1fbcbeebfa35eab7351ed5e78f4ddadea5df64b8015",
+    "macro_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tools\\klayout\\macros\\pt_pic_extract_and_drc_lite.py",
+    "macro_sha256": "38af2f6eb612ca9c6e1d86ba2139fbcddefb9a7ad890fb26b0f10741d27df1fa",
+    "variables": {
+      "drc_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\drc_lite.json",
+      "endpoint_snap_tol_um": 2.0,
+      "input_gds": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_aaaaaaaaaaaa\\layout.gds",
+      "label_datatype": 0,
+      "label_layer": 10,
+      "label_prefix": "PTPORT",
+      "min_waveguide_width_um": 0.5,
+      "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240",
+      "ports_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\ports_extracted.json",
+      "provenance_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\macro_provenance.json",
+      "routes_json": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\routes_extracted.json",
+      "wg_datatype": 0,
+      "wg_layer": 1
+    }
+  },
+  "execution": {
+    "backend": "klayout_cli",
+    "ok": false,
+    "returncode": 2,
+    "command": [
+      "C:\\Users\\aksin\\AppData\\Roaming\\KLayout\\klayout_app.exe",
+      "-b",
+      "-r",
+      "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tools\\klayout\\macros\\pt_pic_extract_and_drc_lite.py",
+      "-rd",
+      "drc_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\drc_lite.json",
+      "-rd",
+      "endpoint_snap_tol_um=2.0",
+      "-rd",
+      "input_gds=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_aaaaaaaaaaaa\\layout.gds",
+      "-rd",
+      "label_datatype=0",
+      "-rd",
+      "label_layer=10",
+      "-rd",
+      "label_prefix=PTPORT",
+      "-rd",
+      "min_waveguide_width_um=0.5",
+      "-rd",
+      "output_dir=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240",
+      "-rd",
+      "ports_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\ports_extracted.json",
+      "-rd",
+      "provenance_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\macro_provenance.json",
+      "-rd",
+      "routes_json=C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_705167955240\\routes_extracted.json",
+      "-rd",
+      "wg_datatype=0",
+      "-rd",
+      "wg_layer=1"
+    ],
+    "stdout_path": "klayout_stdout.txt",
+    "stderr_path": "klayout_stderr.txt",
+    "error": null
+  },
+  "outputs": {
+    "ports_extracted_json": null,
+    "routes_extracted_json": null,
+    "drc_lite_json": "drc_lite.json",
+    "macro_provenance_json": null
+  },
+  "output_hashes": {
+    "drc_lite_sha256": "fca04f48e4a72007849cf4fe8c0cbd02fc6bcfb1f61c2a3566c2da65241d42f3"
+  },
+  "summary": {
+    "ports_extracted": null,
+    "routes_extracted": null,
+    "drc_status": "error",
+    "issue_count": 1,
+    "error_count": 1
+  },
+  "provenance": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

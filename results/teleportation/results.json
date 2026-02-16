@@ -1,0 +1,15 @@
+{
+  "results": [
+    {"distance_km": 0, "success_prob": 0.000745955, "fidelity": 0.49985},
+    {"distance_km": 20, "success_prob": 0.000118226, "fidelity": 0.49985},
+    {"distance_km": 40, "success_prob": 1.87375e-05, "fidelity": 0.49985},
+    {"distance_km": 60, "success_prob": 2.9697e-06, "fidelity": 0.49985},
+    {"distance_km": 80, "success_prob": 4.70666e-07, "fidelity": 0.49985},
+    {"distance_km": 100, "success_prob": 7.45955e-08, "fidelity": 0.49985},
+    {"distance_km": 120, "success_prob": 1.18226e-08, "fidelity": 0.49985},
+    {"distance_km": 140, "success_prob": 1.87375e-09, "fidelity": 0.49985},
+    {"distance_km": 160, "success_prob": 2.9697e-10, "fidelity": 0.49985},
+    {"distance_km": 180, "success_prob": 4.70666e-11, "fidelity": 0.49985},
+    {"distance_km": 200, "success_prob": 7.45955e-12, "fidelity": 0.49985}
+  ]
+}

@@ -1,0 +1,3 @@
+[
+  {"scenario_id": "demo5_satellite_downlink", "band": "c_1550", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\demo5_satellite_downlink_phase2\demo5_satellite_downlink\c_1550\reliability_card.json"}
+]

@@ -1,0 +1,3 @@
+[
+  {"scenario_id": "demo1_quick_smoke", "band": "nir_850", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\repro_pack_demo1_quick_smoke\reference_outputs\demo1_quick_smoke\nir_850\reliability_card.json"}
+]

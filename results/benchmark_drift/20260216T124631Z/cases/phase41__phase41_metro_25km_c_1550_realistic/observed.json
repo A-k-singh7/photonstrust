@@ -1,0 +1,26 @@
+[
+  {
+    "scenario_id": "canonical_phase41_metro_realistic",
+    "band": "c_1550",
+    "distances_km": [
+      10.0,
+      25.0
+    ],
+    "key_rate_bps": [
+      1072902.5960975373,
+      269504.37886440835
+    ],
+    "qber": [
+      0.005097799988670295,
+      0.005098692827479172
+    ],
+    "raman_counts_cps": [
+      0.0,
+      0.0
+    ],
+    "background_counts_cps": [
+      0.0,
+      0.0
+    ]
+  }
+]

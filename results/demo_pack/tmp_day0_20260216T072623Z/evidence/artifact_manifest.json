@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.phase2e_demo_pack.artifact_manifest",
+  "files": [
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/reliability_card.json",
+      "size_bytes": 5481,
+      "sha256": "f6514381fee7a884a5b35b1fc71efadccbfa68559bc1b16bda450a26f9e82e07"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/uncertainty.json",
+      "size_bytes": 14389,
+      "sha256": "b594860d870d3c3301838bcabac6c5988cb23e41aa69c0b8ba5fe4256bae549e"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/results.json",
+      "size_bytes": 4060,
+      "sha256": "9de5f2538fc409f273f9a1d1bf3a10e4dc13fb8a44915682cb6f8e84b6f86ac3"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/report.html",
+      "size_bytes": 2814,
+      "sha256": "b47f9ef8160c47a52970d355822d164b61b37f6a50133cb7bf690f77bcc5dde6"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/run_registry.json",
+      "size_bytes": 330,
+      "sha256": "17922129c4934a2a5df39a11ed942e9874b85ab6610542f39dbae275f89a47e9"
+    }
+  ]
+}

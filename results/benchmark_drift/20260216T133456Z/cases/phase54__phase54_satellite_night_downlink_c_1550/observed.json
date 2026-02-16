@@ -1,0 +1,26 @@
+[
+  {
+    "scenario_id": "canonical_phase54_satellite_night_downlink",
+    "band": "c_1550",
+    "distances_km": [
+      500.0,
+      900.0
+    ],
+    "key_rate_bps": [
+      0.00044461901162276465,
+      0.0
+    ],
+    "qber": [
+      0.03317981696320918,
+      0.1444907976941468
+    ],
+    "raman_counts_cps": [
+      0.0,
+      0.0
+    ],
+    "background_counts_cps": [
+      115.19999999999999,
+      115.19999999999999
+    ]
+  }
+]

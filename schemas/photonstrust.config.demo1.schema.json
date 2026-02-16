@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.config.demo1.schema.json",
+  "title": "PhotonTrust Demo1 Config",
+  "type": "object",
+  "required": ["scenario", "source", "channel", "detector", "timing", "protocol", "uncertainty"],
+  "properties": {
+    "scenario": {
+      "type": "object",
+      "required": ["id", "band", "distance_km"],
+      "properties": {
+        "id": { "type": "string" },
+        "band": {
+          "type": ["string", "null"],
+          "enum": ["nir_795", "nir_850", "o_1310", "c_1550", null]
+        },
+        "wavelength_nm": { "type": ["number", "null"] },
+        "execution_mode": { "type": "string", "enum": ["standard", "preview", "certification"] },
+        "preview_uncertainty_samples": { "type": "number", "minimum": 10 },
+        "preview_detector_sample_scale": { "type": "number", "minimum": 0.01 },
+        "certification_uncertainty_samples": { "type": "number", "minimum": 10 },
+        "certification_detector_sample_scale": { "type": "number", "minimum": 0.01 },
+        "distance_km": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            {
+              "type": "object",
+              "required": ["start", "stop", "step"],
+              "properties": {
+                "start": { "type": "number", "minimum": 0 },
+                "stop": { "type": "number", "minimum": 0 },
+                "step": { "type": "number", "minimum": 0.1 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["type", "rep_rate_mhz", "collection_efficiency", "coupling_efficiency"],
+      "properties": {
+        "type": { "type": "string", "enum": ["emitter_cavity", "spdc"] },
+        "physics_backend": { "type": "string", "enum": ["analytic", "qutip"] },
+        "emission_mode": { "type": "string", "enum": ["steady_state", "transient"] },
+        "rep_rate_mhz": { "type": "number", "minimum": 0.1 },
+        "collection_efficiency": { "type": "number", "minimum": 0, "maximum": 1 },
+        "coupling_efficiency": { "type": "number", "minimum": 0, "maximum": 1 },
+        "radiative_lifetime_ns": { "type": "number" },
+        "purcell_factor": { "type": "number", "minimum": 0 },
+        "dephasing_rate_per_ns": { "type": "number", "minimum": 0 },
+        "g2_0": { "type": "number", "minimum": 0, "maximum": 1 },
+        "drive_strength": { "type": "number", "minimum": 0 },
+        "pulse_window_ns": { "type": "number", "minimum": 0 },
+        "transient_steps": { "type": "number", "minimum": 8 },
+        "mu": { "type": "number", "minimum": 0 },
+        "hom_visibility": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "indistinguishability": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "emitter_cavity" } } },
+          "then": { "required": ["radiative_lifetime_ns", "purcell_factor", "dephasing_rate_per_ns", "g2_0"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "spdc" } } },
+          "then": { "required": ["mu"] }
+        }
+      ]
+    },
+    "channel": {
+      "type": "object",
+      "properties": {
+        "model": { "type": "string", "enum": ["fiber", "free_space"] },
+        "fiber_loss_db_per_km": { "type": ["number", "null"], "minimum": 0 },
+        "connector_loss_db": { "type": ["number", "null"], "minimum": 0 },
+        "dispersion_ps_per_km": { "type": ["number", "null"], "minimum": 0 },
+        "polarization_coherence_length_km": { "type": ["number", "null"], "minimum": 0 },
+        "elevation_deg": { "type": ["number", "null"], "minimum": 0, "maximum": 90 },
+        "tx_aperture_m": { "type": ["number", "null"], "minimum": 0 },
+        "rx_aperture_m": { "type": ["number", "null"], "minimum": 0 },
+        "beam_divergence_urad": { "type": ["number", "null"], "minimum": 0 },
+        "pointing_jitter_urad": { "type": ["number", "null"], "minimum": 0 },
+        "atmospheric_extinction_db_per_km": { "type": ["number", "null"], "minimum": 0 },
+        "turbulence_scintillation_index": { "type": ["number", "null"], "minimum": 0 },
+        "background_counts_cps": { "type": ["number", "null"], "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "model": { "const": "free_space" } }, "required": ["model"] },
+          "then": {
+            "required": [
+              "connector_loss_db",
+              "dispersion_ps_per_km",
+              "elevation_deg",
+              "tx_aperture_m",
+              "rx_aperture_m",
+              "pointing_jitter_urad",
+              "atmospheric_extinction_db_per_km",
+              "turbulence_scintillation_index",
+              "background_counts_cps"
+            ]
+          },
+          "else": {
+            "required": ["fiber_loss_db_per_km", "connector_loss_db", "dispersion_ps_per_km"]
+          }
+        }
+      ]
+    },
+    "detector": {
+      "type": "object",
+      "required": ["class", "pde", "dark_counts_cps", "jitter_ps_fwhm", "dead_time_ns", "afterpulsing_prob"],
+      "properties": {
+        "class": { "type": "string", "enum": ["si_apd", "ingaas", "snspd"] },
+        "physics_backend": { "type": "string", "enum": ["analytic", "stochastic"], "default": "analytic" },
+        "sample_count": { "type": "number", "minimum": 1 },
+        "time_bin_ps": { "type": "number", "minimum": 0 },
+        "afterpulse_delay_ns": { "type": "number", "minimum": 0 },
+        "gate_width_ns": { "type": ["number", "null"], "minimum": 0 },
+        "gate_period_ns": { "type": ["number", "null"], "minimum": 0 },
+        "saturation_count_rate_cps": { "type": ["number", "null"], "minimum": 0 },
+        "pde": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "dark_counts_cps": { "type": ["number", "null"], "minimum": 0 },
+        "jitter_ps_fwhm": { "type": ["number", "null"], "minimum": 0 },
+        "dead_time_ns": { "type": ["number", "null"], "minimum": 0 },
+        "dead_time_model": {
+          "type": ["string", "null"],
+          "enum": ["nonparalyzable", "paralyzable", "legacy", null]
+        },
+        "afterpulsing_prob": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "required": ["sync_drift_ps_rms", "coincidence_window_ps"],
+      "properties": {
+        "sync_drift_ps_rms": { "type": "number", "minimum": 0 },
+        "coincidence_window_ps": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "required": ["name", "sifting_factor", "ec_efficiency"],
+      "properties": {
+        "name": { "type": "string", "enum": ["BBM92", "E91", "MDI_QKD", "PM_QKD", "TF_QKD"] },
+        "sifting_factor": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ec_efficiency": { "type": "number", "minimum": 1 },
+
+        "relay_fraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+
+        "mu": { "type": ["number", "null"], "minimum": 0 },
+        "nu": { "type": ["number", "null"], "minimum": 0 },
+        "omega": { "type": ["number", "null"], "minimum": 0 },
+        "mu_a": { "type": ["number", "null"], "minimum": 0 },
+        "mu_b": { "type": ["number", "null"], "minimum": 0 },
+        "nu_a": { "type": ["number", "null"], "minimum": 0 },
+        "nu_b": { "type": ["number", "null"], "minimum": 0 },
+        "omega_a": { "type": ["number", "null"], "minimum": 0 },
+        "omega_b": { "type": ["number", "null"], "minimum": 0 },
+        "phase_slices": { "type": ["number", "null"], "minimum": 2 },
+        "ed1": { "type": ["number", "null"], "minimum": 0, "maximum": 0.5 },
+        "misalignment_prob": { "type": ["number", "null"], "minimum": 0, "maximum": 0.5 },
+        "optical_visibility": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "required": ["fiber_loss_db_per_km", "pde", "dark_counts", "jitter", "g2_0", "mu"],
+      "properties": {
+        "fiber_loss_db_per_km": { "type": "number", "minimum": 0 },
+        "pde": { "type": "number", "minimum": 0 },
+        "dark_counts": { "type": "number", "minimum": 0 },
+        "jitter": { "type": "number", "minimum": 0 },
+        "g2_0": { "type": "number", "minimum": 0 },
+        "mu": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

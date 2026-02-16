@@ -1,0 +1,21 @@
+[
+  {
+    "scenario_id": "canonical_phase41_metro_coexistence",
+    "band": "c_1550",
+    "distances_km": [
+      25.0
+    ],
+    "key_rate_bps": [
+      269461.5052864295
+    ],
+    "qber": [
+      0.005108400740347218
+    ],
+    "raman_counts_cps": [
+      3794.733192202055
+    ],
+    "background_counts_cps": [
+      0.0
+    ]
+  }
+]

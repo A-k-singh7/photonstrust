@@ -1,0 +1,106 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.routes",
+  "routes": [
+    {
+      "width_um": 0.45,
+      "points_um": [
+        [
+          10.0,
+          -5.0
+        ],
+        [
+          90.0,
+          -5.0
+        ],
+        [
+          90.0,
+          0.0
+        ]
+      ],
+      "source": {
+        "layer": {
+          "layer": 1,
+          "datatype": 0
+        },
+        "shape_type": "path"
+      },
+      "route_id": "r1"
+    },
+    {
+      "width_um": 0.45,
+      "points_um": [
+        [
+          10.0,
+          5.0
+        ],
+        [
+          140.0,
+          5.0
+        ],
+        [
+          140.0,
+          0.0
+        ]
+      ],
+      "source": {
+        "layer": {
+          "layer": 1,
+          "datatype": 0
+        },
+        "shape_type": "path"
+      },
+      "route_id": "r2"
+    },
+    {
+      "width_um": 0.45,
+      "points_um": [
+        [
+          110.0,
+          0.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          40.0,
+          -5.0
+        ]
+      ],
+      "source": {
+        "layer": {
+          "layer": 1,
+          "datatype": 0
+        },
+        "shape_type": "path"
+      },
+      "route_id": "r3"
+    },
+    {
+      "width_um": 0.45,
+      "points_um": [
+        [
+          160.0,
+          0.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          40.0,
+          5.0
+        ]
+      ],
+      "source": {
+        "layer": {
+          "layer": 1,
+          "datatype": 0
+        },
+        "shape_type": "path"
+      },
+      "route_id": "r4"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_spice_export.v0.schema.json",
+  "title": "PhotonTrust PIC SPICE Export Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "graph_id", "artifacts", "summary", "warnings"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "graph_id": { "type": "string" },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["netlist_path", "spice_map_path", "spice_provenance_path"],
+      "properties": {
+        "netlist_path": { "type": "string" },
+        "spice_map_path": { "type": "string" },
+        "spice_provenance_path": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instances", "nets", "stub_subckts_included"],
+      "properties": {
+        "instances": { "type": "integer", "minimum": 0 },
+        "nets": { "type": "integer", "minimum": 0 },
+        "stub_subckts_included": { "type": "boolean" }
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}
+

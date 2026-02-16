@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "run_id": "e8d4af87b4c5",
+  "run_type": "pic_workflow_invdesign_chain",
+  "generated_at": "2026-02-14T18:06:40.372893+00:00",
+  "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-06-35\\run_e8d4af87b4c5",
+  "input": {
+    "project_id": "default",
+    "graph_hash": "7980611e1d2b932345d26cb470f384f86e65ee5bb3212360f2eb8ae4f1eeddf9",
+    "invdesign_kind": "mzi_phase",
+    "replayed_from_run_id": null
+  },
+  "outputs_summary": {
+    "pic_workflow": {
+      "kind": "pic.workflow.invdesign_chain",
+      "status": "pass",
+      "invdesign_kind": "mzi_phase",
+      "invdesign_run_id": "729ab1b37f67",
+      "layout_run_id": "a3497e7a8ad6",
+      "lvs_lite_run_id": "831e331369ae",
+      "klayout_pack_run_id": "9d77a59affb0",
+      "klayout_pack_status": "fail",
+      "spice_export_run_id": "d5edc7575c54"
+    }
+  },
+  "artifacts": {
+    "workflow_report_json": "workflow_report.json",
+    "workflow_request_json": "workflow_request.json"
+  },
+  "provenance": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

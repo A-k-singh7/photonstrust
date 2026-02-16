@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PhotonTrust Reliability Card</title>
+  <style>
+    :root {
+      --ink: #1b1b1b;
+      --muted: #5e6a75;
+      --panel: #ffffff;
+      --line: #d8dee4;
+      --accent: #0b4f6c;
+      --accent-soft: #e5f3f9;
+    }
+    body {
+      font-family: "IBM Plex Sans", "Segoe UI", Tahoma, sans-serif;
+      margin: 32px;
+      color: var(--ink);
+      background: linear-gradient(140deg, #f5f7fb 0%, #eef3f7 60%, #f9fafc 100%);
+    }
+    h1 { margin-bottom: 6px; font-size: 28px; }
+    .subtle { color: var(--muted); margin-top: 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06); }
+    .label { font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 6px 4px; vertical-align: top; }
+    td:first-child { color: var(--muted); width: 52%; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .plot { margin-top: 20px; text-align: center; }
+    .plot img { max-width: 100%; border-radius: 12px; border: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <h1>PhotonTrust Reliability Card</h1>
+  <p class="subtle">Scenario: demo7_multifidelity_preview | Band: c_1550 | 1550 nm</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Outputs</div>
+      <table>
+        <tr><td>Key rate (bps)</td><td>0</td></tr>
+        <tr><td>Entanglement rate (Hz)</td><td>1.912e+05</td></tr>
+        <tr><td>QBER</td><td>0.5000</td></tr>
+        <tr><td>Fidelity</td><td>0.5000</td></tr>
+        <tr><td>Critical distance (km)</td><td>0.0</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="label">Safe Use</div>
+      <span class="tag">qualitative</span>
+      <p>QBER or key rate exceeds security threshold.</p>
+    </div>
+    <div class="card">
+      <div class="label">Error Budget</div>
+      <table>
+        <tr><td>Dominant</td><td>multiphoton</td></tr>
+        <tr><td>Loss fraction</td><td>0.028</td></tr>
+        <tr><td>Detector fraction</td><td>0.000</td></tr>
+        <tr><td>Multiphoton fraction</td><td>0.972</td></tr>
+        <tr><td>Timing fraction</td><td>0.000</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="label">Reproducibility</div>
+      <table>
+        <tr><td>Config hash</td><td>0587c1a3ae27acbe471515e7fb7a29ccca0b69ff37c6d3739c65c38f77db1948</td></tr>
+        <tr><td>Seed</td><td>0</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="plot"></div>
+</body>
+</html>

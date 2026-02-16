@@ -1,0 +1,86 @@
+{
+  "edges": [
+    {
+      "from": "channel_1",
+      "kind": "optical",
+      "label": "propagates",
+      "to": "detector_1"
+    },
+    {
+      "from": "source_1",
+      "kind": "control",
+      "label": "emits into",
+      "to": "channel_1"
+    }
+  ],
+  "graph_id": "demo8_qkd_link",
+  "metadata": {
+    "created_at": "2026-02-13",
+    "description": "Graph -> compiled PhotonTrust config (analytic backend).",
+    "title": "Demo 8: QKD Link Graph"
+  },
+  "nodes": [
+    {
+      "id": "channel_1",
+      "kind": "qkd.channel",
+      "label": "Fiber",
+      "params": {
+        "connector_loss_db": 1.5,
+        "model": "fiber"
+      }
+    },
+    {
+      "id": "detector_1",
+      "kind": "qkd.detector",
+      "label": "Detector",
+      "params": {
+        "class": "snspd"
+      }
+    },
+    {
+      "id": "protocol_1",
+      "kind": "qkd.protocol",
+      "label": "Protocol",
+      "params": {
+        "ec_efficiency": 1.16,
+        "name": "BBM92",
+        "sifting_factor": 0.5
+      }
+    },
+    {
+      "id": "source_1",
+      "kind": "qkd.source",
+      "label": "Emitter",
+      "params": {
+        "collection_efficiency": 0.35,
+        "coupling_efficiency": 0.6,
+        "g2_0": 0.02,
+        "physics_backend": "analytic",
+        "rep_rate_mhz": 100,
+        "type": "emitter_cavity"
+      }
+    },
+    {
+      "id": "timing_1",
+      "kind": "qkd.timing",
+      "label": "Timing",
+      "params": {
+        "sync_drift_ps_rms": 10
+      }
+    }
+  ],
+  "profile": "qkd_link",
+  "scenario": {
+    "band": "c_1550",
+    "distance_km": {
+      "start": 0,
+      "step": 10,
+      "stop": 50
+    },
+    "execution_mode": "preview",
+    "id": "demo8_qkd_link",
+    "wavelength_nm": 1550
+  },
+  "schema_version": "0.1",
+  "uncertainty": {}
+}

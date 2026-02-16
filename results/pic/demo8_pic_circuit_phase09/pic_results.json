@@ -1,0 +1,81 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-02-13T00:51:00.624840+00:00",
+  "graph_id": "demo8_pic_circuit",
+  "circuit_id": "demo8_pic_circuit",
+  "wavelength_nm": 1550.0,
+  "chain_solver": {
+    "applicable": true,
+    "node_order": [
+      "gc_in",
+      "wg_1",
+      "ring_1",
+      "wg_2",
+      "ec_out"
+    ],
+    "eta_total": 0.3388441561392027,
+    "total_loss_db": 4.699999999999998,
+    "per_component": [
+      {
+        "node_id": "gc_in",
+        "kind": "pic.grating_coupler",
+        "eta": 0.5623413251903492,
+        "loss_db": 2.499999999999999
+      },
+      {
+        "node_id": "wg_1",
+        "kind": "pic.waveguide",
+        "eta": 0.9120108393559099,
+        "loss_db": 0.39999999999999936
+      },
+      {
+        "node_id": "ring_1",
+        "kind": "pic.ring",
+        "eta": 1.0,
+        "loss_db": -0.0
+      },
+      {
+        "node_id": "wg_2",
+        "kind": "pic.waveguide",
+        "eta": 0.933254300796991,
+        "loss_db": 0.30000000000000016
+      },
+      {
+        "node_id": "ec_out",
+        "kind": "pic.edge_coupler",
+        "eta": 0.707945784384138,
+        "loss_db": 1.4999999999999993
+      }
+    ]
+  },
+  "dag_solver": {
+    "external_inputs": [
+      {
+        "node": "gc_in",
+        "port": "in",
+        "amplitude": 1.0
+      }
+    ],
+    "external_outputs": [
+      {
+        "node": "ec_out",
+        "port": "out",
+        "amplitude": {
+          "re": 0.5821032177708715,
+          "im": 0.0
+        },
+        "power": 0.33884415613920266,
+        "loss_db": 4.699999999999998
+      }
+    ],
+    "warnings": []
+  },
+  "assumptions": {
+    "model": "unidirectional_dag",
+    "notes": [
+      "This v1 PIC simulator assumes forward-only propagation (no back-reflections).",
+      "Cycles are rejected; resonator feedback loops are not modeled in v1.",
+      "Component models are minimal and intended for early-stage loss/phase budgeting."
+    ]
+  }
+}

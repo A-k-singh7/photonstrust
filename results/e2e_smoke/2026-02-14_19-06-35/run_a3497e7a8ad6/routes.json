@@ -1,0 +1,118 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.routes",
+  "routes": [
+    {
+      "route_id": "e1:cpl_in.out1->ps1.in",
+      "width_um": 0.45,
+      "points_um": [
+        [
+          10.0,
+          -5.0
+        ],
+        [
+          90.0,
+          -5.0
+        ],
+        [
+          90.0,
+          0.0
+        ]
+      ],
+      "source": {
+        "edge": {
+          "id": null,
+          "from": "cpl_in",
+          "from_port": "out1",
+          "to": "ps1",
+          "to_port": "in",
+          "kind": "optical"
+        }
+      }
+    },
+    {
+      "route_id": "e2:cpl_in.out2->ps2.in",
+      "width_um": 0.45,
+      "points_um": [
+        [
+          10.0,
+          5.0
+        ],
+        [
+          140.0,
+          5.0
+        ],
+        [
+          140.0,
+          0.0
+        ]
+      ],
+      "source": {
+        "edge": {
+          "id": null,
+          "from": "cpl_in",
+          "from_port": "out2",
+          "to": "ps2",
+          "to_port": "in",
+          "kind": "optical"
+        }
+      }
+    },
+    {
+      "route_id": "e3:ps1.out->cpl_out.in1",
+      "width_um": 0.45,
+      "points_um": [
+        [
+          110.0,
+          0.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          40.0,
+          -5.0
+        ]
+      ],
+      "source": {
+        "edge": {
+          "id": null,
+          "from": "ps1",
+          "from_port": "out",
+          "to": "cpl_out",
+          "to_port": "in1",
+          "kind": "optical"
+        }
+      }
+    },
+    {
+      "route_id": "e4:ps2.out->cpl_out.in2",
+      "width_um": 0.45,
+      "points_um": [
+        [
+          160.0,
+          0.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          40.0,
+          5.0
+        ]
+      ],
+      "source": {
+        "edge": {
+          "id": null,
+          "from": "ps2",
+          "from_port": "out",
+          "to": "cpl_out",
+          "to_port": "in2",
+          "kind": "optical"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.phase2e_demo_pack",
+  "run_label": "tmp_day0_20260216T072623Z",
+  "generated_at": "2026-02-16T07:26:28.951264+00:00",
+  "determinism": {
+    "seed": 20260216,
+    "preview_uncertainty_samples": 60,
+    "fingerprint_sha256": "c286c3113d7fca4c6a3d78b53c50beb304543a691ffd515307d4106e722ccd34"
+  },
+  "inputs": {
+    "config_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/configs/demo1_default.yml",
+    "scenario_id": "demo1_multiband_phase2e_demo",
+    "band": "c_1550",
+    "execution_mode": "preview"
+  },
+  "outputs": {
+    "pack_dir": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z",
+    "scenario_dir": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550",
+    "reliability_card": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/reliability_card.json",
+    "uncertainty": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/uncertainty.json",
+    "results": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/run/demo1_multiband_phase2e_demo/c_1550/results.json",
+    "evidence_manifest": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/evidence/artifact_manifest.json",
+    "reliability_summary": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/evidence/reliability_card_summary.json",
+    "uncertainty_summary": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_20260216T072623Z/evidence/uncertainty_summary.json"
+  }
+}

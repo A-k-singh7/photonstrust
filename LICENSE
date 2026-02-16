@@ -1,0 +1,10 @@
+LICENSE PLACEHOLDER
+===================
+
+No open-source license has been selected yet for this repository.
+
+Until replaced with an approved license text, all rights are reserved by the copyright holder(s).
+
+Maintainer guidance:
+- Choose and replace this file with the full text of the intended license (for example: MIT, Apache-2.0, BSD-3-Clause, etc.).
+- Keep `pyproject.toml` metadata in sync once a license is selected.

@@ -1,0 +1,58 @@
+{
+  "ok": true,
+  "failures": [],
+  "metrics": [
+    {
+      "scenario_id": "canonical_phase54_satellite_uplink_stress",
+      "band": "c_1550",
+      "metric": "key_rate_bps",
+      "samples": 2,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "canonical_phase54_satellite_uplink_stress",
+      "band": "c_1550",
+      "metric": "qber",
+      "samples": 2,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "canonical_phase54_satellite_uplink_stress",
+      "band": "c_1550",
+      "metric": "raman_counts_cps",
+      "samples": 2,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-09
+      }
+    },
+    {
+      "scenario_id": "canonical_phase54_satellite_uplink_stress",
+      "band": "c_1550",
+      "metric": "background_counts_cps",
+      "samples": 2,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-09
+      }
+    }
+  ]
+}

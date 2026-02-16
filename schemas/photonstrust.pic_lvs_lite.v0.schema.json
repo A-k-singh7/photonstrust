@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_lvs_lite.v0.schema.json",
+  "title": "PhotonTrust PIC LVS-lite Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "graph_id",
+    "provenance",
+    "settings",
+    "expected",
+    "observed",
+    "mismatches",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "graph_id": { "type": "string" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["graph_hash", "python", "platform"],
+      "properties": {
+        "graph_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "python": { "type": "string" },
+        "platform": { "type": "string" }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coord_tol_um"],
+      "properties": {
+        "coord_tol_um": { "type": "number", "exclusiveMinimum": 0.0 }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edges", "edges_count"],
+      "properties": {
+        "edges_count": { "type": "integer", "minimum": 0 },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "from_port", "to", "to_port"],
+            "properties": {
+              "from": { "type": "string" },
+              "from_port": { "type": "string" },
+              "to": { "type": "string" },
+              "to_port": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edges", "edges_count", "dangling_routes", "warnings"],
+      "properties": {
+        "edges_count": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "array" },
+        "dangling_routes": { "type": "array" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "mismatches": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["missing_edges", "extra_edges", "port_role_mismatches", "unconnected_ports"],
+      "properties": {
+        "missing_edges": { "type": "array" },
+        "extra_edges": { "type": "array" },
+        "port_role_mismatches": { "type": "array" },
+        "unconnected_ports": { "type": "array" }
+      }
+    },
+    "violations_annotated": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "signoff_bundle": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pass", "missing_edges", "extra_edges", "port_role_mismatches", "unconnected_ports"],
+      "properties": {
+        "pass": { "type": "boolean" },
+        "missing_edges": { "type": "integer", "minimum": 0 },
+        "extra_edges": { "type": "integer", "minimum": 0 },
+        "port_role_mismatches": { "type": "integer", "minimum": 0 },
+        "unconnected_ports": { "type": "integer", "minimum": 0 },
+        "violations": { "type": "integer", "minimum": 0 },
+        "blocking_violations": { "type": "integer", "minimum": 0 },
+        "signoff_pass": { "type": "boolean" },
+        "signoff_total_checks": { "type": "integer", "minimum": 0 },
+        "signoff_failed_checks": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

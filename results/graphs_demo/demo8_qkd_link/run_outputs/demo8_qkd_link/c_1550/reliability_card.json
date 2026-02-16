@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-02-13T00:20:23.346699+00:00",
+  "scenario_id": "demo8_qkd_link",
+  "band": "c_1550",
+  "wavelength_nm": 1550,
+  "evidence_quality_tier": "simulated_only",
+  "benchmark_coverage": "internal_demo",
+  "calibration_diagnostics": {
+    "status": "not_calibrated",
+    "gate_pass": false
+  },
+  "reproducibility_artifact_uri": null,
+  "inputs": {
+    "source": {
+      "collection_efficiency": 0.35,
+      "coupling_efficiency": 0.6,
+      "g2_0": 0.02,
+      "physics_backend": "analytic",
+      "rep_rate_mhz": 100,
+      "type": "emitter_cavity",
+      "emission_mode": "steady_state",
+      "radiative_lifetime_ns": 1.0,
+      "purcell_factor": 5,
+      "dephasing_rate_per_ns": 0.5,
+      "drive_strength": 0.05,
+      "pulse_window_ns": 5.0,
+      "transient_steps": 64
+    },
+    "channel": {
+      "connector_loss_db": 1.5,
+      "dispersion_ps_per_km": 5.0,
+      "fiber_loss_db_per_km": 0.2,
+      "model": "fiber",
+      "distance_km": 0.0
+    },
+    "detector": {
+      "afterpulsing_prob": 0.001,
+      "class": "snspd",
+      "dark_counts_cps": 100.0,
+      "dead_time_ns": 100,
+      "jitter_ps_fwhm": 30,
+      "pde": 0.35,
+      "physics_backend": "analytic",
+      "sample_count": 500,
+      "time_bin_ps": 10.0,
+      "afterpulse_delay_ns": 50.0
+    },
+    "timing": {
+      "coincidence_window_ps": null,
+      "sync_drift_ps_rms": 10
+    },
+    "protocol": {
+      "ec_efficiency": 1.16,
+      "name": "BBM92",
+      "sifting_factor": 0.5
+    }
+  },
+  "derived": {
+    "loss_budget": {
+      "fiber_loss_db": 0.0,
+      "connector_loss_db": 1.5,
+      "total_loss_db": 1.5
+    },
+    "timing_budget": {
+      "effective_jitter_ps": 30,
+      "false_herald_prob": 2.002e-08
+    },
+    "multiphoton": {
+      "p_multi": 0.0196078431372549,
+      "qber_contrib": 7.386726888644147
+    },
+    "dark_counts": {
+      "qber_contrib": 7.541995887843447e-06
+    },
+    "timing_errors": {
+      "qber_contrib": 7.53446142641703e-06
+    },
+    "qber_total": 0.5
+  },
+  "outputs": {
+    "entanglement_rate_hz": 258400.76611339545,
+    "key_rate_bps": 0.0,
+    "fidelity_est": 0.5,
+    "critical_distance_km": 0.0,
+    "uncertainty": null
+  },
+  "error_budget": {
+    "dominant_error": "multiphoton",
+    "error_budget": {
+      "loss_fraction": 0.03803385436238777,
+      "detector_fraction": 9.821846693603611e-07,
+      "multiphoton_fraction": 0.961964182249477,
+      "timing_fraction": 9.812034658944666e-07
+    }
+  },
+  "safe_use_label": {
+    "label": "qualitative",
+    "rationale": "QBER or key rate exceeds security threshold."
+  },
+  "reproducibility": {
+    "config_hash": "747f5ad9078200ba3cbbedbe46ff8ba1d1fc04fb9b6fcc664215779ebbcb1c28",
+    "model_hash": null,
+    "seed": 0
+  },
+  "artifacts": {
+    "plots": {},
+    "report_html_path": "results\\graphs_demo\\demo8_qkd_link\\run_outputs\\demo8_qkd_link\\c_1550\\report.html",
+    "report_pdf_path": null,
+    "card_path": "results\\graphs_demo\\demo8_qkd_link\\run_outputs\\demo8_qkd_link\\c_1550\\reliability_card.json"
+  }
+}

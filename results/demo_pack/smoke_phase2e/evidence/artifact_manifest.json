@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.phase2e_demo_pack.artifact_manifest",
+  "files": [
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/smoke_phase2e/run/demo1_multiband_phase2e_demo/c_1550/reliability_card.json",
+      "size_bytes": 5457,
+      "sha256": "dfa908bf4c13ed1ec78d53f641fc3158b236337c4a861c054a000640842d9fef"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/smoke_phase2e/run/demo1_multiband_phase2e_demo/c_1550/uncertainty.json",
+      "size_bytes": 14389,
+      "sha256": "b594860d870d3c3301838bcabac6c5988cb23e41aa69c0b8ba5fe4256bae549e"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/smoke_phase2e/run/demo1_multiband_phase2e_demo/c_1550/results.json",
+      "size_bytes": 4060,
+      "sha256": "9de5f2538fc409f273f9a1d1bf3a10e4dc13fb8a44915682cb6f8e84b6f86ac3"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/smoke_phase2e/run/demo1_multiband_phase2e_demo/c_1550/report.html",
+      "size_bytes": 2814,
+      "sha256": "b47f9ef8160c47a52970d355822d164b61b37f6a50133cb7bf690f77bcc5dde6"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/smoke_phase2e/run/run_registry.json",
+      "size_bytes": 318,
+      "sha256": "db908a577a7ec405e3aafd3a15a6961b5ae26b7de79ccec81a0e4cf506b6155e"
+    }
+  ]
+}

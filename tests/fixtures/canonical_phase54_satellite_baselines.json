@@ -1,0 +1,97 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "1970-01-01T00:00:00+00:00",
+  "kind": "photonstrust.canonical_baselines.phase54_satellite",
+  "configs": [
+    {
+      "config_relpath": "configs/canonical/phase54_satellite_day_downlink_c_1550.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase54_satellite_day_downlink",
+          "band": "c_1550",
+          "distances_km": [
+            500.0,
+            900.0
+          ],
+          "key_rate_bps": [
+            0.0,
+            0.0
+          ],
+          "qber": [
+            0.29548946200290155,
+            0.48906440796743317
+          ],
+          "raman_counts_cps": [
+            0.0,
+            0.0
+          ],
+          "background_counts_cps": [
+            7257.6,
+            7257.6
+          ],
+          "finite_key_enabled": true
+        }
+      ]
+    },
+    {
+      "config_relpath": "configs/canonical/phase54_satellite_night_downlink_c_1550.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase54_satellite_night_downlink",
+          "band": "c_1550",
+          "distances_km": [
+            500.0,
+            900.0
+          ],
+          "key_rate_bps": [
+            0.00044461901162276465,
+            0.0
+          ],
+          "qber": [
+            0.03317981696320918,
+            0.1444907976941468
+          ],
+          "raman_counts_cps": [
+            0.0,
+            0.0
+          ],
+          "background_counts_cps": [
+            115.19999999999999,
+            115.19999999999999
+          ],
+          "finite_key_enabled": true
+        }
+      ]
+    },
+    {
+      "config_relpath": "configs/canonical/phase54_satellite_uplink_stress_c_1550.yml",
+      "baselines": [
+        {
+          "scenario_id": "canonical_phase54_satellite_uplink_stress",
+          "band": "c_1550",
+          "distances_km": [
+            400.0,
+            800.0
+          ],
+          "key_rate_bps": [
+            0.00010221581453352007,
+            0.0
+          ],
+          "qber": [
+            0.06112723510784465,
+            0.3448116840649532
+          ],
+          "raman_counts_cps": [
+            0.0,
+            0.0
+          ],
+          "background_counts_cps": [
+            308.0,
+            308.0
+          ],
+          "finite_key_enabled": true
+        }
+      ]
+    }
+  ]
+}

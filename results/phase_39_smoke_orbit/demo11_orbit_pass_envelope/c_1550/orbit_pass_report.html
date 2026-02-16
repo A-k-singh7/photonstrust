@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PhotonTrust Orbit Pass Report</title>
+  <style>
+    body {
+      font-family: "IBM Plex Sans", "Segoe UI", Tahoma, sans-serif;
+      margin: 32px;
+      color: #1b1b1b;
+      background: linear-gradient(140deg, #f5f7fb 0%, #eef3f7 60%, #f9fafc 100%);
+    }
+    h1 { margin: 0 0 8px 0; }
+    .subtle { color: #5e6a75; margin: 0 0 18px 0; }
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d8dee4;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+      margin-bottom: 16px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e7ecf1; }
+    th { color: #0b4f6c; font-weight: 700; }
+    code { background: #f3f5f7; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+  <body>
+  <h1>PhotonTrust Orbit Pass Report</h1>
+  <p class="subtle">pass_id: <code>demo11_orbit_pass_envelope</code> | band: <code>c_1550</code> | wavelength_nm: <code>1550.0</code> | dt_s: <code>30.0</code> | clear_fraction: <code>1.0</code></p>
+
+  <div class="panel">
+    <h2>Case Summary</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>case_id</th>
+          <th>label</th>
+          <th>total_keys_bits</th>
+          <th>expected_total_keys_bits</th>
+          <th>avg_key_rate_bps</th>
+          <th>min_key_rate_bps</th>
+          <th>max_key_rate_bps</th>
+          <th>min_loss_db</th>
+          <th>max_loss_db</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>best</td><td>Best case (night-like, low turbulence)</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>35.36401968118757</td><td>69.84017945769261</td></tr>
+<tr><td>median</td><td>Median</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>42.087924914707955</td><td>105.01964455443841</td></tr>
+<tr><td>worst</td><td>Worst case (day-like, high turbulence)</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>61.872394702238715</td><td>150.0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Assumptions</h2>
+    <ul>
+      <li>This v0.1 OrbitVerify layer treats a pass as explicit samples (dt_s) rather than orbit propagation.</li><li>Free-space channel model uses airmass proxy and simple pointing/turbulence proxies (see channels/free_space.py).</li><li>Availability assumption: clear_fraction=1.0 (default).</li><li>Standards anchors are provided for conceptual mapping only (not a compliance claim).</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>Anchors (references)</h2>
+    <p class="subtle">These references are provided as conceptual anchors, not as a standards compliance claim.</p>
+    <ul>
+      <li><a href="https://www.itu.int/rec/R-REC-P.1814/en">ITU-R P.1814 (terrestrial FSO attenuation prediction methods)</a></li>
+<li><a href="https://www.itu.int/rec/R-REC-P.1817/en">ITU-R P.1817 (terrestrial FSO availability prediction methods)</a></li>
+<li><a href="https://public.ccsds.org/Pubs/141x11o1.pdf">CCSDS 141.11-O-1 (Optical High Data Rate Communication - 1064 nm)</a></li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>Provenance</h2>
+    <p>config_hash: <code>3b67f7f7c56a9c088f999aa2bc423c787c952db3af81d0ef7cf297656d128239</code></p>
+    <p>photonstrust_version: <code>0.1.0</code></p>
+    <p>python: <code>3.12.10</code></p>
+    <p>platform: <code>Windows-11-10.0.26200-SP0</code></p>
+  </div>
+</body>
+</html>

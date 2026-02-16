@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.artifact_pack_manifest.v0.schema.json",
+  "title": "PhotonTrust Artifact Pack Manifest v0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "pack_id",
+    "measurement_bundle_path",
+    "scan",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "pack_id": { "type": "string" },
+    "measurement_bundle_path": { "type": "string" },
+    "zip_path": { "type": ["string", "null"] },
+    "scan": {
+      "type": "object",
+      "required": ["status", "issues"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "fail", "overridden"] },
+        "issues": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "config_hash": { "type": ["string", "null"] },
+        "bundle_hash": { "type": ["string", "null"] },
+        "photonstrust_version": { "type": ["string", "null"] },
+        "python": { "type": "string" },
+        "platform": { "type": "string" }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-02-16T13:30:20.839765+00:00",
+  "graph_id": "api_pic_chain",
+  "pdk": {
+    "name": "generic_silicon_photonics",
+    "version": "0",
+    "design_rules": {
+      "min_waveguide_width_um": 0.45,
+      "min_waveguide_gap_um": 0.2,
+      "min_bend_radius_um": 5.0
+    },
+    "notes": [
+      "Built-in demo PDK. Replace with a foundry PDK manifest for real tapeout workflows."
+    ]
+  },
+  "settings": {
+    "grid_um": 50.0,
+    "ui_scale_um_per_unit": 1.0,
+    "waveguide_width_um": null,
+    "port_offset_um": 10.0,
+    "port_pitch_um": 10.0,
+    "component_box_w_um": 20.0,
+    "component_box_h_um": 10.0,
+    "coord_tol_um": 1e-06,
+    "waveguide_layer": {
+      "layer": 1,
+      "datatype": 0
+    },
+    "component_layer": {
+      "layer": 2,
+      "datatype": 0
+    },
+    "label_layer": {
+      "layer": 10,
+      "datatype": 0
+    },
+    "label_prefix": "PTPORT",
+    "cell_name": "TOP"
+  },
+  "summary": {
+    "nodes": 3,
+    "edges": 2,
+    "ports": 6,
+    "routes": 2,
+    "gds_emitted": true
+  },
+  "artifacts": {
+    "routes_json_path": "routes.json",
+    "ports_json_path": "ports.json",
+    "layout_provenance_json_path": "layout_provenance.json",
+    "layout_gds_path": "layout.gds"
+  },
+  "warnings": [
+    "3 nodes missing ui.position; auto-placed on grid: ['ec_out', 'gc_in', 'wg_1']"
+  ]
+}

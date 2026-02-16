@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-02-16T14:29:35.662148+00:00",
+  "checks": [
+    {
+      "name": "tests",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "output": "........................................................................ [ 23%]\n............................s..........................s................ [ 46%]\n........................................................................ [ 69%]\n........................................................................ [ 92%]\n......................                                                   [100%]\n============================== warnings summary ===============================\ntests/test_qutip_backend_interface.py::test_qutip_backend_simulation_falls_back_to_analytic_when_qutip_path_fails\n  C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\photonstrust\\physics\\emitter.py:80: UserWarning: QuTiP backend unavailable, using analytic model: forced qutip failure\n    warnings.warn(f\"QuTiP backend unavailable, using analytic model: {exc}\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n308 passed, 2 skipped, 1 warning in 25.75s"
+    },
+    {
+      "name": "benchmark_drift",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "scripts/check_benchmark_drift.py"
+      ],
+      "output": "Benchmark drift check: PASS\nArtifacts: C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\benchmark_drift\\20260216T143004Z"
+    },
+    {
+      "name": "open_benchmarks",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "scripts/check_open_benchmarks.py"
+      ],
+      "output": "Open benchmarks: PASS"
+    },
+    {
+      "name": "pic_crosstalk_calibration_drift",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "scripts/check_pic_crosstalk_calibration_drift.py"
+      ],
+      "output": "PIC crosstalk calibration drift check: PASS"
+    }
+  ],
+  "pass": true
+}

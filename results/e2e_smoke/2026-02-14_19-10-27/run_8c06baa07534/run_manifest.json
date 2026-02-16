@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1",
+  "run_id": "8c06baa07534",
+  "run_type": "pic_klayout_artifact_pack",
+  "generated_at": "2026-02-14T18:10:32.040672+00:00",
+  "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-10-27\\run_8c06baa07534",
+  "input": {
+    "project_id": "default",
+    "source_run_id": "4117a61d1e8c",
+    "source_gds_artifact_path": "layout.gds",
+    "layout_run_id": null,
+    "settings_hash": "2a0505976d879140aa2c4dccabedb093bc1d7489d67a7a4c7dd1b2a6dd190bab"
+  },
+  "outputs_summary": {
+    "pic_klayout": {
+      "status": "pass",
+      "drc_status": "pass",
+      "ports_extracted": 12,
+      "routes_extracted": 4,
+      "issue_count": 0,
+      "error_count": 0,
+      "source_run_id": "4117a61d1e8c",
+      "layout_run_id": null
+    }
+  },
+  "artifacts": {
+    "klayout_run_artifact_pack_json": "klayout_run_artifact_pack.json",
+    "klayout_stdout_txt": "klayout_stdout.txt",
+    "klayout_stderr_txt": "klayout_stderr.txt",
+    "ports_extracted_json": "ports_extracted.json",
+    "routes_extracted_json": "routes_extracted.json",
+    "drc_lite_json": "drc_lite.json",
+    "macro_provenance_json": "macro_provenance.json"
+  },
+  "provenance": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

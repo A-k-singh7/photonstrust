@@ -1,0 +1,26 @@
+{
+  "schema_version": "0",
+  "kind": "pic_crosstalk_sweep",
+  "parallel_length_um": 1000.0,
+  "lambda_ref_nm": 1550.0,
+  "wavelengths_nm": [1540.0, 1550.0, 1560.0],
+  "gaps_um": [0.2, 0.4, 0.6, 0.8, 1.0],
+  "xt_db": [
+    [-29.552989272866252, -29.49114777152203, -29.42970396747029],
+    [-37.105936784227154, -37.044095282882935, -36.982651478831194],
+    [-44.65888429558805, -44.597042794243826, -44.535598990192085],
+    [-52.21183180694895, -52.14999030560473, -52.08854650155299],
+    [-59.764779318309856, -59.70293781696563, -59.641494012913896]
+  ],
+  "notes": "Synthetic sweep generated from the v0 predictor for calibration tests.",
+  "provenance": {
+    "generator": "photonstrust.components.pic.crosstalk.predict_parallel_waveguide_xt_db",
+    "true_model": {
+      "kappa0_per_um": 8e-05,
+      "gap_decay_um": 0.23,
+      "lambda_ref_nm": 1550.0,
+      "lambda_exp": 1.1
+    }
+  }
+}
+

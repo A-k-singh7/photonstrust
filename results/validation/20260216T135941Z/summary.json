@@ -1,0 +1,116 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.validation_harness",
+  "run_id": "20260216T135941Z",
+  "generated_at": "2026-02-16T13:59:43.791369+00:00",
+  "ok": true,
+  "case_count": 10,
+  "failed_cases": 0,
+  "total_failures": 0,
+  "thresholds": {
+    "key_rate_bps": {
+      "rel_tol": 1e-06,
+      "abs_tol": 1e-12
+    },
+    "qber": {
+      "rel_tol": 1e-06,
+      "abs_tol": 1e-12
+    },
+    "raman_counts_cps": {
+      "rel_tol": 1e-06,
+      "abs_tol": 1e-09
+    },
+    "background_counts_cps": {
+      "rel_tol": 1e-06,
+      "abs_tol": 1e-09
+    }
+  },
+  "cases": [
+    {
+      "case_id": "demo1_default_regression",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\demo1_default.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\demo1_default_regression"
+    },
+    {
+      "case_id": "phase41::phase41_finite_key_50km_c_1550",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase41_finite_key_50km_c_1550.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase41_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase41__phase41_finite_key_50km_c_1550"
+    },
+    {
+      "case_id": "phase41::phase41_longhaul_120km_c_1550_abort",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase41_longhaul_120km_c_1550_abort.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase41_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase41__phase41_longhaul_120km_c_1550_abort"
+    },
+    {
+      "case_id": "phase41::phase41_metro_25km_c_1550_coexistence",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase41_metro_25km_c_1550_coexistence.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase41_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase41__phase41_metro_25km_c_1550_coexistence"
+    },
+    {
+      "case_id": "phase41::phase41_metro_25km_c_1550_realistic",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase41_metro_25km_c_1550_realistic.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase41_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase41__phase41_metro_25km_c_1550_realistic"
+    },
+    {
+      "case_id": "phase41::phase41_regional_80km_c_1550_snspd",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase41_regional_80km_c_1550_snspd.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase41_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase41__phase41_regional_80km_c_1550_snspd"
+    },
+    {
+      "case_id": "phase41::phase41_smoke_10km_c_1550_ideal",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase41_smoke_10km_c_1550_ideal.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase41_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase41__phase41_smoke_10km_c_1550_ideal"
+    },
+    {
+      "case_id": "phase54::phase54_satellite_day_downlink_c_1550",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase54_satellite_day_downlink_c_1550.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase54_satellite_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase54__phase54_satellite_day_downlink_c_1550"
+    },
+    {
+      "case_id": "phase54::phase54_satellite_night_downlink_c_1550",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase54_satellite_night_downlink_c_1550.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase54_satellite_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase54__phase54_satellite_night_downlink_c_1550"
+    },
+    {
+      "case_id": "phase54::phase54_satellite_uplink_stress_c_1550",
+      "config_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\configs\\canonical\\phase54_satellite_uplink_stress_c_1550.yml",
+      "baseline_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tests\\fixtures\\canonical_phase54_satellite_baselines.json",
+      "passed": true,
+      "failure_count": 0,
+      "artifact_dir": "results\\validation\\20260216T135941Z\\cases\\phase54__phase54_satellite_uplink_stress_c_1550"
+    }
+  ],
+  "artifacts": {
+    "run_dir": "results\\validation\\20260216T135941Z",
+    "cases_dir": "results\\validation\\20260216T135941Z\\cases",
+    "summary": "results\\validation\\20260216T135941Z\\summary.json",
+    "manifest": "results\\validation\\20260216T135941Z\\manifest.json"
+  }
+}

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PhotonTrust Reliability Card</title>
+  <style>
+    body { font-family: "Segoe UI", Tahoma, sans-serif; margin: 32px; color: #1b1b1b; }
+    h1 { margin-bottom: 4px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .card { border: 1px solid #d0d7de; border-radius: 8px; padding: 16px; }
+    .label { font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 4px 6px; vertical-align: top; }
+  </style>
+</head>
+<body>
+  <h1>PhotonTrust Reliability Card</h1>
+  <p>Scenario: demo1_o_1310 | Band: o_1310 | 1310 nm</p>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Outputs</div>
+      <table>
+        <tr><td>Key rate (bps)</td><td>0</td></tr>
+        <tr><td>Entanglement rate (Hz)</td><td>2.488e+04</td></tr>
+        <tr><td>QBER</td><td>0.5000</td></tr>
+        <tr><td>Fidelity</td><td>0.5000</td></tr>
+        <tr><td>Critical distance (km)</td><td>0.0</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="label">Safe Use</div>
+      <p>qualitative</p>
+      <p>QBER or key rate exceeds security threshold.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top: 24px;">
+    <div class="label">Error Budget</div>
+    <table>
+      <tr><td>Dominant</td><td>multiphoton</td></tr>
+      <tr><td>Loss fraction</td><td>0.000</td></tr>
+      <tr><td>Detector fraction</td><td>0.000</td></tr>
+      <tr><td>Multiphoton fraction</td><td>1.000</td></tr>
+      <tr><td>Timing fraction</td><td>0.000</td></tr>
+    </table>
+  </div>
+  <div class="card" style="margin-top: 24px;">
+    <div class="label">Reproducibility</div>
+    <table>
+      <tr><td>Config hash</td><td>e5933bf1600b55b28f240b696080edace87c44a06e2a4bf2852fd18c15b16add</td></tr>
+      <tr><td>Seed</td><td>0</td></tr>
+    </table>
+  </div>
+</body>
+</html>

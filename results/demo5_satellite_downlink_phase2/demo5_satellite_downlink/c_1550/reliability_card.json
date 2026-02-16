@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-02-12T23:07:21.864704+00:00",
+  "scenario_id": "demo5_satellite_downlink",
+  "band": "c_1550",
+  "wavelength_nm": 1550,
+  "inputs": {
+    "source": {
+      "type": "emitter_cavity",
+      "physics_backend": "analytic",
+      "rep_rate_mhz": 150,
+      "collection_efficiency": 0.38,
+      "coupling_efficiency": 0.62,
+      "radiative_lifetime_ns": 1.0,
+      "purcell_factor": 5,
+      "dephasing_rate_per_ns": 0.5,
+      "g2_0": 0.02,
+      "pulse_window_ns": 5.0,
+      "drive_strength": 0.05
+    },
+    "channel": {
+      "model": "free_space",
+      "connector_loss_db": 1.0,
+      "dispersion_ps_per_km": 0.0,
+      "elevation_deg": 45.0,
+      "tx_aperture_m": 0.12,
+      "rx_aperture_m": 0.3,
+      "beam_divergence_urad": 12.0,
+      "pointing_jitter_urad": 1.5,
+      "atmospheric_extinction_db_per_km": 0.02,
+      "turbulence_scintillation_index": 0.15,
+      "background_counts_cps": 300.0,
+      "fiber_loss_db_per_km": 0.0,
+      "distance_km": 300.0
+    },
+    "detector": {
+      "class": "snspd",
+      "pde": 0.3,
+      "dark_counts_cps": 100,
+      "jitter_ps_fwhm": 30,
+      "dead_time_ns": 100,
+      "afterpulsing_prob": 0.001,
+      "physics_backend": "analytic",
+      "sample_count": 500,
+      "time_bin_ps": 10.0,
+      "afterpulse_delay_ns": 50.0
+    },
+    "timing": {
+      "sync_drift_ps_rms": 10,
+      "coincidence_window_ps": 250
+    },
+    "protocol": {
+      "name": "BBM92",
+      "sifting_factor": 0.5,
+      "ec_efficiency": 1.16
+    }
+  },
+  "derived": {
+    "loss_budget": {
+      "fiber_loss_db": 30.78820653084333,
+      "connector_loss_db": 1.0,
+      "total_loss_db": 31.78820653084333
+    },
+    "timing_budget": {
+      "effective_jitter_ps": 30,
+      "false_herald_prob": 1.001e-07
+    },
+    "multiphoton": {
+      "p_multi": 0.0196078431372549,
+      "qber_contrib": 191764.55340035423
+    },
+    "dark_counts": {
+      "qber_contrib": 0.9789772215641483
+    },
+    "timing_errors": {
+      "qber_contrib": 1.2224990279272583
+    },
+    "qber_total": 0.5
+  },
+  "outputs": {
+    "entanglement_rate_hz": 15.337411984775903,
+    "key_rate_bps": 0.0,
+    "fidelity_est": 0.5,
+    "critical_distance_km": 300.0,
+    "uncertainty": {
+      "key_rate_ci_low": 0.0,
+      "key_rate_ci_high": 0.0,
+      "outage_probability": 1.0
+    }
+  },
+  "error_budget": {
+    "dominant_error": "multiphoton",
+    "error_budget": {
+      "loss_fraction": 5.211186385663641e-06,
+      "detector_fraction": 5.105014790292088e-06,
+      "multiphoton_fraction": 0.9999833089052298,
+      "timing_fraction": 6.3748935942708405e-06
+    }
+  },
+  "safe_use_label": {
+    "label": "qualitative",
+    "rationale": "QBER or key rate exceeds security threshold."
+  },
+  "reproducibility": {
+    "config_hash": "05969031bc50de13b549c11de0d29424dc16214647052b34c5da7305b003a178",
+    "model_hash": null,
+    "seed": 0
+  },
+  "artifacts": {
+    "plots": {},
+    "report_html_path": "results\\demo5_satellite_downlink_phase2\\demo5_satellite_downlink\\c_1550\\report.html",
+    "report_pdf_path": null,
+    "card_path": "results\\demo5_satellite_downlink_phase2\\demo5_satellite_downlink\\c_1550\\reliability_card.json"
+  }
+}

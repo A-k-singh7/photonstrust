@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.evidence_bundle_signature.v0.schema.json",
+  "title": "PhotonTrust Evidence Bundle Signature (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "created_at",
+    "bundle_root",
+    "manifest_path",
+    "signature_alg",
+    "manifest_canonical_sha256",
+    "signature_b64"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "photonstrust.evidence_bundle_signature" },
+    "created_at": { "type": "string" },
+    "bundle_root": { "type": "string" },
+    "manifest_path": { "type": "string", "const": "bundle_manifest.json" },
+    "signature_alg": { "type": "string", "enum": ["ed25519"] },
+    "manifest_canonical_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "signature_b64": { "type": "string" },
+    "key_id": { "type": ["string", "null"] }
+  }
+}

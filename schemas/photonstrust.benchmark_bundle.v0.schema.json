@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PhotonTrust Benchmark Bundle (v0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "kind", "config", "expected"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0" },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_\\-]{2,63}$"
+    },
+    "kind": { "type": "string", "enum": ["qkd_sweep"] },
+    "title": { "type": "string" },
+    "created_at": { "type": "string" },
+    "notes": { "type": "string" },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "photonstrust_version": { "type": "string" },
+        "requires": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "doi": { "type": "string" },
+          "retrieved_at": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "config": { "type": "object" },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rel_tol": { "type": "number", "minimum": 0 },
+        "abs_tol": { "type": "number", "minimum": 0 }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qkd_sweeps"],
+      "properties": {
+        "qkd_sweeps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scenario_id", "band", "distances_km", "key_rate_bps"],
+            "properties": {
+              "scenario_id": { "type": "string" },
+              "band": { "type": "string" },
+              "distances_km": { "type": "array", "items": { "type": "number" } },
+              "key_rate_bps": { "type": "array", "items": { "type": "number" } },
+              "rel_tol": { "type": "number", "minimum": 0 },
+              "abs_tol": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.klayout.drc_lite",
+  "summary": {
+    "status": "error",
+    "issue_count": 1,
+    "error_count": 1
+  },
+  "issues": [
+    {
+      "rule": "exception",
+      "severity": "error",
+      "message": "Stream has unknown format: C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_aaaaaaaaaaaa\\layout.gds in Layout.read",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tools\\klayout\\macros\\pt_pic_extract_and_drc_lite.py\", line 411, in <module>\n    rc = _main()\n         ^^^^^^^\n  File \"C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\tools\\klayout\\macros\\pt_pic_extract_and_drc_lite.py\", line 128, in _main\n    layout.read(input_gds)\nRuntimeError: Stream has unknown format: C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_aaaaaaaaaaaa\\layout.gds in Layout.read\n"
+    }
+  ],
+  "metrics": {},
+  "layers": {},
+  "provenance": {
+    "input_gds": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\api_runs\\run_aaaaaaaaaaaa\\layout.gds",
+    "top_cell": ""
+  }
+}

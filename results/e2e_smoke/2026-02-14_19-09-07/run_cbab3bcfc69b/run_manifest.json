@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "run_id": "cbab3bcfc69b",
+  "run_type": "invdesign",
+  "generated_at": "2026-02-14T18:09:09.166875+00:00",
+  "output_dir": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\e2e_smoke\\2026-02-14_19-09-07\\run_cbab3bcfc69b",
+  "input": {
+    "project_id": "default",
+    "graph_hash": "7980611e1d2b932345d26cb470f384f86e65ee5bb3212360f2eb8ae4f1eeddf9",
+    "kind": "pic.invdesign.mzi_phase"
+  },
+  "outputs_summary": {
+    "invdesign": {
+      "kind": "pic.invdesign.mzi_phase",
+      "design_node_id": "ps1",
+      "design_param": "phase_rad",
+      "best_value": 3.5021032859689494,
+      "achieved_fraction_nominal_mean": 0.9012003003143432,
+      "objective": 1.4407208446122649e-06,
+      "wavelength_objective_agg": "mean",
+      "case_objective_agg": "mean"
+    }
+  },
+  "artifacts": {
+    "invdesign_report_json": "invdesign_report.json",
+    "optimized_graph_json": "optimized_graph.json"
+  },
+  "provenance": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "scenario_id": "canonical_phase41_longhaul_abort",
+    "band": "c_1550",
+    "distances_km": [
+      120.0
+    ],
+    "key_rate_bps": [
+      2.2318210259262616
+    ],
+    "qber": [
+      0.015395477545535847
+    ],
+    "raman_counts_cps": [
+      0.0
+    ],
+    "background_counts_cps": [
+      0.0
+    ]
+  }
+]

@@ -1,0 +1,61 @@
+{
+  "ok": false,
+  "failures": [
+    "canonical_phase41_longhaul_abort/c_1550 key_rate_bps[0] drift: observed=2.23182102593 expected=2.23172004481 abs_delta=0.000101 tol=2.23e-06",
+    "canonical_phase41_longhaul_abort/c_1550 qber[0] drift: observed=0.0153954775455 expected=0.0153984613167 abs_delta=2.98e-06 tol=1.54e-08"
+  ],
+  "metrics": [
+    {
+      "scenario_id": "canonical_phase41_longhaul_abort",
+      "band": "c_1550",
+      "metric": "key_rate_bps",
+      "samples": 1,
+      "max_abs_delta": 0.00010098111959200295,
+      "max_rel_delta": 4.5246065172315177e-05,
+      "fail_count": 1,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "canonical_phase41_longhaul_abort",
+      "band": "c_1550",
+      "metric": "qber",
+      "samples": 1,
+      "max_abs_delta": 2.983771168696414e-06,
+      "max_rel_delta": 0.0001937707350967309,
+      "fail_count": 1,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-12
+      }
+    },
+    {
+      "scenario_id": "canonical_phase41_longhaul_abort",
+      "band": "c_1550",
+      "metric": "raman_counts_cps",
+      "samples": 1,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-09
+      }
+    },
+    {
+      "scenario_id": "canonical_phase41_longhaul_abort",
+      "band": "c_1550",
+      "metric": "background_counts_cps",
+      "samples": 1,
+      "max_abs_delta": 0.0,
+      "max_rel_delta": 0.0,
+      "fail_count": 0,
+      "threshold": {
+        "rel_tol": 1e-06,
+        "abs_tol": 1e-09
+      }
+    }
+  ]
+}

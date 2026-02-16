@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PhotonTrust Component Graph (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "graph_id", "profile", "nodes"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "graph_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_\\-]{2,63}$"
+    },
+    "profile": { "type": "string", "enum": ["qkd_link", "pic_circuit"] },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "created_at": { "type": "string" }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "distance_km"],
+      "properties": {
+        "id": { "type": "string" },
+        "distance_km": {
+          "oneOf": [
+            { "type": "number" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["start", "stop", "step"],
+              "properties": {
+                "start": { "type": "number" },
+                "stop": { "type": "number" },
+                "step": { "type": "number", "exclusiveMinimum": 0 }
+              }
+            }
+          ]
+        },
+        "band": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "wavelength_nm": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
+        "execution_mode": { "type": "string" },
+        "preview_uncertainty_samples": { "type": "integer", "minimum": 1 },
+        "preview_detector_sample_scale": { "type": "number", "minimum": 0 },
+        "certification_uncertainty_samples": { "type": "integer", "minimum": 1 },
+        "certification_detector_sample_scale": { "type": "number", "minimum": 0 }
+      }
+    },
+    "circuit": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "wavelength_nm": { "anyOf": [{ "type": "null" }, { "type": "number" }] }
+      }
+    },
+    "uncertainty": { "type": "object" },
+    "finite_key": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "signals_per_block": { "type": "number", "minimum": 1 },
+        "security_epsilon": { "type": "number", "exclusiveMinimum": 0 },
+        "parameter_estimation_fraction": { "type": "number", "minimum": 0, "maximum": 0.9 }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "params"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_\\-]{0,63}$"
+          },
+          "kind": { "type": "string" },
+          "label": { "type": "string" },
+          "params": { "type": "object" },
+          "ui": { "type": "object" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "id": { "type": "string" },
+          "from": { "type": "string" },
+          "from_port": { "type": "string" },
+          "to": { "type": "string" },
+          "to_port": { "type": "string" },
+          "kind": { "type": "string", "enum": ["optical", "electrical", "control"] },
+          "label": { "type": "string" },
+          "params": { "type": "object" }
+        }
+      }
+    },
+    "ui": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "profile": { "const": "qkd_link" } },
+        "required": ["profile"]
+      },
+      "then": { "required": ["scenario"] }
+    },
+    {
+      "if": {
+        "properties": { "profile": { "const": "pic_circuit" } },
+        "required": ["profile"]
+      },
+      "then": { "required": ["circuit", "edges"] }
+    }
+  ]
+}

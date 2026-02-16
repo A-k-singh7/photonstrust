@@ -1,0 +1,117 @@
+{
+  "schema_version": "0.1",
+  "kind": "pic.spice_map",
+  "top_name": "PT_TOP",
+  "nets": [
+    {
+      "net": "n_cpl_in_in1",
+      "terminals": [
+        {
+          "node": "cpl_in",
+          "port": "in1"
+        }
+      ]
+    },
+    {
+      "net": "n_cpl_in_in2",
+      "terminals": [
+        {
+          "node": "cpl_in",
+          "port": "in2"
+        }
+      ]
+    },
+    {
+      "net": "n_cpl_in_out1",
+      "terminals": [
+        {
+          "node": "cpl_in",
+          "port": "out1"
+        },
+        {
+          "node": "ps1",
+          "port": "in"
+        }
+      ]
+    },
+    {
+      "net": "n_cpl_in_out2",
+      "terminals": [
+        {
+          "node": "cpl_in",
+          "port": "out2"
+        },
+        {
+          "node": "ps2",
+          "port": "in"
+        }
+      ]
+    },
+    {
+      "net": "n_cpl_out_in1",
+      "terminals": [
+        {
+          "node": "cpl_out",
+          "port": "in1"
+        },
+        {
+          "node": "ps1",
+          "port": "out"
+        }
+      ]
+    },
+    {
+      "net": "n_cpl_out_in2",
+      "terminals": [
+        {
+          "node": "cpl_out",
+          "port": "in2"
+        },
+        {
+          "node": "ps2",
+          "port": "out"
+        }
+      ]
+    },
+    {
+      "net": "n_cpl_out_out1",
+      "terminals": [
+        {
+          "node": "cpl_out",
+          "port": "out1"
+        }
+      ]
+    },
+    {
+      "net": "n_cpl_out_out2",
+      "terminals": [
+        {
+          "node": "cpl_out",
+          "port": "out2"
+        }
+      ]
+    }
+  ],
+  "instances": [
+    {
+      "node": "cpl_in",
+      "kind": "pic.coupler",
+      "subckt": "PT_pic_coupler"
+    },
+    {
+      "node": "cpl_out",
+      "kind": "pic.coupler",
+      "subckt": "PT_pic_coupler"
+    },
+    {
+      "node": "ps1",
+      "kind": "pic.phase_shifter",
+      "subckt": "PT_pic_phase_shifter"
+    },
+    {
+      "node": "ps2",
+      "kind": "pic.phase_shifter",
+      "subckt": "PT_pic_phase_shifter"
+    }
+  ]
+}

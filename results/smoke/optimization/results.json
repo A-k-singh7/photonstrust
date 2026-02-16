@@ -1,0 +1,132 @@
+{
+  "200": [
+    {
+      "spacing_km": 20.0,
+      "segments": 10,
+      "link_distance_km": 20.0,
+      "throughput_hz": 4015.874159131094,
+      "fidelity": 0.4944799008470839
+    },
+    {
+      "spacing_km": 30.0,
+      "segments": 7,
+      "link_distance_km": 28.571428571428573,
+      "throughput_hz": 2055.325874880808,
+      "fidelity": 0.4893647076617119
+    },
+    {
+      "spacing_km": 40.0,
+      "segments": 5,
+      "link_distance_km": 40.0,
+      "throughput_hz": 807.5309892509401,
+      "fidelity": 0.47408477895347323
+    },
+    {
+      "spacing_km": 50.0,
+      "segments": 4,
+      "link_distance_km": 50.0,
+      "throughput_hz": 346.0379840234506,
+      "fidelity": 0.4447987763377006
+    },
+    {
+      "spacing_km": 60.0,
+      "segments": 4,
+      "link_distance_km": 50.0,
+      "throughput_hz": 346.0379840234506,
+      "fidelity": 0.4447987763377006
+    },
+    {
+      "spacing_km": 70.0,
+      "segments": 3,
+      "link_distance_km": 66.66666666666667,
+      "throughput_hz": 77.92021863482,
+      "fidelity": 0.34374924511403554
+    },
+    {
+      "spacing_km": 80.0,
+      "segments": 3,
+      "link_distance_km": 66.66666666666667,
+      "throughput_hz": 77.92021863482,
+      "fidelity": 0.34374924511403554
+    },
+    {
+      "spacing_km": 90.0,
+      "segments": 3,
+      "link_distance_km": 66.66666666666667,
+      "throughput_hz": 77.92021863482,
+      "fidelity": 0.34374924511403554
+    },
+    {
+      "spacing_km": 100.0,
+      "segments": 2,
+      "link_distance_km": 100.0,
+      "throughput_hz": 3.754618876716024,
+      "fidelity": 0.2501849786272366
+    }
+  ],
+  "400": [
+    {
+      "spacing_km": 20.0,
+      "segments": 20,
+      "link_distance_km": 20.0,
+      "throughput_hz": 3266.6004155111723,
+      "fidelity": 0.4932366868451478
+    },
+    {
+      "spacing_km": 30.0,
+      "segments": 14,
+      "link_distance_km": 28.571428571428573,
+      "throughput_hz": 1635.9416231742252,
+      "fidelity": 0.4867357002726169
+    },
+    {
+      "spacing_km": 40.0,
+      "segments": 10,
+      "link_distance_km": 40.0,
+      "throughput_hz": 626.2879148253011,
+      "fidelity": 0.46725683476783053
+    },
+    {
+      "spacing_km": 50.0,
+      "segments": 8,
+      "link_distance_km": 50.0,
+      "throughput_hz": 261.9121622335203,
+      "fidelity": 0.4305447056682995
+    },
+    {
+      "spacing_km": 60.0,
+      "segments": 7,
+      "link_distance_km": 57.142857142857146,
+      "throughput_hz": 137.2079770195978,
+      "fidelity": 0.3880145920849577
+    },
+    {
+      "spacing_km": 70.0,
+      "segments": 6,
+      "link_distance_km": 66.66666666666667,
+      "throughput_hz": 55.188075724191094,
+      "fidelity": 0.31740408403381587
+    },
+    {
+      "spacing_km": 80.0,
+      "segments": 5,
+      "link_distance_km": 80.0,
+      "throughput_hz": 13.336176136419551,
+      "fidelity": 0.25640588463225766
+    },
+    {
+      "spacing_km": 90.0,
+      "segments": 5,
+      "link_distance_km": 80.0,
+      "throughput_hz": 13.336176136419551,
+      "fidelity": 0.25640588463225766
+    },
+    {
+      "spacing_km": 100.0,
+      "segments": 4,
+      "link_distance_km": 100.0,
+      "throughput_hz": 1.6942400244607334,
+      "fidelity": 0.2500112093657832
+    }
+  ]
+}

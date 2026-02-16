@@ -1,0 +1,81 @@
+{
+  "schema_version": "0.1",
+  "graph_id": "demo8_qkd_link",
+  "profile": "qkd_link",
+  "metadata": {
+    "title": "Demo 8: QKD Link Graph",
+    "description": "Graph -> compiled PhotonTrust config (analytic backend).",
+    "created_at": "2026-02-13"
+  },
+  "scenario": {
+    "id": "demo8_qkd_link",
+    "distance_km": { "start": 0, "stop": 50, "step": 10 },
+    "band": "c_1550",
+    "wavelength_nm": 1550,
+    "execution_mode": "preview"
+  },
+  "uncertainty": {},
+  "nodes": [
+    {
+      "id": "source_1",
+      "kind": "qkd.source",
+      "label": "Emitter",
+      "params": {
+        "type": "emitter_cavity",
+        "physics_backend": "analytic",
+        "rep_rate_mhz": 100,
+        "collection_efficiency": 0.35,
+        "coupling_efficiency": 0.60,
+        "g2_0": 0.02
+      }
+    },
+    {
+      "id": "channel_1",
+      "kind": "qkd.channel",
+      "label": "Fiber",
+      "params": {
+        "model": "fiber",
+        "fiber_loss_db_per_km": null,
+        "connector_loss_db": 1.5,
+        "dispersion_ps_per_km": null
+      }
+    },
+    {
+      "id": "detector_1",
+      "kind": "qkd.detector",
+      "label": "Detector",
+      "params": {
+        "class": "snspd",
+        "pde": null,
+        "dark_counts_cps": null,
+        "jitter_ps_fwhm": null,
+        "dead_time_ns": null,
+        "afterpulsing_prob": null
+      }
+    },
+    {
+      "id": "timing_1",
+      "kind": "qkd.timing",
+      "label": "Timing",
+      "params": {
+        "sync_drift_ps_rms": 10,
+        "coincidence_window_ps": null
+      }
+    },
+    {
+      "id": "protocol_1",
+      "kind": "qkd.protocol",
+      "label": "Protocol",
+      "params": {
+        "name": "BBM92",
+        "sifting_factor": 0.5,
+        "ec_efficiency": 1.16
+      }
+    }
+  ],
+  "edges": [
+    { "from": "source_1", "to": "channel_1", "kind": "control", "label": "emits into" },
+    { "from": "channel_1", "to": "detector_1", "kind": "optical", "label": "propagates" }
+  ]
+}
+

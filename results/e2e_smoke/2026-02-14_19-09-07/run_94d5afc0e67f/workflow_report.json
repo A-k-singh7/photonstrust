@@ -1,0 +1,72 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-02-14T18:09:11.642577+00:00",
+  "kind": "pic.workflow.invdesign_chain",
+  "inputs": {
+    "project_id": "default",
+    "graph_hash": "7980611e1d2b932345d26cb470f384f86e65ee5bb3212360f2eb8ae4f1eeddf9",
+    "invdesign_kind": "mzi_phase",
+    "invdesign_settings_hash": "e2a3ba78156de3b5bc99eab25f546227d3b937e71f38b8cb257e406a915cd469",
+    "layout_settings_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "lvs_lite_settings_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "klayout_settings_hash": "d31e41ab7a034e2124860978b6e38a3c4449578e14bae1fdf2e29ef84a604687",
+    "spice_settings_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "steps": {
+    "invdesign": {
+      "run_id": "cbab3bcfc69b",
+      "kind": "pic.invdesign.mzi_phase",
+      "artifact_relpaths": {
+        "invdesign_report_json": "invdesign_report.json",
+        "optimized_graph_json": "optimized_graph.json"
+      }
+    },
+    "layout_build": {
+      "run_id": "7f9330a996f9",
+      "artifact_relpaths": {
+        "layout_build_report_json": "layout_build_report.json",
+        "ports_json": "ports.json",
+        "routes_json": "routes.json",
+        "layout_provenance_json": "layout_provenance.json",
+        "layout_gds": "layout.gds"
+      }
+    },
+    "lvs_lite": {
+      "run_id": "c7f13ad65754",
+      "pass": true,
+      "artifact_relpaths": {
+        "lvs_lite_report_json": "lvs_lite_report.json"
+      }
+    },
+    "klayout_pack": {
+      "status": "fail",
+      "run_id": "fb3497e0a8d1",
+      "artifact_relpaths": {
+        "klayout_run_artifact_pack_json": "klayout_run_artifact_pack.json",
+        "klayout_stdout_txt": "klayout_stdout.txt",
+        "klayout_stderr_txt": "klayout_stderr.txt",
+        "ports_extracted_json": "ports_extracted.json",
+        "routes_extracted_json": "routes_extracted.json",
+        "drc_lite_json": "drc_lite.json",
+        "macro_provenance_json": "macro_provenance.json"
+      }
+    },
+    "spice_export": {
+      "run_id": "07eb11875100",
+      "artifact_relpaths": {
+        "spice_export_report_json": "spice_export_report.json",
+        "netlist_sp": "netlist.sp",
+        "spice_map_json": "spice_map.json",
+        "spice_provenance_json": "spice_provenance.json"
+      }
+    }
+  },
+  "summary": {
+    "status": "pass"
+  },
+  "provenance": {
+    "photonstrust_version": "0.1.0",
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26200-SP0"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.phase2e_demo_pack.artifact_manifest",
+  "files": [
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/day0_smoke_20260216T074923Z/run/pilot_day0_c1550_phase2e_demo/c_1550/reliability_card.json",
+      "size_bytes": 6904,
+      "sha256": "fc76c4c327f30218b1e8642a44ac959fa7470c16b4babe5b7cb7d9ff37787e1d"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/day0_smoke_20260216T074923Z/run/pilot_day0_c1550_phase2e_demo/c_1550/uncertainty.json",
+      "size_bytes": 13786,
+      "sha256": "e6e5d04d97b7652cae75d760176f69ca9207e5b8670305e1cfcd335a79763fe4"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/day0_smoke_20260216T074923Z/run/pilot_day0_c1550_phase2e_demo/c_1550/results.json",
+      "size_bytes": 3920,
+      "sha256": "62b9ef0f40ac013d3a56b6f7d5b4974738b7c0cad53cbb416e369ead32c5d870"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/day0_smoke_20260216T074923Z/run/pilot_day0_c1550_phase2e_demo/c_1550/report.html",
+      "size_bytes": 2813,
+      "sha256": "1a60e20cde48e3af2b2c62e536041eefd4d42a19f6cae34dbdea023b5ef23817"
+    },
+    {
+      "path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/day0_smoke_20260216T074923Z/run/run_registry.json",
+      "size_bytes": 321,
+      "sha256": "0d822268a038a9718dfb3ad9aa14623518464ad3c01c882309fa785f7d7efbe3"
+    }
+  ]
+}

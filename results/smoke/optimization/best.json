@@ -1,0 +1,12 @@
+{
+  "200": {
+    "spacing_km": 20.0,
+    "throughput_hz": 4015.874159131094,
+    "local_sensitivity": -196.0548284250286
+  },
+  "400": {
+    "spacing_km": 20.0,
+    "throughput_hz": 3266.6004155111723,
+    "local_sensitivity": -163.06587923369472
+  }
+}

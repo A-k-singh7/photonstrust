@@ -1,0 +1,18 @@
+{
+  "120": [
+    {
+      "spacing_km": 30.0,
+      "segments": 4,
+      "link_distance_km": 30.0,
+      "throughput_hz": 4189.582120072869,
+      "fidelity": 0.49496668345628325
+    },
+    {
+      "spacing_km": 60.0,
+      "segments": 2,
+      "link_distance_km": 60.0,
+      "throughput_hz": 355.72939478047545,
+      "fidelity": 0.4483826003700093
+    }
+  ]
+}

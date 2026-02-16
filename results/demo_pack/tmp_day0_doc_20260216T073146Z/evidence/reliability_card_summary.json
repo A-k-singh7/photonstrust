@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.1",
+  "scenario_id": "pilot_day0_c1550_phase2e_demo",
+  "band": "c_1550",
+  "safe_use_label": "qualitative",
+  "key_rate_bps": 0.0,
+  "qber_total": 0.21647027436174365,
+  "critical_distance_km": 0.0,
+  "uncertainty": {
+    "key_rate_ci_low": 0.0,
+    "key_rate_ci_high": 0.0,
+    "outage_probability": 1.0
+  }
+}

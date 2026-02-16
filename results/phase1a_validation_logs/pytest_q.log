@@ -1,0 +1,394 @@
+...........F.................F.........s..............s................. [ 40%]
+...................F.................................................... [ 80%]
+................F........FF......F                                       [100%]
+=================================== FAILURES ===================================
+______ test_channel_polarization_penalty_is_optional_and_reduces_key_rate ______
+
+    def test_channel_polarization_penalty_is_optional_and_reduces_key_rate():
+        scenario_a = _qkd_scenario()
+        scenario_b = _qkd_scenario()
+        scenario_b["channel"]["polarization_coherence_length_km"] = 10.0
+    
+        a = compute_point(scenario_a, distance_km=50.0)
+        b = compute_point(scenario_b, distance_km=50.0)
+    
+        # Polarization coherence is modeled as a visibility/misalignment penalty
+        # (QBER increase), not an attenuation term.
+>       assert b.loss_db == pytest.approx(a.loss_db, rel=0.0, abs=0.0)
+E       assert 33.214724095162595 == 11.5 ± 0.0e+00
+E         
+E         comparison failed
+E         Obtained: 33.214724095162595
+E         Expected: 11.5 ± 0.0e+00
+
+tests/test_completion_quality.py:157: AssertionError
+_________________ test_compute_point_does_not_mutate_source_g2 _________________
+
+obj = <module 'photonstrust.qkd' from '/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/photonstrust/qkd.py'>
+name = 'get_emitter_stats', ann = 'photonstrust.qkd'
+
+    def annotated_getattr(obj: object, name: str, ann: str) -> object:
+        try:
+>           obj = getattr(obj, name)
+                  ^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'photonstrust.qkd' has no attribute 'get_emitter_stats'
+
+.venv/lib/python3.12/site-packages/_pytest/monkeypatch.py:92: AttributeError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d4e614f3bc0>
+
+    def test_compute_point_does_not_mutate_source_g2(monkeypatch):
+        scenario = _base_scenario()
+        original_g2 = scenario["source"]["g2_0"]
+    
+        def fake_emitter_stats(_source: dict) -> dict:
+            return {
+                "g2_0": 0.9,
+                "p_multi": 0.1,
+                "emission_prob": 0.7,
+                "backend": "mock",
+                "diagnostics": {},
+            }
+    
+>       monkeypatch.setattr("photonstrust.qkd.get_emitter_stats", fake_emitter_stats)
+
+tests/test_emitter_model.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/_pytest/monkeypatch.py:106: in derive_importpath
+    annotated_getattr(target, attr, ann=module)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = <module 'photonstrust.qkd' from '/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/photonstrust/qkd.py'>
+name = 'get_emitter_stats', ann = 'photonstrust.qkd'
+
+    def annotated_getattr(obj: object, name: str, ann: str) -> object:
+        try:
+            obj = getattr(obj, name)
+        except AttributeError as e:
+>           raise AttributeError(
+                f"{type(obj).__name__!r} object at {ann} has no attribute {name!r}"
+            ) from e
+E           AttributeError: 'module' object at photonstrust.qkd has no attribute 'get_emitter_stats'
+
+.venv/lib/python3.12/site-packages/_pytest/monkeypatch.py:94: AttributeError
+________________ test_phase41_canonical_baselines_match_fixture ________________
+
+    def test_phase41_canonical_baselines_match_fixture() -> None:
+        root = Path(__file__).resolve().parents[1]
+        fixture = root / "tests" / "fixtures" / "canonical_phase41_baselines.json"
+        assert fixture.exists(), "Missing baseline fixture. Run scripts/generate_phase41_canonical_baselines.py"
+    
+        data = json.loads(fixture.read_text(encoding="utf-8"))
+        assert data.get("schema_version") == "0.1"
+        configs = data.get("configs") or []
+        assert isinstance(configs, list) and configs
+    
+        for entry in configs:
+            rel = str(entry.get("config_relpath") or "")
+            assert rel
+            cfg_path = root / Path(rel)
+            assert cfg_path.exists(), f"Config missing: {rel}"
+    
+            cfg = load_config(cfg_path)
+            scenarios = build_scenarios(cfg)
+            validate_scenarios_or_raise(scenarios)
+    
+            expected_list = entry.get("baselines") or []
+            assert isinstance(expected_list, list) and expected_list
+    
+            expected_by_key = {(e["scenario_id"], e["band"]): e for e in expected_list}
+            for scenario in scenarios:
+                key = (scenario["scenario_id"], scenario["band"])
+                assert key in expected_by_key
+                expected = expected_by_key[key]
+    
+                sweep = compute_sweep(scenario, include_uncertainty=False)
+                results = sweep["results"]
+                obs_key = [float(r.key_rate_bps) for r in results]
+                obs_qber = [float(r.qber_total) for r in results]
+                obs_raman = [float(r.raman_counts_cps) for r in results]
+    
+                assert len(obs_key) == len(expected["key_rate_bps"])
+                assert len(obs_qber) == len(expected["qber"])
+    
+                for obs, exp in zip(obs_key, expected["key_rate_bps"]):
+>                   assert obs == pytest.approx(float(exp), rel=1e-6, abs=1e-12)
+E                   assert 2.2318210259262616 == 2.2317200448066696 ± 2.2e-06
+E                     
+E                     comparison failed
+E                     Obtained: 2.2318210259262616
+E                     Expected: 2.2317200448066696 ± 2.2e-06
+
+tests/test_phase41_canonical_baselines.py:64: AssertionError
+__________________________ test_regression_baselines ___________________________
+
+    def test_regression_baselines():
+        root = Path(__file__).resolve().parents[1]
+        baseline_path = root / "tests" / "fixtures" / "baselines.json"
+        if not baseline_path.exists():
+            pytest.skip("Baseline file not present. Run scripts/generate_baselines.py")
+    
+        baselines = json.loads(baseline_path.read_text(encoding="utf-8"))["baselines"]
+        config = load_config(root / "configs" / "demo1_default.yml")
+        scenarios = build_scenarios(config)
+    
+        for scenario in scenarios:
+            sweep = compute_sweep(scenario, include_uncertainty=False)
+            results = sweep["results"]
+            baseline = next(
+                entry for entry in baselines if entry["band"] == scenario["band"]
+            )
+            assert len(results) == len(baseline["key_rate_bps"])
+            for result, expected in zip(results, baseline["key_rate_bps"]):
+>               assert result.key_rate_bps == pytest.approx(expected, rel=1e-6, abs=1e-12)
+E               assert 436511.81598283397 == 0.0 ± 1.0e-12
+E                 
+E                 comparison failed
+E                 Obtained: 436511.81598283397
+E                 Expected: 0.0 ± 1.0e-12
+
+tests/test_regression_baselines.py:28: AssertionError
+______ test_trust_metadata_fields_present_for_all_protocols_v1_1[PM_QKD] _______
+
+_base_scenario = {'band': 'c_1550', 'channel': {'background_counts_cps': 0.0, 'connector_loss_db': 1.5, 'dispersion_ps_per_km': 5, 'fib...rob': 0.001, 'background_counts_cps': 0.0, 'class': 'snspd', 'dark_counts_cps': 100, ...}, 'distances_km': [25.0], ...}
+protocol_name = 'PM_QKD'
+tmp_path = PosixPath('/tmp/pytest-of-singhpc/pytest-2/test_trust_metadata_fields_pre8')
+
+    @pytest.mark.parametrize("protocol_name", ["BB84", "BBM92", "MDI_QKD", "PM_QKD", "TF_QKD"])
+    def test_trust_metadata_fields_present_for_all_protocols_v1_1(_base_scenario: dict, protocol_name: str, tmp_path: Path) -> None:
+        scenario = _scenario_for_protocol(_base_scenario, protocol_name, version="1.1")
+        result = compute_point(scenario, distance_km=25.0)
+        card = build_reliability_card(scenario, [result], None, tmp_path)
+    
+        schema_path = Path("schemas") / "photonstrust.reliability_card.v1_1.schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+>       validate(instance=card, schema=schema)
+
+tests/test_reliability_card_trust_metadata_consistency.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+instance = {'artifacts': {'plots': {}, 'report_html_path': None, 'report_pdf_path': None}, 'band': 'c_1550', 'benchmark_coverage'...declarative; canonical presets indicate which fixed configs were used.', 'plob_bound_check': 'not_assessed', ...}, ...}
+schema = {'$id': 'photonstrust.reliability_card.v1_1.schema.json', '$schema': 'https://json-schema.org/draft/2020-12/schema', '...ct'}, ...}, 'required': ['schema_version', 'generated_at', 'scenario_id', 'band', 'wavelength_nm', 'inputs', ...], ...}
+cls = <class 'jsonschema.validators.Draft202012Validator'>, args = ()
+kwargs = {}
+validator = Draft202012Validator(schema={'$id': 'photonstrust...1.schema.json', '$schema': 'https://json...020-12/schema', 'proper...: ['schema_version', 'generated_at', 'scenario_id', 'band', 'wavelength_nm', 'inputs', ...], ...}, format_checker=None)
+error = <ValidationError: "'PM_QKD' is not one of ['qualitative', 'security_target_ready', 'engineering_grade']">
+
+    def validate(instance, schema, cls=None, *args, **kwargs):  # noqa: D417
+        """
+        Validate an instance under the given schema.
+    
+            >>> validate([2, 3, 4], {"maxItems": 2})
+            Traceback (most recent call last):
+                ...
+            ValidationError: [2, 3, 4] is too long
+    
+        :func:`~jsonschema.validators.validate` will first verify that the
+        provided schema is itself valid, since not doing so can lead to less
+        obvious error messages and fail in less obvious or consistent ways.
+    
+        If you know you have a valid schema already, especially
+        if you intend to validate multiple instances with
+        the same schema, you likely would prefer using the
+        `jsonschema.protocols.Validator.validate` method directly on a
+        specific validator (e.g. ``Draft202012Validator.validate``).
+    
+    
+        Arguments:
+    
+            instance:
+    
+                The instance to validate
+    
+            schema:
+    
+                The schema to validate with
+    
+            cls (jsonschema.protocols.Validator):
+    
+                The class that will be used to validate the instance.
+    
+        If the ``cls`` argument is not provided, two things will happen
+        in accordance with the specification. First, if the schema has a
+        :kw:`$schema` keyword containing a known meta-schema [#]_ then the
+        proper validator will be used. The specification recommends that
+        all schemas contain :kw:`$schema` properties for this reason. If no
+        :kw:`$schema` property is found, the default validator class is the
+        latest released draft.
+    
+        Any other provided positional and keyword arguments will be passed
+        on when instantiating the ``cls``.
+    
+        Raises:
+    
+            `jsonschema.exceptions.ValidationError`:
+    
+                if the instance is invalid
+    
+            `jsonschema.exceptions.SchemaError`:
+    
+                if the schema itself is invalid
+    
+        .. rubric:: Footnotes
+        .. [#] known by a validator registered with
+            `jsonschema.validators.validates`
+    
+        """
+        if cls is None:
+            cls = validator_for(schema)
+    
+        cls.check_schema(schema)
+        validator = cls(schema, *args, **kwargs)
+        error = exceptions.best_match(validator.iter_errors(instance))
+        if error is not None:
+>           raise error
+E           jsonschema.exceptions.ValidationError: 'PM_QKD' is not one of ['qualitative', 'security_target_ready', 'engineering_grade']
+E           
+E           Failed validating 'enum' in schema['properties']['safe_use_label']['properties']['label']:
+E               {'type': 'string',
+E                'enum': ['qualitative', 'security_target_ready', 'engineering_grade']}
+E           
+E           On instance['safe_use_label']['label']:
+E               'PM_QKD'
+
+.venv/lib/python3.12/site-packages/jsonschema/validators.py:1332: ValidationError
+______ test_trust_metadata_fields_present_for_all_protocols_v1_1[TF_QKD] _______
+
+_base_scenario = {'band': 'c_1550', 'channel': {'background_counts_cps': 0.0, 'connector_loss_db': 1.5, 'dispersion_ps_per_km': 5, 'fib...rob': 0.001, 'background_counts_cps': 0.0, 'class': 'snspd', 'dark_counts_cps': 100, ...}, 'distances_km': [25.0], ...}
+protocol_name = 'TF_QKD'
+tmp_path = PosixPath('/tmp/pytest-of-singhpc/pytest-2/test_trust_metadata_fields_pre9')
+
+    @pytest.mark.parametrize("protocol_name", ["BB84", "BBM92", "MDI_QKD", "PM_QKD", "TF_QKD"])
+    def test_trust_metadata_fields_present_for_all_protocols_v1_1(_base_scenario: dict, protocol_name: str, tmp_path: Path) -> None:
+        scenario = _scenario_for_protocol(_base_scenario, protocol_name, version="1.1")
+        result = compute_point(scenario, distance_km=25.0)
+        card = build_reliability_card(scenario, [result], None, tmp_path)
+    
+        schema_path = Path("schemas") / "photonstrust.reliability_card.v1_1.schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+>       validate(instance=card, schema=schema)
+
+tests/test_reliability_card_trust_metadata_consistency.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+instance = {'artifacts': {'plots': {}, 'report_html_path': None, 'report_pdf_path': None}, 'band': 'c_1550', 'benchmark_coverage'...declarative; canonical presets indicate which fixed configs were used.', 'plob_bound_check': 'not_assessed', ...}, ...}
+schema = {'$id': 'photonstrust.reliability_card.v1_1.schema.json', '$schema': 'https://json-schema.org/draft/2020-12/schema', '...ct'}, ...}, 'required': ['schema_version', 'generated_at', 'scenario_id', 'band', 'wavelength_nm', 'inputs', ...], ...}
+cls = <class 'jsonschema.validators.Draft202012Validator'>, args = ()
+kwargs = {}
+validator = Draft202012Validator(schema={'$id': 'photonstrust...1.schema.json', '$schema': 'https://json...020-12/schema', 'proper...: ['schema_version', 'generated_at', 'scenario_id', 'band', 'wavelength_nm', 'inputs', ...], ...}, format_checker=None)
+error = <ValidationError: "'TF_QKD' is not one of ['qualitative', 'security_target_ready', 'engineering_grade']">
+
+    def validate(instance, schema, cls=None, *args, **kwargs):  # noqa: D417
+        """
+        Validate an instance under the given schema.
+    
+            >>> validate([2, 3, 4], {"maxItems": 2})
+            Traceback (most recent call last):
+                ...
+            ValidationError: [2, 3, 4] is too long
+    
+        :func:`~jsonschema.validators.validate` will first verify that the
+        provided schema is itself valid, since not doing so can lead to less
+        obvious error messages and fail in less obvious or consistent ways.
+    
+        If you know you have a valid schema already, especially
+        if you intend to validate multiple instances with
+        the same schema, you likely would prefer using the
+        `jsonschema.protocols.Validator.validate` method directly on a
+        specific validator (e.g. ``Draft202012Validator.validate``).
+    
+    
+        Arguments:
+    
+            instance:
+    
+                The instance to validate
+    
+            schema:
+    
+                The schema to validate with
+    
+            cls (jsonschema.protocols.Validator):
+    
+                The class that will be used to validate the instance.
+    
+        If the ``cls`` argument is not provided, two things will happen
+        in accordance with the specification. First, if the schema has a
+        :kw:`$schema` keyword containing a known meta-schema [#]_ then the
+        proper validator will be used. The specification recommends that
+        all schemas contain :kw:`$schema` properties for this reason. If no
+        :kw:`$schema` property is found, the default validator class is the
+        latest released draft.
+    
+        Any other provided positional and keyword arguments will be passed
+        on when instantiating the ``cls``.
+    
+        Raises:
+    
+            `jsonschema.exceptions.ValidationError`:
+    
+                if the instance is invalid
+    
+            `jsonschema.exceptions.SchemaError`:
+    
+                if the schema itself is invalid
+    
+        .. rubric:: Footnotes
+        .. [#] known by a validator registered with
+            `jsonschema.validators.validates`
+    
+        """
+        if cls is None:
+            cls = validator_for(schema)
+    
+        cls.check_schema(schema)
+        validator = cls(schema, *args, **kwargs)
+        error = exceptions.best_match(validator.iter_errors(instance))
+        if error is not None:
+>           raise error
+E           jsonschema.exceptions.ValidationError: 'TF_QKD' is not one of ['qualitative', 'security_target_ready', 'engineering_grade']
+E           
+E           Failed validating 'enum' in schema['properties']['safe_use_label']['properties']['label']:
+E               {'type': 'string',
+E                'enum': ['qualitative', 'security_target_ready', 'engineering_grade']}
+E           
+E           On instance['safe_use_label']['label']:
+E               'TF_QKD'
+
+.venv/lib/python3.12/site-packages/jsonschema/validators.py:1332: ValidationError
+____ test_validation_harness_writes_artifacts_and_passes_for_demo_baseline _____
+
+tmp_path = PosixPath('/tmp/pytest-of-singhpc/pytest-2/test_validation_harness_writes0')
+
+    def test_validation_harness_writes_artifacts_and_passes_for_demo_baseline(tmp_path: Path) -> None:
+        root = Path(__file__).resolve().parents[1]
+        case = ValidationCase(
+            case_id="demo_regression",
+            config_path=root / "configs" / "demo1_default.yml",
+            baseline_path=root / "tests" / "fixtures" / "baselines.json",
+        )
+    
+        summary = run_validation_harness(repo_root=root, output_root=tmp_path, cases=[case])
+    
+>       assert summary["ok"] is True
+E       assert False is True
+
+tests/test_validation_harness.py:19: AssertionError
+=============================== warnings summary ===============================
+tests/test_regression_baselines.py::test_regression_baselines
+tests/test_validation_harness.py::test_validation_harness_writes_artifacts_and_passes_for_demo_baseline
+  /mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/photonstrust/physics/emitter.py:80: UserWarning: QuTiP backend unavailable, using analytic model: No module named 'qutip'
+    warnings.warn(f"QuTiP backend unavailable, using analytic model: {exc}")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_completion_quality.py::test_channel_polarization_penalty_is_optional_and_reduces_key_rate
+FAILED tests/test_emitter_model.py::test_compute_point_does_not_mutate_source_g2
+FAILED tests/test_phase41_canonical_baselines.py::test_phase41_canonical_baselines_match_fixture
+FAILED tests/test_regression_baselines.py::test_regression_baselines - assert...
+FAILED tests/test_reliability_card_trust_metadata_consistency.py::test_trust_metadata_fields_present_for_all_protocols_v1_1[PM_QKD]
+FAILED tests/test_reliability_card_trust_metadata_consistency.py::test_trust_metadata_fields_present_for_all_protocols_v1_1[TF_QKD]
+FAILED tests/test_validation_harness.py::test_validation_harness_writes_artifacts_and_passes_for_demo_baseline
+7 failed, 169 passed, 7 skipped, 2 warnings in 24.69s

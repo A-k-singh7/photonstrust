@@ -1,0 +1,128 @@
+matrix_sweep:
+  id: demo1_full_matrix
+  description: All band x detector x source combinations
+  output_dir: results/demo1_matrix
+  distance_km:
+    start: 0
+    stop: 120
+    step: 10
+
+  bands:
+    - nir_795
+    - nir_850
+    - o_1310
+    - c_1550
+
+  detectors:
+    - si_apd
+    - ingaas
+    - snspd
+
+  sources:
+    - emitter_cavity
+    - spdc
+
+  run_limits:
+    max_total_runs: 200
+    max_concurrent: 4
+    skip_if_key_rate_below_bps: 0.01
+
+  naming:
+    scenario_id_format: "{band}__{detector}__{source}"
+    group_by:
+      - band
+      - detector
+
+  realism_filters:
+    enforce_detector_band_match: false
+    min_pde: 0.05
+
+  overrides:
+    source:
+      physics_backend: qutip
+      rep_rate_mhz: 100
+      collection_efficiency: 0.35
+      coupling_efficiency: 0.60
+      radiative_lifetime_ns: 1.0
+      purcell_factor: 5
+      dephasing_rate_per_ns: 0.5
+      g2_0: 0.02
+      drive_strength: 0.05
+      pulse_window_ns: 5.0
+      mu: 0.05
+    channel:
+      connector_loss_db: 1.5
+    timing:
+      sync_drift_ps_rms: 10
+    protocol:
+      name: BBM92
+      sifting_factor: 0.5
+      ec_efficiency: 1.16
+
+  band_presets:
+    nir_795:
+      wavelength_nm: 795
+      fiber_loss_db_per_km: 2.5
+      dispersion_ps_per_km: 2
+    nir_850:
+      wavelength_nm: 850
+      fiber_loss_db_per_km: 2.2
+      dispersion_ps_per_km: 2
+    o_1310:
+      wavelength_nm: 1310
+      fiber_loss_db_per_km: 0.33
+      dispersion_ps_per_km: 3
+    c_1550:
+      wavelength_nm: 1550
+      fiber_loss_db_per_km: 0.20
+      dispersion_ps_per_km: 5
+
+  detector_presets:
+    si_apd:
+      pde: 0.70
+      dark_counts_cps: 100
+      jitter_ps_fwhm: 50
+      dead_time_ns: 50
+      afterpulsing_prob: 0.005
+    ingaas:
+      pde: 0.20
+      dark_counts_cps: 500
+      jitter_ps_fwhm: 80
+      dead_time_ns: 10000
+      afterpulsing_prob: 0.02
+    snspd:
+      pde: 0.30
+      dark_counts_cps: 100
+      jitter_ps_fwhm: 30
+      dead_time_ns: 100
+      afterpulsing_prob: 0.001
+
+  detector_adjustments:
+    nir_795:
+      si_apd:
+        pde_delta: 0.05
+        dark_scale: 0.8
+    nir_850:
+      si_apd:
+        pde_delta: 0.05
+        dark_scale: 0.8
+    o_1310:
+      ingaas:
+        pde_delta: 0.02
+        dark_scale: 1.2
+    c_1550:
+      snspd:
+        pde_delta: 0.05
+        dark_scale: 1.0
+
+  compatibility:
+    nir_795: [si_apd, snspd]
+    nir_850: [si_apd, snspd]
+    o_1310: [ingaas, snspd]
+    c_1550: [ingaas, snspd]
+
+  outputs:
+    write_reliability_card: true
+    write_report_html: true
+    write_plots: true
+    write_summary_csv: true

@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_invdesign_report.v0.schema.json",
+  "title": "PhotonTrust PIC Inverse Design Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "inputs", "design", "best", "curve"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": {
+      "type": "string",
+      "enum": ["pic.invdesign.mzi_phase", "pic.invdesign.coupler_ratio"]
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_output", "target_power_fraction", "wavelengths_nm", "steps", "robustness"],
+      "properties": {
+        "target_output": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["node", "port"],
+          "properties": {
+            "node": { "type": "string" },
+            "port": { "type": "string" }
+          }
+        },
+        "target_power_fraction": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "wavelengths_nm": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "number", "exclusiveMinimum": 0.0 }
+        },
+        "steps": { "type": "integer", "minimum": 1 },
+        "robustness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wavelength_objective_agg", "case_objective_agg", "cases"],
+          "properties": {
+            "wavelength_objective_agg": { "type": "string", "enum": ["mean", "max"] },
+            "case_objective_agg": { "type": "string", "enum": ["mean", "max"] },
+            "required": { "type": "boolean" },
+            "thresholds": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "min_worst_case_fraction": {
+                  "anyOf": [
+                    { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                    { "type": "null" }
+                  ]
+                },
+                "max_objective": {
+                  "anyOf": [
+                    { "type": "number", "minimum": 0.0 },
+                    { "type": "null" }
+                  ]
+                },
+                "max_degradation_from_nominal": {
+                  "anyOf": [
+                    { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                    { "type": "null" }
+                  ]
+                }
+              }
+            },
+            "cases": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label", "overrides"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "label": { "type": "string" },
+                  "overrides": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "solver"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["preview", "certification"] },
+        "solver": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "backend_requested",
+            "backend_used",
+            "runner_mode",
+            "license_class",
+            "applicability",
+            "policy"
+          ],
+          "properties": {
+            "backend_requested": { "type": "string" },
+            "backend_used": { "type": "string" },
+            "runner_mode": { "type": "string", "enum": ["core", "plugin"] },
+            "plugin_id": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+            "plugin_version": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+            "license_class": {
+              "type": "string",
+              "enum": ["unknown", "permissive", "copyleft", "commercial", "proprietary"]
+            },
+            "applicability": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": { "type": "string", "enum": ["core", "enabled", "fallback"] },
+                "reason": { "type": "string" }
+              }
+            },
+            "fallback_reason": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+            "policy": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["metadata_only", "allows_external_execution"],
+              "properties": {
+                "metadata_only": { "type": "boolean" },
+                "allows_external_execution": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "param", "search"],
+      "properties": {
+        "node_id": { "type": "string" },
+        "param": { "type": "string", "enum": ["phase_rad", "coupling_ratio"] },
+        "search": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "steps", "bounds"],
+          "properties": {
+            "method": { "type": "string", "enum": ["grid"] },
+            "steps": { "type": "integer", "minimum": 1 },
+            "bounds": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "best": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "objective", "achieved_fraction_nominal_mean", "robustness_eval"],
+      "properties": {
+        "value": { "type": "number" },
+        "objective": { "type": "number" },
+        "achieved_fraction_nominal_mean": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "robustness_eval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["objective_agg", "objective_agg_value", "cases"],
+          "properties": {
+            "objective_agg": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["wavelength", "case"],
+              "properties": {
+                "wavelength": { "type": "string", "enum": ["mean", "max"] },
+                "case": { "type": "string", "enum": ["mean", "max"] }
+              }
+            },
+            "objective_agg_value": { "type": "number" },
+            "cases": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["case_id", "case_label", "objective", "achieved_fraction_mean", "by_wavelength"],
+                "properties": {
+                  "case_id": { "type": "string" },
+                  "case_label": { "type": "string" },
+                  "objective": { "type": "number" },
+                  "achieved_fraction_mean": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                  "by_wavelength": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["wavelength_nm", "achieved_fraction", "objective"],
+                      "properties": {
+                        "wavelength_nm": { "type": "number", "exclusiveMinimum": 0.0 },
+                        "achieved_fraction": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                        "objective": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "worst_case": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "wavelength_nm", "objective", "achieved_fraction"],
+              "properties": {
+                "case_id": { "type": "string" },
+                "wavelength_nm": { "type": "number", "exclusiveMinimum": 0.0 },
+                "objective": { "type": "number" },
+                "achieved_fraction": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+              }
+            },
+            "metrics": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "objective_case_max",
+                "objective_case_mean",
+                "worst_case_achieved_fraction",
+                "nominal_achieved_fraction_mean",
+                "degradation_from_nominal"
+              ],
+              "properties": {
+                "objective_case_max": { "type": "number" },
+                "objective_case_mean": { "type": "number" },
+                "worst_case_achieved_fraction": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                "nominal_achieved_fraction_mean": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                "degradation_from_nominal": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+              }
+            },
+            "threshold_eval": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["required", "pass", "thresholds", "violations"],
+              "properties": {
+                "required": { "type": "boolean" },
+                "pass": { "type": "boolean" },
+                "thresholds": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "min_worst_case_fraction",
+                    "max_objective",
+                    "max_degradation_from_nominal"
+                  ],
+                  "properties": {
+                    "min_worst_case_fraction": {
+                      "anyOf": [
+                        { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                        { "type": "null" }
+                      ]
+                    },
+                    "max_objective": {
+                      "anyOf": [
+                        { "type": "number", "minimum": 0.0 },
+                        { "type": "null" }
+                      ]
+                    },
+                    "max_degradation_from_nominal": {
+                      "anyOf": [
+                        { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                        { "type": "null" }
+                      ]
+                    }
+                  }
+                },
+                "violations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["code", "metric", "observed", "threshold"],
+                    "properties": {
+                      "code": { "type": "string" },
+                      "metric": { "type": "string" },
+                      "observed": { "type": "number" },
+                      "threshold": { "type": "number" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "curve": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "objective", "achieved_fraction_nominal_mean"],
+        "properties": {
+          "value": { "type": "number" },
+          "objective": { "type": "number" },
+          "achieved_fraction_nominal_mean": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "objective_case_max": { "type": "number" },
+          "worst_case_achieved_fraction": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "pic.invdesign.mzi_phase" } } },
+      "then": {
+        "properties": {
+          "design": {
+            "properties": { "param": { "const": "phase_rad" } }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "pic.invdesign.coupler_ratio" } } },
+      "then": {
+        "properties": {
+          "design": {
+            "properties": { "param": { "const": "coupling_ratio" } }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "scenario_id": "canonical_phase41_regional_snspd",
+    "band": "c_1550",
+    "distances_km": [
+      50.0,
+      80.0
+    ],
+    "key_rate_bps": [
+      13159.69838480865,
+      830.3171210975673
+    ],
+    "qber": [
+      0.019801059054180038,
+      0.019801353870879
+    ],
+    "raman_counts_cps": [
+      0.0,
+      0.0
+    ],
+    "background_counts_cps": [
+      0.0,
+      0.0
+    ]
+  }
+]

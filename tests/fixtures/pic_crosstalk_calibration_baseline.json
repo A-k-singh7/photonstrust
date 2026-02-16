@@ -1,0 +1,20 @@
+{
+  "schema_version": "0",
+  "baseline_id": "pic_crosstalk_calibration_synth_v0",
+  "dataset_id": "meas_pic_xt_synth_001",
+  "expected": {
+    "params": {
+      "kappa0_per_um": 8e-05,
+      "gap_decay_um": 0.23,
+      "lambda_ref_nm": 1550.0,
+      "lambda_exp": 1.1
+    },
+    "rmse_db_max": 1e-06
+  },
+  "tolerances": {
+    "kappa0_rel_tol": 1e-06,
+    "gap_decay_rel_tol": 1e-06,
+    "lambda_exp_abs_tol": 1e-06
+  }
+}
+

@@ -1,0 +1,721 @@
+.ptApp {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ptTopbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--pt-border);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.32));
+  backdrop-filter: blur(10px);
+}
+
+.ptBrandTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-size: 18px;
+}
+
+.ptBrandSub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--pt-muted);
+}
+
+.ptTopControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ptMain {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 320px 1fr 420px;
+}
+
+.ptSidebar {
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid var(--pt-border);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.ptSidebarRight {
+  border-right: none;
+  border-left: 1px solid var(--pt-border);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.ptSidebarSection {
+  padding: 14px 14px 18px;
+  border-bottom: 1px solid rgba(15, 20, 23, 0.09);
+}
+
+.ptSidebarTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.ptCanvas {
+  min-height: 0;
+  background: transparent;
+}
+
+.ptApiPill {
+  justify-self: end;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--pt-border);
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--pt-muted);
+}
+
+.ptApiPill.ok {
+  border-color: rgba(46, 230, 214, 0.35);
+  background: rgba(46, 230, 214, 0.16);
+  color: rgba(6, 32, 29, 0.9);
+}
+
+.ptApiPill.error {
+  border-color: rgba(231, 52, 63, 0.35);
+  background: rgba(231, 52, 63, 0.1);
+  color: rgba(91, 16, 21, 0.95);
+}
+
+.ptField {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--pt-muted);
+}
+
+.ptField span {
+  letter-spacing: 0.02em;
+}
+
+.ptField input,
+.ptField select {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid var(--pt-border);
+  background: var(--pt-panel-2);
+  color: var(--pt-ink);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.ptField input:focus,
+.ptField select:focus {
+  border-color: rgba(46, 230, 214, 0.6);
+  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+}
+
+.ptFieldWide {
+  min-width: 260px;
+}
+
+.ptBtn {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid var(--pt-border);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--pt-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.ptBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(15, 20, 23, 0.12);
+}
+
+.ptBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.ptBtnGhost {
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.ptBtnPrimary {
+  border-color: rgba(46, 230, 214, 0.6);
+  background: linear-gradient(180deg, rgba(46, 230, 214, 0.95), rgba(46, 230, 214, 0.68));
+  color: var(--pt-accent-ink);
+  box-shadow: 0 10px 22px rgba(46, 230, 214, 0.22);
+}
+
+.ptBtnTiny {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.ptBtnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ptCheck {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--pt-muted);
+}
+
+.ptPaletteGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.ptPaletteItem {
+  text-align: left;
+  border-radius: var(--pt-radius);
+  border: 1px solid var(--pt-border);
+  background: var(--pt-panel);
+  padding: 10px 10px 8px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.ptPaletteItem:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--pt-shadow);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.ptPaletteTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-size: 13px;
+}
+
+.ptPaletteKind {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--pt-muted);
+}
+
+.ptTabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--pt-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.52));
+  backdrop-filter: blur(10px);
+}
+
+.ptTab {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.5);
+  font: inherit;
+  font-size: 12px;
+  color: var(--pt-muted);
+  cursor: pointer;
+}
+
+.ptTab.active {
+  border-color: rgba(46, 230, 214, 0.6);
+  background: rgba(46, 230, 214, 0.14);
+  color: rgba(6, 32, 29, 0.92);
+}
+
+.ptRightBody {
+  padding: 14px;
+}
+
+.ptRightSection {
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  border-radius: var(--pt-radius);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 10px 26px rgba(15, 20, 23, 0.09);
+  padding: 12px 12px 14px;
+  margin-bottom: 12px;
+}
+
+.ptRightTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.ptHint {
+  font-size: 12px;
+  color: var(--pt-muted);
+  line-height: 1.35;
+}
+
+.ptKeyVal {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 10px;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(15, 20, 23, 0.08);
+}
+
+.ptKeyVal div:first-child {
+  color: var(--pt-muted);
+}
+
+.ptJsonBox {
+  margin-top: 10px;
+}
+
+.ptJsonTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.ptJsonTitle {
+  font-size: 12px;
+  color: var(--pt-muted);
+}
+
+.ptTextarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 10px 10px;
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  outline: none;
+}
+
+.ptTextareaSmall {
+  min-height: 150px;
+}
+
+.ptTextarea:focus {
+  border-color: rgba(46, 230, 214, 0.6);
+  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+}
+
+.ptPre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 10px;
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid rgba(15, 20, 23, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.ptError {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(91, 16, 21, 0.95);
+  background: rgba(231, 52, 63, 0.12);
+  border: 1px solid rgba(231, 52, 63, 0.22);
+  border-radius: var(--pt-radius-sm);
+  padding: 8px 10px;
+}
+
+.ptTrustBox {
+  margin-top: 10px;
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 10px 10px 12px;
+}
+
+.ptParamGrid {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.ptParamRow {
+  display: grid;
+  grid-template-columns: 1fr 170px;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 20, 23, 0.08);
+}
+
+.ptParamRow:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.ptParamName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.ptParamReq {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(231, 52, 63, 0.25);
+  background: rgba(231, 52, 63, 0.08);
+  color: rgba(91, 16, 21, 0.95);
+}
+
+.ptParamUnit {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(15, 20, 23, 0.04);
+  color: var(--pt-muted);
+}
+
+.ptParamType {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(46, 230, 214, 0.35);
+  background: rgba(46, 230, 214, 0.12);
+  color: rgba(6, 32, 29, 0.9);
+}
+
+.ptParamDesc {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(15, 20, 23, 0.82);
+}
+
+.ptParamHint {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pt-muted);
+}
+
+.ptParamCtrl {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.ptParamControl {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--pt-ink);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.ptParamControl:focus {
+  border-color: rgba(46, 230, 214, 0.6);
+  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+}
+
+.ptParamControl.isBad {
+  border-color: rgba(231, 52, 63, 0.6);
+  box-shadow: 0 0 0 4px rgba(231, 52, 63, 0.12);
+}
+
+.ptCallout {
+  margin-top: 10px;
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid rgba(231, 52, 63, 0.22);
+  background: rgba(231, 52, 63, 0.08);
+  padding: 10px;
+}
+
+.ptCalloutTitle {
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.ptList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: rgba(91, 16, 21, 0.95);
+}
+
+.ptStatusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--pt-border);
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  color: var(--pt-muted);
+}
+
+.ptStatusLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ptStatusRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ptDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.28);
+  background: rgba(15, 20, 23, 0.12);
+}
+
+.ptDot[data-state="busy"] {
+  border-color: rgba(46, 230, 214, 0.55);
+  background: rgba(46, 230, 214, 0.45);
+  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+}
+
+.ptMono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* React Flow + node styling */
+.react-flow__attribution {
+  display: none !important;
+}
+
+.react-flow__renderer {
+  background: transparent;
+}
+
+.react-flow__controls {
+  box-shadow: none;
+}
+
+.react-flow__controls button {
+  border-radius: 10px !important;
+  border: 1px solid rgba(15, 20, 23, 0.16) !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+}
+
+.react-flow__minimap {
+  border-radius: 14px;
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 22px rgba(15, 20, 23, 0.12);
+}
+
+.ptNode {
+  width: 220px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 20, 23, 0.22);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 26px rgba(15, 20, 23, 0.12);
+  padding: 10px 10px 12px;
+  position: relative;
+}
+
+.ptNode[data-category="pic"] {
+  border-color: rgba(46, 230, 214, 0.38);
+}
+
+.ptNode[data-category="qkd"] {
+  border-color: rgba(231, 52, 63, 0.26);
+}
+
+.ptNode.isSelected {
+  box-shadow: 0 16px 38px rgba(46, 230, 214, 0.18);
+  outline: 3px solid rgba(46, 230, 214, 0.22);
+}
+
+.ptNodeTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ptNodeTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-size: 14px;
+}
+
+.ptNodeBadge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.14);
+  background: rgba(15, 20, 23, 0.06);
+  color: var(--pt-muted);
+}
+
+.ptNodeMid {
+  margin-top: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.ptNodeLabel {
+  font-size: 12px;
+  color: rgba(15, 20, 23, 0.84);
+}
+
+.ptNodeId {
+  font-size: 11px;
+  color: var(--pt-muted);
+}
+
+.ptHandle {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(15, 20, 23, 0.35) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+
+.ptHandleIn {
+  border-color: rgba(231, 52, 63, 0.55) !important;
+  background: rgba(231, 52, 63, 0.08) !important;
+}
+
+.ptHandleOut {
+  border-color: rgba(46, 230, 214, 0.65) !important;
+  background: rgba(46, 230, 214, 0.1) !important;
+}
+
+.ptPortLabel {
+  position: absolute;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: rgba(15, 20, 23, 0.62);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ptPortLabelIn {
+  left: 14px;
+}
+
+.ptPortLabelOut {
+  right: 14px;
+  text-align: right;
+}
+
+/* Modal */
+.ptModalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 20, 23, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 50;
+}
+
+.ptModal {
+  width: min(980px, 100%);
+  max-height: min(86vh, 860px);
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(247, 243, 234, 0.92);
+  box-shadow: 0 30px 80px rgba(15, 20, 23, 0.32);
+  backdrop-filter: blur(10px);
+}
+
+.ptModalTop {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(15, 20, 23, 0.14);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.ptModalTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.ptModalBody {
+  padding: 14px;
+}
+
+@media (max-width: 980px) {
+  .ptMain {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(48vh, 1fr) auto;
+  }
+  .ptSidebar {
+    border-right: none;
+  }
+  .ptSidebarRight {
+    border-left: none;
+    border-top: 1px solid var(--pt-border);
+  }
+  .ptSidebarLeft {
+    border-bottom: 1px solid var(--pt-border);
+  }
+  .ptTopbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .ptTopControls {
+    justify-content: flex-start;
+  }
+  .ptApiPill {
+    justify-self: start;
+  }
+}

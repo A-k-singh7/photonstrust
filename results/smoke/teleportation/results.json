@@ -1,0 +1,28 @@
+{
+  "results": [
+    {
+      "distance_km": 0.0,
+      "success_prob": 0.00138946759941468,
+      "fidelity": 0.49994000719942405,
+      "outage": true
+    },
+    {
+      "distance_km": 20.0,
+      "success_prob": 0.00022021577394576122,
+      "fidelity": 0.49994000719942405,
+      "outage": true
+    },
+    {
+      "distance_km": 40.0,
+      "success_prob": 3.490184809991923e-05,
+      "fidelity": 0.49994000719942405,
+      "outage": true
+    }
+  ],
+  "summary": {
+    "distances": 3,
+    "outage_probability": 1.0,
+    "min_success_prob": 0.001,
+    "min_fidelity": 0.5
+  }
+}

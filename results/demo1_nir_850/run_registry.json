@@ -1,0 +1,3 @@
+[
+  {"scenario_id": "demo1_nir_850", "band": "nir_850", "key_rate_bps": 0, "qber": 0.5, "safe_use": "qualitative", "card_path": "results\demo1_nir_850\demo1_nir_850\nir_850\reliability_card.json"}
+]

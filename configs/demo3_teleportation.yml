@@ -1,0 +1,47 @@
+teleportation:
+  id: demo3_teleportation
+  distance_km:
+    start: 0
+    stop: 200
+    step: 20
+  classical_latency_ns: 5000
+
+  memory:
+    t1_ms: 50
+    t2_ms: 10
+    retrieval_efficiency: 0.75
+    physics_backend: analytic
+
+  link_scenario:
+    band: c_1550
+    wavelength_nm: 1550
+    source:
+      type: emitter_cavity
+      physics_backend: qutip
+      rep_rate_mhz: 100
+      collection_efficiency: 0.35
+      coupling_efficiency: 0.60
+      radiative_lifetime_ns: 1.0
+      purcell_factor: 5
+      dephasing_rate_per_ns: 0.5
+      g2_0: 0.02
+      drive_strength: 0.05
+      pulse_window_ns: 5.0
+    channel:
+      fiber_loss_db_per_km: 0.20
+      connector_loss_db: 1.5
+      dispersion_ps_per_km: 5
+    detector:
+      class: snspd
+      pde: 0.30
+      dark_counts_cps: 100
+      jitter_ps_fwhm: 30
+      dead_time_ns: 100
+      afterpulsing_prob: 0.001
+    timing:
+      sync_drift_ps_rms: 10
+      coincidence_window_ps: null
+    protocol:
+      name: BBM92
+      sifting_factor: 0.5
+      ec_efficiency: 1.16

@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PhotonTrust Orbit Pass Envelope (v0.1)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["orbit_pass", "source", "channel", "detector"],
+  "properties": {
+    "orbit_pass": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "band", "dt_s", "samples"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_\\-]{2,63}$"
+        },
+        "band": {
+          "type": "string",
+          "enum": ["nir_795", "nir_850", "o_1310", "c_1550"]
+        },
+        "wavelength_nm": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "number", "exclusiveMinimum": 0 }
+          ]
+        },
+        "dt_s": { "type": "number", "exclusiveMinimum": 0 },
+        "background_model": {
+          "type": "string",
+          "enum": ["fixed", "radiance_proxy"]
+        },
+        "background_day_night": {
+          "type": "string",
+          "enum": ["day", "night"]
+        },
+        "finite_key": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "security_epsilon": { "type": "number", "exclusiveMinimum": 0 },
+                "parameter_estimation_fraction": { "type": "number", "minimum": 0, "maximum": 0.9 },
+                "signals_per_block": { "type": "number", "exclusiveMinimum": 0 },
+                "max_signals_per_block": { "type": "number", "exclusiveMinimum": 0 },
+                "pass_duty_cycle": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                "detection_probability": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                "epsilon_correctness": { "type": "number", "exclusiveMinimum": 0 },
+                "epsilon_secrecy": { "type": "number", "exclusiveMinimum": 0 },
+                "epsilon_parameter_estimation": { "type": "number", "exclusiveMinimum": 0 },
+                "epsilon_error_correction": { "type": "number", "exclusiveMinimum": 0 },
+                "epsilon_privacy_amplification": { "type": "number", "exclusiveMinimum": 0 }
+              }
+            }
+          ]
+        },
+        "availability": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "clear_fraction": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          ]
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["t_s", "distance_km", "elevation_deg"],
+            "properties": {
+              "t_s": { "type": "number" },
+              "distance_km": { "type": "number", "exclusiveMinimum": 0 },
+              "elevation_deg": { "type": "number", "minimum": 0, "maximum": 90 },
+              "background_counts_cps": {
+                "anyOf": [
+                  { "type": "null" },
+                  { "type": "number", "minimum": 0 }
+                ]
+              },
+              "day_night": {
+                "type": "string",
+                "enum": ["day", "night"]
+              }
+            }
+          }
+        },
+        "cases": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "label": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+                  "channel_overrides": { "type": "object", "additionalProperties": true }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type"],
+      "properties": { "type": { "type": "string", "enum": ["emitter_cavity", "spdc"] } }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["model"],
+      "properties": { "model": { "type": "string", "const": "free_space" } }
+    },
+    "detector": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["class"],
+      "properties": { "class": { "type": "string", "enum": ["si_apd", "ingaas", "snspd"] } }
+    },
+    "timing": { "type": "object", "additionalProperties": true },
+    "protocol": { "type": "object", "additionalProperties": true },
+    "uncertainty": { "type": "object", "additionalProperties": true }
+  }
+}

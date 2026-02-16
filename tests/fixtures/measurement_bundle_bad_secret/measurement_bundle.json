@@ -1,0 +1,23 @@
+{
+  "schema_version": "0",
+  "dataset_id": "meas_bad_secret_001",
+  "kind": "free_space_measurements",
+  "title": "Bad measurement bundle (contains a secret-like token)",
+  "created_at": "2026-02-13T00:00:00Z",
+  "license": "CC-BY-4.0",
+  "share_level": "public",
+  "restrictions": {
+    "contains_personal_data": false,
+    "contains_export_controlled": false,
+    "contains_proprietary": false,
+    "notes": "This fixture intentionally includes a secret-like token."
+  },
+  "files": [
+    {
+      "path": "data/leak.txt",
+      "sha256": "7ada0f08ed90066b736973a461e669d248450c1126636d5e0049b2a4193f811c",
+      "content_type": "text/plain",
+      "description": "Fixture file containing a secret-like token pattern."
+    }
+  ]
+}

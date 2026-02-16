@@ -1,0 +1,611 @@
+{
+  "0.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.7079457843841379,
+        "high": 0.7079457843841379
+      },
+      "total_loss_db": {
+        "low": 1.5,
+        "high": 1.5
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 1.0,
+          "high": 1.0
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "5.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.5501997686372223,
+        "high": 0.57459152005889
+      },
+      "total_loss_db": {
+        "low": 2.406407878987259,
+        "high": 2.594796004611639
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.7771778302428295,
+          "high": 0.8116320949050406
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "10.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.4276030700489718,
+        "high": 0.4663569195560957
+      },
+      "total_loss_db": {
+        "low": 3.3128157579745188,
+        "high": 3.689592009223278
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.6040053906401263,
+          "high": 0.6587466580675987
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "15.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.3323236380879566,
+        "high": 0.378510244268139
+      },
+      "total_loss_db": {
+        "low": 4.219223636961778,
+        "high": 4.784388013834917
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.4694196157648631,
+          "high": 0.5346599310530761
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "20.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.2582745778588681,
+        "high": 0.30721106332063913
+      },
+      "total_loss_db": {
+        "low": 5.125631515949038,
+        "high": 5.879184018446555
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.3648225380472439,
+          "high": 0.43394716106388115
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "25.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.20072529039718778,
+        "high": 0.2493423597908322
+      },
+      "total_loss_db": {
+        "low": 6.032039394936299,
+        "high": 6.9739800230581945
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.28353200884133295,
+          "high": 0.35220544466938547
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "30.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.15599925962190006,
+        "high": 0.20237426272849118
+      },
+      "total_loss_db": {
+        "low": 6.9384472739235585,
+        "high": 8.068776027669834
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.2203548111492863,
+          "high": 0.2858612441693431
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "35.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.12123917912453515,
+        "high": 0.16425344769262165
+      },
+      "total_loss_db": {
+        "low": 7.844855152910818,
+        "high": 9.163572032281474
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.17125489239264916,
+          "high": 0.23201416169955777
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "40.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.09422441396733691,
+        "high": 0.13331337067892837
+      },
+      "total_loss_db": {
+        "low": 8.751263031898077,
+        "high": 10.258368036893112
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.13309552234894004,
+          "high": 0.1883101412841966
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "45.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.0732291360764203,
+        "high": 0.10820141109551777
+      },
+      "total_loss_db": {
+        "low": 9.657670910885336,
+        "high": 11.353164041504751
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.10343890406823229,
+          "high": 0.15283855555357992
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "50.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.056912070241042174,
+        "high": 0.08781973866456372
+      },
+      "total_loss_db": {
+        "low": 10.564078789872596,
+        "high": 12.447960046116387
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.08039043595767945,
+          "high": 0.12404867802265479
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "55.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.04423080716766948,
+        "high": 0.07127731910253596
+      },
+      "total_loss_db": {
+        "low": 11.470486668859856,
+        "high": 13.542756050728029
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.062477675753302375,
+          "high": 0.1006818893123887
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "60.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.03437520949892628,
+        "high": 0.05785096039044032
+      },
+      "total_loss_db": {
+        "low": 12.376894547847115,
+        "high": 14.637552055339667
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.048556274021506106,
+          "high": 0.08171665354398078
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "65.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.02671565645758051,
+        "high": 0.04695369667693948
+      },
+      "total_loss_db": {
+        "low": 13.283302426834375,
+        "high": 15.732348059951306
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.037736867775575805,
+          "high": 0.06632385941500567
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "70.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.02076282073805902,
+        "high": 0.038109127639719916
+      },
+      "total_loss_db": {
+        "low": 14.189710305821635,
+        "high": 16.827144064562944
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.029328263824780293,
+          "high": 0.053830573583925116
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "75.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.01613640800299558,
+        "high": 0.03093059148783467
+      },
+      "total_loss_db": {
+        "low": 15.096118184808894,
+        "high": 17.921940069174582
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.022793282139582337,
+          "high": 0.04369062175395545
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "80.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.012540861916221259,
+        "high": 0.025104261102138134
+      },
+      "total_loss_db": {
+        "low": 16.002526063796154,
+        "high": 19.016736073786223
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.017714438298592185,
+          "high": 0.03546071133678272
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "85.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.009746482635193213,
+        "high": 0.02037542432046441
+      },
+      "total_loss_db": {
+        "low": 16.908933942783413,
+        "high": 20.111532078397858
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.013767272650224134,
+          "high": 0.028781051840275552
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "90.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.007574752523335331,
+        "high": 0.016537348576839753
+      },
+      "total_loss_db": {
+        "low": 17.815341821770676,
+        "high": 21.206328083009495
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.010699622330437102,
+          "high": 0.023359625753299827
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "95.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.005886931619898615,
+        "high": 0.013422243085348014
+      },
+      "total_loss_db": {
+        "low": 18.721749700757933,
+        "high": 22.301124087621137
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.008315511935733643,
+          "high": 0.018959422291107225
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  },
+  "100.0": {
+    "low": 0.0,
+    "high": 0.0,
+    "outage_probability": 1.0,
+    "channel_interval": {
+      "eta_channel": {
+        "low": 0.004575194292515656,
+        "high": 0.01089392345853732
+      },
+      "total_loss_db": {
+        "low": 19.628157579745192,
+        "high": 23.395920092232778
+      },
+      "decomposition": {
+        "eta_fiber": {
+          "low": 0.006462633712122105,
+          "high": 0.015388075893430532
+        },
+        "eta_connector": {
+          "low": 0.7079457843841379,
+          "high": 0.7079457843841379
+        },
+        "eta_polarization": {
+          "low": 1.0,
+          "high": 1.0
+        }
+      }
+    }
+  }
+}

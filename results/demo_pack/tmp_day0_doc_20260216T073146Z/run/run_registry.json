@@ -1,0 +1,3 @@
+[
+  {"scenario_id": "pilot_day0_c1550_phase2e_demo", "band": "c_1550", "key_rate_bps": 0, "qber": 0.21647, "safe_use": "qualitative", "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_doc_20260216T073146Z/run/pilot_day0_c1550_phase2e_demo/c_1550/reliability_card.json"}
+]

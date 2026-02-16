@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.reliability_card.v1_1.schema.json",
+  "title": "PhotonTrust Reliability Card v1.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "scenario_id",
+    "band",
+    "wavelength_nm",
+    "inputs",
+    "derived",
+    "outputs",
+    "error_budget",
+    "safe_use_label",
+    "artifacts",
+    "evidence_quality",
+    "operating_envelope",
+    "benchmark_coverage_v1_1",
+    "standards_alignment",
+    "security_assumptions_metadata",
+    "finite_key_epsilon_ledger",
+    "confidence_intervals",
+    "model_provenance",
+    "provenance_v1_1"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "scenario_id": { "type": "string" },
+    "band": { "type": "string", "enum": ["nir_795", "nir_850", "o_1310", "c_1550"] },
+    "wavelength_nm": { "type": "number" },
+
+    "evidence_quality_tier": {
+      "type": "string",
+      "enum": ["simulated_only", "calibrated_lab", "field_validated"]
+    },
+    "benchmark_coverage": { "type": "string" },
+    "calibration_diagnostics": {
+      "type": ["object", "null"],
+      "properties": {
+        "status": { "type": "string" },
+        "gate_pass": { "type": ["boolean", "null"] },
+        "ess_ratio": { "type": ["number", "null"] },
+        "r_hat_proxy": { "type": ["number", "null"] },
+        "ppc_score": { "type": ["number", "null"] }
+      }
+    },
+    "reproducibility_artifact_uri": { "type": ["string", "null"] },
+    "notes": { "type": "string" },
+
+    "inputs": { "type": "object" },
+    "derived": { "type": "object" },
+    "outputs": { "type": "object" },
+    "error_budget": { "type": "object" },
+
+    "safe_use_label": {
+      "type": "object",
+      "required": ["label", "rationale"],
+      "properties": {
+        "label": { "type": "string", "enum": ["qualitative", "security_target_ready", "engineering_grade"] },
+        "rationale": { "type": "string" }
+      }
+    },
+
+    "reproducibility": {
+      "type": "object",
+      "properties": {
+        "config_hash": { "type": "string" },
+        "model_hash": { "type": ["string", "null"] },
+        "seed": { "type": "number" }
+      }
+    },
+
+    "artifacts": { "type": "object" },
+
+    "evidence_quality": {
+      "type": "object",
+      "required": ["tier", "label"],
+      "properties": {
+        "tier": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "label": {
+          "type": "string",
+          "enum": ["Simulation-only", "Calibrated", "Validated", "Qualified"]
+        },
+        "calibration_diagnostics": { "type": ["object", "null"] },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "operating_envelope": {
+      "type": "object",
+      "properties": {
+        "channel_model": { "type": "string" },
+        "distance_range_km": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } },
+        "wavelength_nm": { "type": "number" },
+        "fiber_type": { "type": ["string", "null"] },
+        "detector_technology": { "type": ["string", "null"] },
+        "source_technology": { "type": ["string", "null"] },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "benchmark_coverage_v1_1": {
+      "type": "object",
+      "required": ["canonical_presets"],
+      "properties": {
+        "canonical_presets": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "plob_bound_check": { "type": ["string", "null"], "enum": ["pass", "fail", "not_assessed", null] },
+        "regression_baseline_match": { "type": ["boolean", "null"] },
+        "golden_report_hash_match": { "type": ["boolean", "null"] },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "standards_alignment": {
+      "type": "object",
+      "properties": {
+        "etsi_gs_qkd_016": { "type": "string", "enum": ["partial", "not_assessed", "informational"] },
+        "iso_iec_23837_1": { "type": "string", "enum": ["not_assessed", "informational"] },
+        "itu_t_y_3800": { "type": "string", "enum": ["informational"] },
+        "nist_sp_800_57": { "type": "string", "enum": ["compatible", "not_assessed"] },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "security_assumptions_metadata": {
+      "type": "object",
+      "required": ["security_model", "trusted_device_model", "assume_iid"],
+      "properties": {
+        "security_model": { "type": "string" },
+        "trusted_device_model": { "type": "string" },
+        "assume_iid": { "type": "boolean" },
+        "assume_phase_randomization": { "type": "boolean" },
+        "decoy_state_assumption": { "type": "boolean" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "finite_key_epsilon_ledger": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "signals_per_block": { "type": ["number", "integer", "null"] },
+        "epsilon_total": { "type": ["number", "null"] },
+        "epsilon_correctness": { "type": ["number", "null"] },
+        "epsilon_secrecy": { "type": ["number", "null"] },
+        "epsilon_parameter_estimation": { "type": ["number", "null"] },
+        "epsilon_error_correction": { "type": ["number", "null"] },
+        "epsilon_privacy_amplification": { "type": ["number", "null"] },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "confidence_intervals": {
+      "type": "object",
+      "required": ["key_rate_bps"],
+      "properties": {
+        "key_rate_bps": {
+          "type": "object",
+          "required": ["low", "high", "confidence_level", "method"],
+          "properties": {
+            "low": { "type": ["number", "null"] },
+            "high": { "type": ["number", "null"] },
+            "confidence_level": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "method": { "type": "string" }
+          }
+        },
+        "fidelity_est": { "type": ["object", "null"] },
+        "qber_total": { "type": ["object", "null"] }
+      }
+    },
+
+    "model_provenance": {
+      "type": "object",
+      "required": ["protocol_family", "protocol_normalized", "channel_model", "source_model", "detector_model", "finite_key_model", "parameter_sources"],
+      "properties": {
+        "protocol_family": { "type": "string" },
+        "protocol_normalized": { "type": "string" },
+        "channel_model": { "type": "string" },
+        "source_model": { "type": "string" },
+        "detector_model": { "type": "string" },
+        "finite_key_model": { "type": "string" },
+        "parameter_sources": {
+          "type": "object",
+          "required": ["source", "channel", "detector", "protocol"],
+          "properties": {
+            "source": { "type": "string" },
+            "channel": { "type": "string" },
+            "detector": { "type": "string" },
+            "protocol": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "provenance_v1_1": {
+      "type": "object",
+      "required": ["photonstrust_version", "python", "platform", "config_hash"],
+      "properties": {
+        "photonstrust_version": { "type": ["string", "null"] },
+        "python": { "type": "string" },
+        "platform": { "type": "string" },
+        "config_hash": { "type": "string" },
+        "dependencies": {
+          "type": "object",
+          "properties": {
+            "numpy": { "type": ["string", "null"] },
+            "qutip": { "type": ["string", "null"] },
+            "qiskit": { "type": ["string", "null"] }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.rc_artifact_pack.baseline_hashes",
+  "generated_at": "2026-02-16T07:56:29.754952+00:00",
+  "fixtures": [
+    {
+      "path": "tests/fixtures/baselines.json",
+      "sha256": "8a6f320a3979c7b52f4c1e3a3749abe7096eee26e4c4ae9e36b857ec68265d1a",
+      "size_bytes": 5091
+    },
+    {
+      "path": "tests/fixtures/canonical_phase41_baselines.json",
+      "sha256": "07dd4d9be51ea1099a552077a0f0ef5058925940b741880355ac81c4615215d7",
+      "size_bytes": 3967
+    }
+  ]
+}
