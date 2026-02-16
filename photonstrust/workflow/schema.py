@@ -22,6 +22,10 @@ def evidence_bundle_signature_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.evidence_bundle_signature.v0.schema.json").resolve()
 
 
+def evidence_bundle_publish_manifest_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.evidence_bundle_publish_manifest.v0.schema.json").resolve()
+
+
 def multifidelity_report_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.multifidelity_report.v0.schema.json").resolve()
 

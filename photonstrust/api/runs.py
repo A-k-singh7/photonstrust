@@ -89,6 +89,8 @@ def summarize_manifest(m: dict[str, Any]) -> dict[str, Any]:
         "project_id": (m.get("input", {}) or {}).get("project_id") or "default",
         "input_hash": m.get("input", {}).get("graph_hash") or m.get("input", {}).get("config_hash"),
         "protocol_selected": protocol_selected or (m.get("input", {}) or {}).get("protocol_selected"),
+        "source_job_id": (m.get("input", {}) or {}).get("source_job_id"),
+        "compile_cache_key": (m.get("input", {}) or {}).get("compile_cache_key"),
         "multifidelity_present": bool(
             qkd_multifidelity.get("present")
             or (isinstance(artifacts.get("multifidelity_report_json"), str) and artifacts.get("multifidelity_report_json"))

@@ -6,7 +6,7 @@ import heapq
 import math
 import warnings
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -18,7 +18,7 @@ class DetectionStats:
     click_time_hist: List[float]
     click_time_edges_ps: List[float]
     variance_p_click: float
-    diagnostics: Dict[str, float] = field(default_factory=dict)
+    diagnostics: Dict[str, Union[float, str]] = field(default_factory=dict)
 
 
 def simulate_detector(detector_cfg: dict, arrival_times_ps: List[float]) -> DetectionStats:
@@ -31,6 +31,7 @@ def simulate_detector(detector_cfg: dict, arrival_times_ps: List[float]) -> Dete
     afterpulse_delay_ns = _non_negative(
         detector_cfg.get("afterpulse_delay_ns", 50.0), "afterpulse_delay_ns"
     )
+    force_legacy_path = bool(detector_cfg.get("force_legacy_path", False))
     time_bin_ps = max(1.0, _non_negative(detector_cfg.get("time_bin_ps", 10.0), "time_bin_ps"))
     gate_width_ns = _non_negative(detector_cfg.get("gate_width_ns", 0.0), "gate_width_ns")
     gate_period_ns = _non_negative(detector_cfg.get("gate_period_ns", 0.0), "gate_period_ns")
@@ -44,39 +45,36 @@ def simulate_detector(detector_cfg: dict, arrival_times_ps: List[float]) -> Dete
     signal_rate_cps = len(gated_arrivals) / max(window_s, 1e-12)
 
     pde_eff = _effective_pde(pde, signal_rate_cps, saturation_count_rate_cps)
-    events: List[Tuple[float, str]] = []
-
+    signal_events: List[float] = []
     for t in gated_arrivals:
         if rng.random() <= pde_eff:
-            heapq.heappush(events, (t + rng.normal(0.0, jitter_ps), "signal"))
+            signal_events.append(t + rng.normal(0.0, jitter_ps))
 
     dark_mean = dark_counts * duty_cycle * max(window_s, 1e-12)
     dark_generated = int(rng.poisson(dark_mean))
-    for _ in range(dark_generated):
-        heapq.heappush(events, (rng.uniform(window_min, window_max), "dark"))
+    dark_events: List[float] = [rng.uniform(window_min, window_max) for _ in range(dark_generated)]
 
-    clicks: List[float] = []
-    false_clicks = 0
     dead_time_ps = dead_time_ns * 1e3
     afterpulse_delay_ps = afterpulse_delay_ns * 1e3
-    last_click = -1e18
-    processed = 0
-
-    while events:
-        t, origin = heapq.heappop(events)
-        processed += 1
-        if dead_time_ps > 0 and (t - last_click) < dead_time_ps:
-            continue
-        clicks.append(t)
-        last_click = t
-        if origin != "signal":
-            false_clicks += 1
-        if afterpulse_prob > 0 and rng.random() <= afterpulse_prob:
-            ap_jitter = max(1.0, jitter_ps * 0.25)
-            heapq.heappush(
-                events,
-                (t + afterpulse_delay_ps + rng.normal(0.0, ap_jitter), "afterpulse"),
-            )
+    use_fast_path = afterpulse_prob <= 0.0 and not force_legacy_path
+    if use_fast_path:
+        clicks, false_clicks, processed = _process_events_fast_no_afterpulse(
+            signal_events,
+            dark_events,
+            dead_time_ps,
+        )
+        path = "fast_no_afterpulse"
+    else:
+        clicks, false_clicks, processed = _process_events_heap_legacy(
+            signal_events,
+            dark_events,
+            dead_time_ps,
+            afterpulse_prob,
+            afterpulse_delay_ps,
+            jitter_ps,
+            rng,
+        )
+        path = "heap_legacy"
 
     total_events = len(gated_arrivals) if gated_arrivals else 1
     p_click = min(1.0, len(clicks) / max(total_events, 1))
@@ -109,8 +107,70 @@ def simulate_detector(detector_cfg: dict, arrival_times_ps: List[float]) -> Dete
             "duty_cycle": duty_cycle,
             "dark_generated": float(dark_generated),
             "events_processed": float(processed),
+            "path": path,
         },
     )
+
+
+def _process_events_fast_no_afterpulse(
+    signal_events: List[float],
+    dark_events: List[float],
+    dead_time_ps: float,
+) -> tuple[List[float], int, int]:
+    events = [(t, "signal") for t in signal_events]
+    events.extend((t, "dark") for t in dark_events)
+    events.sort(key=lambda item: (item[0], item[1]))
+
+    clicks: List[float] = []
+    false_clicks = 0
+    last_click = -1e18
+    for t, origin in events:
+        if dead_time_ps > 0 and (t - last_click) < dead_time_ps:
+            continue
+        clicks.append(t)
+        last_click = t
+        if origin != "signal":
+            false_clicks += 1
+    return clicks, false_clicks, len(events)
+
+
+def _process_events_heap_legacy(
+    signal_events: List[float],
+    dark_events: List[float],
+    dead_time_ps: float,
+    afterpulse_prob: float,
+    afterpulse_delay_ps: float,
+    jitter_ps: float,
+    rng: np.random.Generator,
+) -> tuple[List[float], int, int]:
+    events: List[Tuple[float, str]] = []
+    for t in signal_events:
+        heapq.heappush(events, (t, "signal"))
+    for t in dark_events:
+        heapq.heappush(events, (t, "dark"))
+
+    clicks: List[float] = []
+    false_clicks = 0
+    last_click = -1e18
+    processed = 0
+
+    while events:
+        t, origin = heapq.heappop(events)
+        processed += 1
+        if dead_time_ps > 0 and (t - last_click) < dead_time_ps:
+            continue
+        clicks.append(t)
+        last_click = t
+        if origin != "signal":
+            false_clicks += 1
+        if afterpulse_prob > 0 and rng.random() <= afterpulse_prob:
+            ap_jitter = max(1.0, jitter_ps * 0.25)
+            heapq.heappush(
+                events,
+                (t + afterpulse_delay_ps + rng.normal(0.0, ap_jitter), "afterpulse"),
+            )
+
+    return clicks, false_clicks, processed
 
 
 def _apply_gate(

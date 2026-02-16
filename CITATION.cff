@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use PhotonTrust, please cite it using the metadata below."
+title: "PhotonTrust"
+type: software
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/photonstrust/photonstrust"
+authors:
+  - name: "PhotonTrust Contributors"
+contributors:
+  - name: "PhotonTrust Contributors"
+keywords:
+  - quantum communications
+  - reliability
+  - photonics

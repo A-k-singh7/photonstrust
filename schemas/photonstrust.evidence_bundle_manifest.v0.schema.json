@@ -24,6 +24,9 @@
     "missing": {
       "type": "array",
       "items": { "$ref": "#/$defs/missing_record" }
+    },
+    "sbom": {
+      "$ref": "#/$defs/sbom_record"
     }
   },
   "$defs": {
@@ -46,7 +49,17 @@
         "path": { "type": ["string", "null"] },
         "error": { "type": "string" }
       }
+    },
+    "sbom_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "format", "sha256", "bytes"],
+      "properties": {
+        "path": { "type": "string" },
+        "format": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
     }
   }
 }
-

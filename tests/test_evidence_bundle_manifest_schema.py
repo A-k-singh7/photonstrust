@@ -78,3 +78,6 @@ def test_evidence_bundle_manifest_validates_against_schema(tmp_path, monkeypatch
     schema_path = evidence_bundle_manifest_schema_path()
     validate_instance(bm, schema_path)
 
+    sbom = bm.get("sbom") or {}
+    assert sbom.get("path") == "sbom/cyclonedx.json"
+    assert f"{bundle_root}/sbom/cyclonedx.json" in set(zf.namelist())

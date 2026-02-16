@@ -207,6 +207,12 @@ A phase is approved only if:
 - Phase 59: Event kernel and external interop (365-day plan continuation)
   - Folder: `phase_59_w37_w40_event_kernel_external_interop/`
   - Status: Complete (W37-W40 implemented 2026-02-16)
+- Phase 60: Platform performance and security scale-up (365-day plan continuation)
+  - Folder: `phase_60_w41_w44_platform_perf_security_scaleup/`
+  - Status: Complete (W41-W44 implemented 2026-02-16)
+- Phase 61: Adoption and pilot conversion (365-day plan continuation)
+  - Folder: `phase_61_w45_w48_adoption_pilot_conversion/`
+  - Status: Complete (W45-W48 implemented 2026-02-16)
 
 ## Planned phases (draft)
 

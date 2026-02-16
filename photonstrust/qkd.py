@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 
@@ -34,6 +35,7 @@ def compute_sweep(scenario: dict, include_uncertainty: bool = True) -> dict:
         "performance": {
             "execution_mode": mode_settings["execution_mode"],
             "uncertainty_samples": mode_settings["uncertainty_samples"],
+            "uncertainty_workers": mode_settings["uncertainty_workers"],
             "detector_sample_scale": mode_settings["detector_sample_scale"],
             "elapsed_s": elapsed_s,
         },
@@ -78,34 +80,38 @@ def _compute_uncertainty(
         # numpy requires non-negative integer seeds
         seed_base = 0
 
+    workers = int((runtime_overrides or {}).get("uncertainty_workers", 1))
+    workers = max(1, workers)
+
+    if workers == 1:
+        sample_rows = [
+            _compute_uncertainty_sample(base, uncertainty, seed_base, sample_idx, runtime_overrides)
+            for sample_idx in range(samples)
+        ]
+    else:
+        sample_rows = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(_compute_uncertainty_sample, base, uncertainty, seed_base, sample_idx, runtime_overrides)
+                for sample_idx in range(samples)
+            ]
+            for future in as_completed(futures):
+                sample_rows.append(future.result())
+        sample_rows.sort(key=lambda row: row["sample_idx"])
+
     key_rate_samples = {distance: [] for distance in distances}
     channel_eta_samples = {distance: [] for distance in distances}
     channel_loss_samples = {distance: [] for distance in distances}
     decomposition_samples = {distance: {} for distance in distances}
 
-    for sample_idx in range(samples):
-        # Per-sample deterministic RNG makes results stable even if the loop
-        # becomes parallel in future performance phases.
-        rng = np.random.default_rng(seed_base + sample_idx)
-        varied = _apply_uncertainty(base, uncertainty, rng)
+    for row in sample_rows:
         for distance in distances:
-            point = compute_point(varied, distance, runtime_overrides=runtime_overrides)
-            key_rate_samples[distance].append(point.key_rate_bps)
-
-            ch = compute_channel_diagnostics(
-                distance_km=float(distance),
-                wavelength_nm=float(varied.get("wavelength_nm", base.get("wavelength_nm", 1550.0)) or 1550.0),
-                channel_cfg=varied.get("channel", {}),
-            )
-            channel_eta_samples[distance].append(float(ch.get("eta_channel", 0.0) or 0.0))
-            channel_loss_samples[distance].append(float(ch.get("total_loss_db", 0.0) or 0.0))
-
-            for key, value in (ch.get("decomposition", {}) or {}).items():
-                try:
-                    v = float(value)
-                except (TypeError, ValueError):
-                    continue
-                decomposition_samples[distance].setdefault(str(key), []).append(v)
+            distance_stats = row["by_distance"][distance]
+            key_rate_samples[distance].append(distance_stats["key_rate_bps"])
+            channel_eta_samples[distance].append(distance_stats["eta_channel"])
+            channel_loss_samples[distance].append(distance_stats["total_loss_db"])
+            for key, value in distance_stats["decomposition"].items():
+                decomposition_samples[distance].setdefault(key, []).append(value)
 
     ci = {}
     outage_threshold = float(scenario.get("protocol", {}).get("key_rate_floor_bps", 0.0))
@@ -127,6 +133,44 @@ def _compute_uncertainty(
         }
         ci[distance] = item
     return ci
+
+
+def _compute_uncertainty_sample(
+    base: dict,
+    uncertainty: dict,
+    seed_base: int,
+    sample_idx: int,
+    runtime_overrides: dict | None,
+) -> dict:
+    rng = np.random.default_rng(seed_base + sample_idx)
+    varied = _apply_uncertainty(base, uncertainty, rng)
+    by_distance = {}
+
+    for distance in base["distances_km"]:
+        point = compute_point(varied, distance, runtime_overrides=runtime_overrides)
+        ch = compute_channel_diagnostics(
+            distance_km=float(distance),
+            wavelength_nm=float(varied.get("wavelength_nm", base.get("wavelength_nm", 1550.0)) or 1550.0),
+            channel_cfg=varied.get("channel", {}),
+        )
+        decomposition = {}
+        for key, value in (ch.get("decomposition", {}) or {}).items():
+            try:
+                decomposition[str(key)] = float(value)
+            except (TypeError, ValueError):
+                continue
+
+        by_distance[distance] = {
+            "key_rate_bps": point.key_rate_bps,
+            "eta_channel": float(ch.get("eta_channel", 0.0) or 0.0),
+            "total_loss_db": float(ch.get("total_loss_db", 0.0) or 0.0),
+            "decomposition": decomposition,
+        }
+
+    return {
+        "sample_idx": sample_idx,
+        "by_distance": by_distance,
+    }
 
 
 def _apply_uncertainty(base: dict, uncertainty: dict, rng: np.random.Generator) -> dict:
@@ -204,15 +248,23 @@ def _mode_settings(scenario: dict) -> dict:
     settings = {
         "execution_mode": mode,
         "uncertainty_samples": 200,
+        "uncertainty_workers": int(scenario.get("uncertainty_workers", 1)),
         "detector_sample_scale": 1.0,
     }
     if mode == "preview":
         settings["uncertainty_samples"] = int(scenario.get("preview_uncertainty_samples", 40))
+        settings["uncertainty_workers"] = int(
+            scenario.get("preview_uncertainty_workers", scenario.get("uncertainty_workers", 1))
+        )
         settings["detector_sample_scale"] = float(scenario.get("preview_detector_sample_scale", 0.25))
     elif mode == "certification":
         settings["uncertainty_samples"] = int(scenario.get("certification_uncertainty_samples", 400))
+        settings["uncertainty_workers"] = int(
+            scenario.get("certification_uncertainty_workers", scenario.get("uncertainty_workers", 1))
+        )
         settings["detector_sample_scale"] = float(scenario.get("certification_detector_sample_scale", 1.5))
 
     settings["uncertainty_samples"] = max(10, settings["uncertainty_samples"])
+    settings["uncertainty_workers"] = max(1, settings["uncertainty_workers"])
     settings["detector_sample_scale"] = max(0.05, settings["detector_sample_scale"])
     return settings

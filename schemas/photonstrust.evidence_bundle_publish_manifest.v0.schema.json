@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.evidence_bundle_publish_manifest.v0.schema.json",
+  "title": "PhotonTrust Evidence Bundle Publish Manifest (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "bundle_sha256",
+    "bundle_bytes",
+    "bundle_path",
+    "source_run_id",
+    "include_children",
+    "verify"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "photonstrust.evidence_bundle_publish_manifest" },
+    "generated_at": { "type": "string" },
+    "bundle_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "bundle_bytes": { "type": "integer", "minimum": 0 },
+    "bundle_path": { "type": "string" },
+    "source_run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+    "include_children": { "type": "boolean" },
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "bundle_root",
+        "manifest_sha256",
+        "verified_files",
+        "missing_files",
+        "mismatched_files",
+        "signature_verified",
+        "errors"
+      ],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "bundle_root": { "type": "string" },
+        "manifest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "verified_files": { "type": "integer", "minimum": 0 },
+        "missing_files": { "type": "integer", "minimum": 0 },
+        "mismatched_files": { "type": "integer", "minimum": 0 },
+        "signature_verified": { "type": "boolean" },
+        "errors": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      }
+    }
+  }
+}

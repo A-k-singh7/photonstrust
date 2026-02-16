@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import time
 from pathlib import Path
 import zipfile
 
@@ -122,6 +123,21 @@ def _orbit_pass_config() -> dict:
     }
 
 
+def _wait_for_job_terminal(client: TestClient, job_id: str, timeout_s: float = 10.0) -> dict:
+    deadline = time.time() + float(timeout_s)
+    last_payload: dict = {}
+    while time.time() <= deadline:
+        res = client.get(f"/v0/jobs/{job_id}/status")
+        assert res.status_code == 200
+        payload = res.json()
+        last_payload = payload if isinstance(payload, dict) else {}
+        status = str(last_payload.get("status", "")).strip().lower()
+        if status in {"succeeded", "failed"}:
+            return last_payload
+        time.sleep(0.05)
+    return last_payload
+
+
 def test_api_healthz() -> None:
     client = TestClient(app)
     res = client.get("/healthz")
@@ -150,15 +166,32 @@ def test_api_registry_kinds() -> None:
     assert touchstone["availability"]["api_enabled"] is False
 
 
-def test_api_compile_qkd_graph() -> None:
+def test_api_compile_qkd_graph(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
-    res = client.post("/v0/graph/compile", json={"graph": _qkd_graph(), "require_schema": True})
+    res = client.post(
+        "/v0/graph/compile",
+        json={"graph": _qkd_graph(), "require_schema": True, "include_cache_stats": True},
+    )
     assert res.status_code == 200
     payload = res.json()
     assert payload["profile"] == "qkd_link"
     assert isinstance(payload.get("compiled"), dict)
     assert isinstance(payload.get("assumptions_md"), str)
     assert "diagnostics" in payload
+    cache = payload.get("compile_cache") or {}
+    assert cache.get("key")
+    assert cache.get("hit") is False
+
+    res_second = client.post(
+        "/v0/graph/compile",
+        json={"graph": _qkd_graph(), "require_schema": True, "include_cache_stats": True},
+    )
+    assert res_second.status_code == 200
+    payload_second = res_second.json()
+    cache_second = payload_second.get("compile_cache") or {}
+    assert cache_second.get("key") == cache.get("key")
+    assert cache_second.get("hit") is True
 
 
 def test_api_qkd_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -175,6 +208,8 @@ def test_api_qkd_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     out_dir = Path(payload["output_dir"])
     assert out_dir.exists()
     assert payload["results"]["cards"]
+    assert isinstance(payload.get("artifact_relpaths"), dict)
+    assert (payload.get("compile_cache") or {}).get("key")
 
     registry_path = Path(payload["results"]["registry_path"])
     assert registry_path.exists()
@@ -213,6 +248,74 @@ def test_api_qkd_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     matching = [r for r in (runs_payload.get("runs") or []) if str(r.get("run_id")) == str(payload.get("run_id"))]
     assert matching
     assert matching[0].get("multifidelity_present") is True
+
+
+def test_api_qkd_run_async_job_lifecycle_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    submit = client.post("/v0/qkd/run/async", json={"graph": _qkd_graph(), "execution_mode": "preview"})
+    assert submit.status_code == 200
+    queued = submit.json()
+    job_id = str(queued.get("job_id") or "")
+    assert job_id
+
+    status_payload = _wait_for_job_terminal(client, job_id, timeout_s=12.0)
+    assert status_payload.get("status") == "succeeded"
+
+    job_res = client.get(f"/v0/jobs/{job_id}")
+    assert job_res.status_code == 200
+    job_manifest = job_res.json()
+    result = job_manifest.get("result") or {}
+    run_id = str(result.get("run_id") or "")
+    assert run_id
+
+    run_manifest_res = client.get(f"/v0/runs/{run_id}")
+    assert run_manifest_res.status_code == 200
+    run_manifest = run_manifest_res.json()
+    assert (run_manifest.get("input") or {}).get("source_job_id") == job_id
+
+    relpaths = result.get("artifact_relpaths") if isinstance(result.get("artifact_relpaths"), dict) else {}
+    assert relpaths
+    assert relpaths.get("protocol_steps_json") == "protocol_steps.json"
+
+
+def test_api_jobs_list_filters_status(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    submit = client.post("/v0/qkd/run/async", json={"graph": _qkd_graph(), "execution_mode": "preview"})
+    assert submit.status_code == 200
+    job_id = str((submit.json() or {}).get("job_id") or "")
+    assert job_id
+    _ = _wait_for_job_terminal(client, job_id, timeout_s=12.0)
+
+    list_ok = client.get("/v0/jobs", params={"status": "succeeded", "limit": 50})
+    assert list_ok.status_code == 200
+    jobs = list_ok.json().get("jobs") or []
+    assert any(str(j.get("job_id")) == job_id for j in jobs if isinstance(j, dict))
+
+    list_bad = client.get("/v0/jobs", params={"status": "not_a_status"})
+    assert list_bad.status_code == 400
+
+
+def test_api_qkd_run_async_failure_sets_job_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    submit = client.post("/v0/qkd/run/async", json={"graph": _pic_chain_graph(), "execution_mode": "preview"})
+    assert submit.status_code == 200
+    job_id = str((submit.json() or {}).get("job_id") or "")
+    assert job_id
+
+    status_payload = _wait_for_job_terminal(client, job_id, timeout_s=12.0)
+    assert status_payload.get("status") == "failed"
+
+    job_res = client.get(f"/v0/jobs/{job_id}")
+    assert job_res.status_code == 200
+    job_manifest = job_res.json()
+    error = job_manifest.get("error") or {}
+    assert int(error.get("status_code") or 0) == 400
 
 
 def test_api_qkd_bundle_includes_multifidelity_report(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

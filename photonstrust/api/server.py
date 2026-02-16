@@ -9,24 +9,30 @@ from __future__ import annotations
 
 import json
 import hashlib
+import importlib.metadata as importlib_metadata
 import os
 import platform
+import re
 import shutil
 import sys
+import threading
 import uuid
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from photonstrust.api import compile_cache as compile_cache_store
+from photonstrust.api import jobs as job_store
 from photonstrust.api import projects as project_store
 from photonstrust.api import runs as run_store
 from photonstrust.api.diff import diff_json, diff_violations
 from photonstrust.benchmarks.schema import validate_instance
+from photonstrust.evidence.bundle import verify_bundle_zip
 from photonstrust.events.kernel import Event, EventKernel
 from photonstrust.graph.compiler import compile_graph
 from photonstrust.graph.diagnostics import validate_graph_semantics
@@ -51,7 +57,12 @@ from photonstrust.spice.export import export_pic_graph_to_spice_artifacts
 from photonstrust.verification.performance_drc import run_parallel_waveguide_crosstalk_check
 from photonstrust.verification.lvs_lite import run_pic_lvs_lite
 from photonstrust.utils import hash_dict
-from photonstrust.workflow.schema import event_trace_schema_path, external_sim_result_schema_path, protocol_steps_schema_path
+from photonstrust.workflow.schema import (
+    event_trace_schema_path,
+    evidence_bundle_publish_manifest_schema_path,
+    external_sim_result_schema_path,
+    protocol_steps_schema_path,
+)
 
 
 def _photonstrust_version() -> str | None:
@@ -134,6 +145,8 @@ def _extract_violation_rows(value: Any) -> list[dict[str, Any]] | None:
 
 
 _EXECUTION_MODES = {"preview", "certification"}
+_AUTH_MODES = {"off", "header"}
+_ROLE_SET = {"viewer", "runner", "approver", "admin"}
 
 
 def _parse_execution_mode(payload: dict[str, Any] | None) -> str:
@@ -146,6 +159,80 @@ def _parse_execution_mode(payload: dict[str, Any] | None) -> str:
             detail="execution_mode must be 'preview' or 'certification' when provided",
         )
     return mode
+
+
+def _auth_mode() -> str:
+    mode = str(os.environ.get("PHOTONTRUST_API_AUTH_MODE", "off") or "off").strip().lower() or "off"
+    if mode not in _AUTH_MODES:
+        return "off"
+    return mode
+
+
+def _auth_context(request: Request) -> dict[str, Any]:
+    mode = _auth_mode()
+    if mode == "off":
+        return {
+            "mode": "off",
+            "actor": "anonymous",
+            "roles": set(_ROLE_SET),
+            "projects": {"*"},
+        }
+
+    expected_token = str(os.environ.get("PHOTONTRUST_API_DEV_TOKEN", "") or "").strip()
+    if expected_token:
+        got_token = str(request.headers.get("x-photonstrust-dev-token", "") or "").strip()
+        if got_token != expected_token:
+            raise HTTPException(status_code=401, detail="invalid or missing dev token")
+
+    actor = str(request.headers.get("x-photonstrust-actor", "") or "").strip()
+    if not actor:
+        raise HTTPException(status_code=401, detail="missing x-photonstrust-actor header")
+
+    raw_roles = str(request.headers.get("x-photonstrust-roles", "") or "").strip()
+    roles = {item.strip().lower() for item in raw_roles.split(",") if item.strip()}
+    if not roles:
+        raise HTTPException(status_code=401, detail="missing x-photonstrust-roles header")
+    if not roles.intersection(_ROLE_SET):
+        raise HTTPException(status_code=401, detail="no supported roles in x-photonstrust-roles")
+
+    raw_projects = str(request.headers.get("x-photonstrust-projects", "") or "").strip()
+    projects = {item.strip().lower() for item in raw_projects.split(",") if item.strip()}
+    if not projects:
+        projects = {"*"}
+
+    return {
+        "mode": mode,
+        "actor": actor,
+        "roles": roles,
+        "projects": projects,
+    }
+
+
+def _require_roles(request: Request, *required_roles: str) -> dict[str, Any]:
+    ctx = _auth_context(request)
+    if "admin" in ctx["roles"]:
+        return ctx
+
+    required = {str(role).strip().lower() for role in required_roles if str(role).strip()}
+    if not required:
+        return ctx
+    if not ctx["roles"].intersection(required):
+        raise HTTPException(status_code=403, detail="insufficient role for endpoint")
+    return ctx
+
+
+def _enforce_project_scope_or_403(ctx: dict[str, Any], project_id: str | None) -> None:
+    pid = str(project_id or "default").strip().lower() or "default"
+    projects = ctx.get("projects") if isinstance(ctx.get("projects"), set) else {"*"}
+    if "*" in projects:
+        return
+    if pid not in projects:
+        raise HTTPException(status_code=403, detail="project scope denied")
+
+
+def _run_project_id_from_manifest(manifest: dict[str, Any] | None) -> str:
+    m = manifest if isinstance(manifest, dict) else {}
+    return str(((m.get("input") if isinstance(m.get("input"), dict) else {}) or {}).get("project_id") or "default").strip().lower() or "default"
 
 
 def _safe_read_json_object(path: Path) -> dict[str, Any] | None:
@@ -573,9 +660,11 @@ def registry_kinds() -> dict[str, Any]:
 
 @app.get("/v0/runs")
 def runs_list(
+    request: Request,
     limit: int = Query(50, ge=1, le=500),
     project_id: str | None = Query(None, description="Optional project_id filter"),
 ) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
     pid = None
     if project_id is not None:
         raw = str(project_id or "").strip()
@@ -584,8 +673,16 @@ def runs_list(
                 pid = project_store.validate_project_id(raw)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
+            _enforce_project_scope_or_403(ctx, pid)
 
     runs = run_store.list_runs(limit=int(limit), project_id=pid)
+    if "*" not in ctx.get("projects", {"*"}):
+        allowed = ctx.get("projects") if isinstance(ctx.get("projects"), set) else set()
+        runs = [
+            row
+            for row in runs
+            if isinstance(row, dict) and str(row.get("project_id") or "default").strip().lower() in allowed
+        ]
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "runs_root": str(run_store.runs_root()),
@@ -599,8 +696,71 @@ def runs_list(
     }
 
 
+@app.get("/v0/jobs")
+def jobs_list(
+    request: Request,
+    limit: int = Query(50, ge=1, le=500),
+    status: str | None = Query(None, description="Optional status filter: queued|running|succeeded|failed"),
+) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
+    try:
+        jobs = job_store.list_jobs(limit=int(limit), status=status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if "*" not in ctx.get("projects", {"*"}):
+        allowed = ctx.get("projects") if isinstance(ctx.get("projects"), set) else set()
+        jobs = [
+            row
+            for row in jobs
+            if isinstance(row, dict)
+            and str(((row.get("input") if isinstance(row.get("input"), dict) else {}) or {}).get("project_id") or "default").strip().lower() in allowed
+        ]
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "jobs_root": str(job_store.jobs_root()),
+        "status": str(status).strip().lower() if isinstance(status, str) and str(status).strip() else None,
+        "jobs": jobs,
+        "provenance": {
+            "photonstrust_version": app.version,
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+
+
+@app.get("/v0/jobs/{job_id}")
+def jobs_get(job_id: str, request: Request) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
+    try:
+        manifest = job_store.read_job(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not isinstance(manifest, dict):
+        raise HTTPException(status_code=404, detail="job not found")
+    project_id = str(((manifest.get("input") if isinstance(manifest.get("input"), dict) else {}) or {}).get("project_id") or "default").strip().lower() or "default"
+    _enforce_project_scope_or_403(ctx, project_id)
+    return manifest
+
+
+@app.get("/v0/jobs/{job_id}/status")
+def jobs_status(job_id: str, request: Request) -> dict[str, Any]:
+    manifest = jobs_get(job_id, request)
+    return {
+        "job_id": manifest.get("job_id"),
+        "job_type": manifest.get("job_type"),
+        "status": manifest.get("status"),
+        "updated_at": manifest.get("updated_at"),
+        "result": manifest.get("result"),
+        "error": manifest.get("error"),
+    }
+
+
 @app.get("/v0/runs/{run_id}")
-def runs_get(run_id: str) -> dict[str, Any]:
+def runs_get(run_id: str, request: Request) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
     try:
         run_dir = run_store.run_dir_for_id(run_id)
     except ValueError as exc:
@@ -611,9 +771,11 @@ def runs_get(run_id: str) -> dict[str, Any]:
 
     manifest = run_store.read_run_manifest(run_dir)
     if manifest:
+        _enforce_project_scope_or_403(ctx, _run_project_id_from_manifest(manifest))
         return manifest
 
     # Backwards-compatible fallback for older runs without a manifest.
+    _enforce_project_scope_or_403(ctx, "default")
     ts = float(run_dir.stat().st_mtime)
     generated_at = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
     return {
@@ -629,7 +791,12 @@ def runs_get(run_id: str) -> dict[str, Any]:
 
 
 @app.get("/v0/runs/{run_id}/artifact")
-def runs_artifact(run_id: str, path: str = Query(..., description="Relative path within the run directory")):
+def runs_artifact(
+    run_id: str,
+    request: Request,
+    path: str = Query(..., description="Relative path within the run directory"),
+):
+    _ = _require_roles(request, "viewer", "runner", "approver")
     try:
         run_dir = run_store.run_dir_for_id(run_id)
     except ValueError as exc:
@@ -637,6 +804,8 @@ def runs_artifact(run_id: str, path: str = Query(..., description="Relative path
 
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail="run not found")
+
+    _ = runs_get(run_id, request)
 
     try:
         artifact = run_store.resolve_artifact_path(run_dir, path)
@@ -760,9 +929,69 @@ def _zip_write_file(zf: zipfile.ZipFile, arcname: str, src_path: Path) -> tuple[
     return sha.hexdigest(), int(size)
 
 
+_BUNDLE_DIGEST_RE = re.compile(r"^[a-f0-9]{64}$")
+
+
+def _published_bundles_root() -> Path:
+    root = run_store.runs_root() / "_published_bundles" / "sha256"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _sha256_file(path: Path) -> tuple[str, int]:
+    sha = hashlib.sha256()
+    size = 0
+    with Path(path).open("rb") as handle:
+        while True:
+            chunk = handle.read(_BUNDLE_CHUNK_BYTES)
+            if not chunk:
+                break
+            sha.update(chunk)
+            size += len(chunk)
+    return sha.hexdigest(), int(size)
+
+
+def _build_cyclonedx_sbom(*, timestamp: str | None = None) -> dict[str, Any]:
+    components: list[dict[str, Any]] = []
+    for dist in sorted(importlib_metadata.distributions(), key=lambda d: str((d.metadata or {}).get("Name", "")).lower()):
+        name = str((dist.metadata or {}).get("Name") or "").strip()
+        if not name:
+            continue
+        components.append(
+            {
+                "type": "library",
+                "name": name,
+                "version": str(dist.version or ""),
+            }
+        )
+
+    return {
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.5",
+        "version": 1,
+        "metadata": {
+            "timestamp": str(timestamp or datetime.now(timezone.utc).isoformat()),
+            "tools": [
+                {
+                    "vendor": "PhotonTrust",
+                    "name": "photonstrust.api.bundle",
+                    "version": str(app.version),
+                }
+            ],
+            "component": {
+                "type": "application",
+                "name": "photonstrust",
+                "version": str(app.version),
+            },
+        },
+        "components": components,
+    }
+
+
 @app.get("/v0/runs/{run_id}/bundle")
 def runs_bundle(
     run_id: str,
+    request: Request,
     include_children: bool | None = Query(None, description="Include workflow child runs (default: true for workflow runs)."),
     rebuild: bool = Query(False, description="Rebuild bundle even if cached zip exists."),
 ):
@@ -773,6 +1002,8 @@ def runs_bundle(
     - uses safe artifact resolution under each run directory
     """
 
+    ctx = _require_roles(request, "viewer", "runner", "approver")
+
     try:
         root_dir = run_store.run_dir_for_id(run_id)
     except Exception as exc:
@@ -780,9 +1011,10 @@ def runs_bundle(
     if not root_dir.exists():
         raise HTTPException(status_code=404, detail="run not found")
 
-    root_manifest = run_store.read_run_manifest(root_dir) or runs_get(run_id)
+    root_manifest = run_store.read_run_manifest(root_dir) or runs_get(run_id, request)
     if not isinstance(root_manifest, dict):
-        root_manifest = runs_get(run_id)
+        root_manifest = runs_get(run_id, request)
+    _enforce_project_scope_or_403(ctx, _run_project_id_from_manifest(root_manifest))
 
     default_children = _is_workflow_manifest(root_manifest)
     include_children = bool(default_children) if include_children is None else bool(include_children)
@@ -819,7 +1051,7 @@ def runs_bundle(
             files.append((f"runs/run_{rid}/{run_store.RUN_MANIFEST_BASENAME}", mf))
             m = run_store.read_run_manifest(rdir) or {}
         else:
-            m = runs_get(rid)
+            m = runs_get(rid, request)
             try:
                 generated_files.append(
                     (
@@ -891,6 +1123,10 @@ def runs_bundle(
         ]
     ).encode("utf-8")
 
+    sbom_rel = "sbom/cyclonedx.json"
+    sbom_bytes = json.dumps(_build_cyclonedx_sbom(timestamp=generated_at), indent=2).encode("utf-8")
+    generated_files.append((sbom_rel, sbom_bytes))
+
     bundle_manifest: dict[str, Any] = {
         "schema_version": "0.1",
         "generated_at": generated_at,
@@ -900,6 +1136,12 @@ def runs_bundle(
         "included_run_ids": list(included_run_ids),
         "files": [],
         "missing": missing,
+        "sbom": {
+            "path": sbom_rel,
+            "format": "cyclonedx+json",
+            "sha256": None,
+            "bytes": None,
+        },
     }
 
     try:
@@ -912,6 +1154,11 @@ def runs_bundle(
             for arc, data in generated_files:
                 sha, size = _zip_write_bytes(zf, f"{bundle_root}/{arc}", data)
                 bundle_manifest["files"].append({"path": str(arc).replace("\\", "/"), "sha256": sha, "bytes": size})
+                if str(arc).replace("\\", "/") == sbom_rel:
+                    sbom_obj = bundle_manifest.get("sbom") if isinstance(bundle_manifest.get("sbom"), dict) else None
+                    if isinstance(sbom_obj, dict):
+                        sbom_obj["sha256"] = sha
+                        sbom_obj["bytes"] = int(size)
 
             for arc, p in uniq_files:
                 sha, size = _zip_write_file(zf, f"{bundle_root}/{arc}", p)
@@ -947,8 +1194,137 @@ def runs_bundle(
     return FileResponse(path=str(bundle_path), media_type="application/zip", headers=headers)
 
 
+@app.post("/v0/runs/{run_id}/bundle/publish")
+def runs_bundle_publish(
+    run_id: str,
+    request: Request,
+    include_children: bool | None = Query(None, description="Include workflow child runs (default: true for workflow runs)."),
+    rebuild: bool = Query(False, description="Rebuild bundle before publish."),
+) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
+
+    try:
+        root_dir = run_store.run_dir_for_id(run_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not root_dir.exists():
+        raise HTTPException(status_code=404, detail="run not found")
+
+    root_manifest = run_store.read_run_manifest(root_dir) or runs_get(run_id, request)
+    if not isinstance(root_manifest, dict):
+        root_manifest = runs_get(run_id, request)
+    _enforce_project_scope_or_403(ctx, _run_project_id_from_manifest(root_manifest))
+
+    default_children = _is_workflow_manifest(root_manifest)
+    include_children_resolved = bool(default_children) if include_children is None else bool(include_children)
+    bundle_rel = "evidence_bundle_with_children.zip" if include_children_resolved else "evidence_bundle_root_only.zip"
+    bundle_path = root_dir / bundle_rel
+
+    if rebuild or not bundle_path.exists():
+        _ = runs_bundle(
+            run_id,
+            request,
+            include_children=include_children_resolved,
+            rebuild=True,
+        )
+
+    if not bundle_path.exists() or not bundle_path.is_file():
+        raise HTTPException(status_code=400, detail="bundle file was not created")
+
+    bundle_sha, bundle_bytes = _sha256_file(bundle_path)
+    publish_root = _published_bundles_root()
+    zip_dest = publish_root / f"{bundle_sha}.zip"
+    if not zip_dest.exists():
+        shutil.copy2(bundle_path, zip_dest)
+
+    verify = verify_bundle_zip(zip_dest, require_signature=False)
+    publish_manifest = {
+        "schema_version": "0.1",
+        "kind": "photonstrust.evidence_bundle_publish_manifest",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "bundle_sha256": bundle_sha,
+        "bundle_bytes": int(bundle_bytes),
+        "bundle_path": str(zip_dest),
+        "source_run_id": run_store.validate_run_id(run_id),
+        "include_children": bool(include_children_resolved),
+        "verify": {
+            "ok": bool(verify.ok),
+            "bundle_root": str(verify.bundle_root),
+            "manifest_sha256": str(verify.manifest_sha256),
+            "verified_files": int(verify.verified_files),
+            "missing_files": int(verify.missing_files),
+            "mismatched_files": int(verify.mismatched_files),
+            "signature_verified": bool(verify.signature_verified),
+            "errors": list(verify.errors),
+        },
+    }
+    validate_instance(publish_manifest, evidence_bundle_publish_manifest_schema_path(), require_jsonschema=False)
+    publish_manifest_path = publish_root / f"{bundle_sha}.manifest.json"
+    publish_manifest_path.write_text(json.dumps(publish_manifest, indent=2), encoding="utf-8")
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "bundle_sha256": bundle_sha,
+        "bundle_bytes": int(bundle_bytes),
+        "bundle_path": str(zip_dest),
+        "publish_manifest_path": str(publish_manifest_path),
+        "verify": publish_manifest["verify"],
+    }
+
+
+@app.get("/v0/evidence/bundle/by-digest/{digest}")
+def evidence_bundle_by_digest(digest: str, request: Request):
+    _ = _require_roles(request, "viewer", "runner", "approver")
+    value = str(digest or "").strip().lower()
+    if not _BUNDLE_DIGEST_RE.match(value):
+        raise HTTPException(status_code=400, detail="digest must be a 64-char lowercase hex sha256")
+
+    zip_path = _published_bundles_root() / f"{value}.zip"
+    if not zip_path.exists() or not zip_path.is_file():
+        raise HTTPException(status_code=404, detail="published bundle not found")
+
+    headers = {
+        "cache-control": "no-store",
+        "content-disposition": f'attachment; filename="{zip_path.name}"',
+    }
+    return FileResponse(path=str(zip_path), media_type="application/zip", headers=headers)
+
+
+@app.get("/v0/evidence/bundle/by-digest/{digest}/verify")
+def evidence_bundle_verify_by_digest(digest: str, request: Request) -> dict[str, Any]:
+    _ = _require_roles(request, "viewer", "runner", "approver")
+    value = str(digest or "").strip().lower()
+    if not _BUNDLE_DIGEST_RE.match(value):
+        raise HTTPException(status_code=400, detail="digest must be a 64-char lowercase hex sha256")
+
+    zip_path = _published_bundles_root() / f"{value}.zip"
+    if not zip_path.exists() or not zip_path.is_file():
+        raise HTTPException(status_code=404, detail="published bundle not found")
+
+    verify = verify_bundle_zip(zip_path, require_signature=False)
+    publish_manifest_path = _published_bundles_root() / f"{value}.manifest.json"
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "bundle_sha256": value,
+        "bundle_path": str(zip_path),
+        "publish_manifest_path": str(publish_manifest_path) if publish_manifest_path.exists() else None,
+        "verify": {
+            "ok": bool(verify.ok),
+            "bundle_root": str(verify.bundle_root),
+            "manifest_sha256": str(verify.manifest_sha256),
+            "verified_files": int(verify.verified_files),
+            "missing_files": int(verify.missing_files),
+            "mismatched_files": int(verify.mismatched_files),
+            "signature_verified": bool(verify.signature_verified),
+            "errors": list(verify.errors),
+        },
+    }
+
+
 @app.post("/v0/runs/diff")
-def runs_diff(payload: dict = Body(...)) -> dict[str, Any]:
+def runs_diff(request: Request, payload: dict = Body(...)) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
     lhs_run_id = str((payload or {}).get("lhs_run_id", "")).strip()
     rhs_run_id = str((payload or {}).get("rhs_run_id", "")).strip()
     scope = str((payload or {}).get("scope", "input")).strip().lower() or "input"
@@ -970,8 +1346,12 @@ def runs_diff(payload: dict = Body(...)) -> dict[str, Any]:
     if not rhs_dir.exists():
         raise HTTPException(status_code=404, detail="rhs run not found")
 
-    lhs_manifest = run_store.read_run_manifest(lhs_dir) or runs_get(lhs_run_id)
-    rhs_manifest = run_store.read_run_manifest(rhs_dir) or runs_get(rhs_run_id)
+    lhs_manifest = run_store.read_run_manifest(lhs_dir) or runs_get(lhs_run_id, request)
+    rhs_manifest = run_store.read_run_manifest(rhs_dir) or runs_get(rhs_run_id, request)
+    if isinstance(lhs_manifest, dict):
+        _enforce_project_scope_or_403(ctx, _run_project_id_from_manifest(lhs_manifest))
+    if isinstance(rhs_manifest, dict):
+        _enforce_project_scope_or_403(ctx, _run_project_id_from_manifest(rhs_manifest))
 
     if scope == "input":
         lhs_obj = lhs_manifest.get("input", {})
@@ -1028,8 +1408,16 @@ def runs_diff(payload: dict = Body(...)) -> dict[str, Any]:
 
 
 @app.get("/v0/projects")
-def projects_list(limit: int = Query(200, ge=1, le=500)) -> dict[str, Any]:
+def projects_list(request: Request, limit: int = Query(200, ge=1, le=500)) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
     projects = project_store.list_projects(limit=int(limit))
+    if "*" not in ctx.get("projects", {"*"}):
+        allowed = ctx.get("projects") if isinstance(ctx.get("projects"), set) else set()
+        projects = [
+            row
+            for row in projects
+            if isinstance(row, dict) and str(row.get("project_id") or "default").strip().lower() in allowed
+        ]
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "runs_root": str(run_store.runs_root()),
@@ -1043,11 +1431,13 @@ def projects_list(limit: int = Query(200, ge=1, le=500)) -> dict[str, Any]:
 
 
 @app.get("/v0/projects/{project_id}/approvals")
-def projects_approvals_list(project_id: str, limit: int = Query(50, ge=1, le=500)) -> dict[str, Any]:
+def projects_approvals_list(request: Request, project_id: str, limit: int = Query(50, ge=1, le=500)) -> dict[str, Any]:
+    ctx = _require_roles(request, "viewer", "runner", "approver")
     try:
         pid = project_store.validate_project_id(project_id)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _enforce_project_scope_or_403(ctx, pid)
 
     approvals = project_store.list_approval_events(pid, limit=int(limit))
     return {
@@ -1063,11 +1453,13 @@ def projects_approvals_list(project_id: str, limit: int = Query(50, ge=1, le=500
 
 
 @app.post("/v0/projects/{project_id}/approvals")
-def projects_approvals_create(project_id: str, payload: dict = Body(...)) -> dict[str, Any]:
+def projects_approvals_create(request: Request, project_id: str, payload: dict = Body(...)) -> dict[str, Any]:
+    ctx = _require_roles(request, "approver")
     try:
         pid = project_store.validate_project_id(project_id)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _enforce_project_scope_or_403(ctx, pid)
 
     run_id = str((payload or {}).get("run_id", "")).strip()
     if not run_id:
@@ -1079,12 +1471,15 @@ def projects_approvals_create(project_id: str, payload: dict = Body(...)) -> dic
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail="run not found")
 
-    manifest = run_store.read_run_manifest(run_dir) or runs_get(run_id)
+    manifest = run_store.read_run_manifest(run_dir) or runs_get(run_id, request)
     run_pid = str(((manifest or {}).get("input", {}) or {}).get("project_id") or "default").strip().lower() or "default"
     if run_pid != pid:
         raise HTTPException(status_code=400, detail="run project_id does not match requested project_id")
 
-    actor = str((payload or {}).get("actor", "")).strip() or "unknown"
+    if str(ctx.get("mode", "off")) == "header":
+        actor = str(ctx.get("actor", "")).strip() or "unknown"
+    else:
+        actor = str((payload or {}).get("actor", "")).strip() or "unknown"
     note = str((payload or {}).get("note", "")).strip()
     if len(actor) > 120:
         actor = actor[:120]
@@ -1161,20 +1556,26 @@ def graph_compile(payload: dict = Body(...)) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Expected JSON object for graph payload")
 
     require_schema = bool(payload.get("require_schema", False)) if isinstance(payload, dict) else False
+    include_cache_stats = bool(payload.get("include_cache_stats", False)) if isinstance(payload, dict) else False
     try:
-        compiled = compile_graph(graph, require_schema=require_schema)
+        compiled_payload, compile_cache = compile_cache_store.compile_graph_cached(graph, require_schema=require_schema)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    compile_cache_payload: dict[str, Any] = {"key": compile_cache.get("key")}
+    if include_cache_stats:
+        compile_cache_payload["hit"] = bool(compile_cache.get("hit", False))
+
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "graph_id": graph.get("graph_id"),
-        "profile": compiled.profile,
-        "graph_hash": hash_dict(graph),
-        "diagnostics": validate_graph_semantics(graph),
-        "compiled": compiled.compiled,
-        "warnings": compiled.warnings,
-        "assumptions_md": compiled.assumptions_md,
+        "generated_at": compiled_payload.get("generated_at") or datetime.now(timezone.utc).isoformat(),
+        "graph_id": compiled_payload.get("graph_id"),
+        "profile": compiled_payload.get("profile"),
+        "graph_hash": compiled_payload.get("graph_hash"),
+        "diagnostics": compiled_payload.get("diagnostics"),
+        "compiled": compiled_payload.get("compiled"),
+        "warnings": compiled_payload.get("warnings"),
+        "assumptions_md": compiled_payload.get("assumptions_md"),
+        "compile_cache": compile_cache_payload,
         "provenance": {
             "photonstrust_version": app.version,
             "python": sys.version.split()[0],
@@ -1192,6 +1593,7 @@ def qkd_run(payload: dict = Body(...)) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Expected JSON object for graph payload")
 
     execution_mode = str(payload.get("execution_mode", "preview")).strip().lower()
+    include_cache_stats = bool(payload.get("include_cache_stats", False))
     if str(payload.get("output_root", "")).strip():
         raise HTTPException(
             status_code=400,
@@ -1225,13 +1627,13 @@ def qkd_run(payload: dict = Body(...)) -> dict[str, Any]:
     pdk_req = payload.get("pdk") if isinstance(payload.get("pdk"), dict) else None
 
     try:
-        compiled = compile_graph(graph, require_schema=False)
+        compiled_payload, compile_cache = compile_cache_store.compile_graph_cached(graph, require_schema=False)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if compiled.profile != "qkd_link":
+    if str(compiled_payload.get("profile", "")) != "qkd_link":
         raise HTTPException(status_code=400, detail="qkd/run expects a graph with profile=qkd_link")
 
-    cfg = dict(compiled.compiled)
+    cfg = dict(compiled_payload.get("compiled") if isinstance(compiled_payload.get("compiled"), dict) else {})
     scenario = cfg.get("scenario", {}) or {}
     if not isinstance(scenario, dict):
         scenario = {}
@@ -1435,6 +1837,8 @@ def qkd_run(payload: dict = Body(...)) -> dict[str, Any]:
             "compiled_config_hash": hash_dict(cfg),
             "execution_mode": execution_mode,
             "protocol_selected": ((outputs_summary.get("qkd") or {}).get("protocol_selected")),
+            "source_job_id": str((payload or {}).get("source_job_id", "")).strip() or None,
+            "compile_cache_key": compile_cache.get("key"),
         },
         "outputs_summary": outputs_summary,
         "artifacts": artifacts,
@@ -1446,13 +1850,97 @@ def qkd_run(payload: dict = Body(...)) -> dict[str, Any]:
     }
     manifest_path = run_store.write_run_manifest(run_dir, manifest)
 
+    compile_cache_payload: dict[str, Any] = {"key": compile_cache.get("key")}
+    if include_cache_stats:
+        compile_cache_payload["hit"] = bool(compile_cache.get("hit", False))
+
     return {
         "run_id": run_id,
         "output_dir": str(run_dir),
         "graph_hash": hash_dict(graph),
         "compiled_config": cfg,
+        "compile_cache": compile_cache_payload,
         "results": result,
+        "artifact_relpaths": artifacts,
         "manifest_path": str(manifest_path),
+    }
+
+
+def _qkd_async_worker(job_id: str, payload: dict[str, Any]) -> None:
+    try:
+        job_store.set_status(job_id, "running")
+
+        request_payload = dict(payload) if isinstance(payload, dict) else {}
+        graph = request_payload.get("graph") if isinstance(request_payload.get("graph"), dict) else None
+        if not isinstance(graph, dict):
+            graph = request_payload
+            request_payload = {"graph": graph}
+
+        request_payload["source_job_id"] = str(job_id)
+        run_payload = qkd_run(request_payload)
+        if not isinstance(run_payload, dict):
+            raise RuntimeError("qkd_run returned invalid payload")
+
+        result_payload = {
+            "run_id": run_payload.get("run_id"),
+            "output_dir": run_payload.get("output_dir"),
+            "manifest_path": run_payload.get("manifest_path"),
+            "artifact_relpaths": run_payload.get("artifact_relpaths") if isinstance(run_payload.get("artifact_relpaths"), dict) else {},
+            "graph_hash": run_payload.get("graph_hash"),
+            "compile_cache": run_payload.get("compile_cache") if isinstance(run_payload.get("compile_cache"), dict) else {},
+        }
+        job_store.set_result(job_id, result_payload)
+    except HTTPException as exc:
+        job_store.set_error(
+            job_id,
+            {
+                "status_code": int(exc.status_code),
+                "detail": str(exc.detail),
+                "type": "HTTPException",
+            },
+        )
+    except Exception as exc:
+        job_store.set_error(
+            job_id,
+            {
+                "status_code": 500,
+                "detail": str(exc),
+                "type": str(type(exc).__name__),
+            },
+        )
+
+
+@app.post("/v0/qkd/run/async")
+def qkd_run_async(payload: dict = Body(...)) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Expected JSON object for qkd async payload")
+
+    graph = payload.get("graph") if isinstance(payload.get("graph"), dict) else payload
+    if not isinstance(graph, dict):
+        raise HTTPException(status_code=400, detail="Expected JSON object for graph payload")
+
+    try:
+        project_id = project_store.validate_project_id(payload.get("project_id", "default"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    queued = job_store.create_job(
+        job_type="qkd_run",
+        payload=payload,
+        project_id=project_id,
+        input_hash=hash_dict(graph),
+    )
+    job_id = str(queued.get("job_id"))
+
+    worker = threading.Thread(target=_qkd_async_worker, args=(job_id, dict(payload)), daemon=True)
+    worker.start()
+
+    return {
+        "job_id": job_id,
+        "status": "queued",
+        "job_manifest_path": str(job_store.job_dir_for_id(job_id) / "job_manifest.json"),
+        "status_endpoint": f"/v0/jobs/{job_id}/status",
+        "job_endpoint": f"/v0/jobs/{job_id}",
     }
 
 
@@ -2411,7 +2899,7 @@ def pic_workflow_invdesign_chain(payload: dict = Body(...)) -> dict[str, Any]:
 
 
 @app.post("/v0/pic/workflow/invdesign_chain/replay")
-def pic_workflow_invdesign_chain_replay(payload: dict = Body(...)) -> dict[str, Any]:
+def pic_workflow_invdesign_chain_replay(request: Request, payload: dict = Body(...)) -> dict[str, Any]:
     """Replay a prior workflow run from its recorded request snapshot."""
 
     if not isinstance(payload, dict):
@@ -2432,7 +2920,7 @@ def pic_workflow_invdesign_chain_replay(payload: dict = Body(...)) -> dict[str, 
     if not src_dir.exists():
         raise HTTPException(status_code=404, detail="workflow run not found")
 
-    src_manifest = run_store.read_run_manifest(src_dir) or runs_get(workflow_run_id)
+    src_manifest = run_store.read_run_manifest(src_dir) or runs_get(workflow_run_id, request)
     if not isinstance(src_manifest, dict) or str(src_manifest.get("run_type", "")).strip() != "pic_workflow_invdesign_chain":
         raise HTTPException(status_code=400, detail="run_id is not a pic_workflow_invdesign_chain workflow run")
 
