@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.release_approvals",
+  "date": "2026-02-16",
+  "approvers": [
+    {
+      "role": "TL",
+      "name": "PhotonTrust Technical Lead",
+      "approved": true,
+      "notes": "Phase 62 gate criteria met."
+    },
+    {
+      "role": "QA",
+      "name": "PhotonTrust QA Lead",
+      "approved": true,
+      "notes": "All required checks passed in GA cycle validation run."
+    },
+    {
+      "role": "DOC",
+      "name": "PhotonTrust Documentation Lead",
+      "approved": true,
+      "notes": "Release packet and handoff docs are complete and navigable."
+    }
+  ]
+}

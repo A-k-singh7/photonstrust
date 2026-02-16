@@ -213,6 +213,9 @@ A phase is approved only if:
 - Phase 61: Adoption and pilot conversion (365-day plan continuation)
   - Folder: `phase_61_w45_w48_adoption_pilot_conversion/`
   - Status: Complete (W45-W48 implemented 2026-02-16)
+- Phase 62: GA release cycle (365-day plan continuation)
+  - Folder: `phase_62_w49_w52_ga_release_cycle/`
+  - Status: Complete (W49-W52 implemented 2026-02-16)
 
 ## Planned phases (draft)
 

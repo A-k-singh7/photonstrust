@@ -1,0 +1,95 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.release_gate_packet",
+  "generated_at": "2026-02-16T16:08:25.672096+00:00",
+  "required_artifact_count": 12,
+  "artifact_count": 12,
+  "artifacts": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "b6f1c3aefb93b8d8c6d7ddf2d09e3acc08ff425118b2611e80cbc58c3a66c8cf",
+      "bytes": 936
+    },
+    {
+      "path": "reports/specs/milestones/external_reviewer_dry_run_2026-02-16.json",
+      "sha256": "dcdb60b8e5fddf66cbb08faacf1dbd2c83ec5ab8ad8f4515bce05b22ee803368",
+      "bytes": 854
+    },
+    {
+      "path": "reports/specs/milestones/external_reviewer_dry_run_2026-02-16.md",
+      "sha256": "8b058e02a87b6a650bfde36163f3b8cea389e469dae367c119d402e4f302427b",
+      "bytes": 1136
+    },
+    {
+      "path": "reports/specs/milestones/external_reviewer_severity_closure_plan_2026-02-16.md",
+      "sha256": "f9c5b1e382665a8cee745bc7cc2ec6183f1c8657b6015dfc585eb715c2d044a2",
+      "bytes": 649
+    },
+    {
+      "path": "reports/specs/milestones/milestone_readiness_ga_2026-02-16.md",
+      "sha256": "1e29109698aeb6b60a975a138eebcbb9a8693880cbf84bc4618c50299c992d4f",
+      "bytes": 1876
+    },
+    {
+      "path": "reports/specs/milestones/rc_baseline_lock_2026-02-16.json",
+      "sha256": "d45d5e72496c775a7145b7e0ee1a565e994074a09fed4d6dad7868cdce35f559",
+      "bytes": 1163
+    },
+    {
+      "path": "reports/specs/milestones/regression_baseline_gate_2026-02-16.md",
+      "sha256": "ccc64d4f26525ce168d295bd5d6dbac6e06614f81c74c3826b68ee11dcfc2829",
+      "bytes": 1030
+    },
+    {
+      "path": "reports/specs/milestones/release_approvals_2026-02-16.json",
+      "sha256": "1b86f6bdceb7437e0684b7bdaa986963eed4257766b03571f6b1636b280d15ed",
+      "bytes": 614
+    },
+    {
+      "path": "reports/specs/milestones/release_gate_v1_0_2026-02-16.md",
+      "sha256": "b36dcfb4a3d19b0a9db81e22a5f782dfca080133e726a6bef50ce5b3fc86022e",
+      "bytes": 995
+    },
+    {
+      "path": "reports/specs/milestones/reliability_card_quality_review_2026-02-16.md",
+      "sha256": "184ead973fe00814a8dff2f14fecc9fe03a2ece0f4c9c42c4a7ce63aee9da2c5",
+      "bytes": 872
+    },
+    {
+      "path": "reports/specs/release_notes_v0.1.0_ga_2026-02-16.md",
+      "sha256": "5f098684df2eae065f1b275c6679a8cb169d8652589797441e6406bbdb8fba33",
+      "bytes": 918
+    },
+    {
+      "path": "results/release_gate/release_gate_report.json",
+      "sha256": "7aa28444578029cad5f700fffda9ed2b95a00916247cf0e5e5e42fc9ebe3d3c9",
+      "bytes": 2307
+    }
+  ],
+  "approvals": {
+    "schema_version": "0.1",
+    "kind": "photonstrust.release_approvals",
+    "date": "2026-02-16",
+    "approvers": [
+      {
+        "role": "TL",
+        "name": "PhotonTrust Technical Lead",
+        "approved": true,
+        "notes": "Phase 62 gate criteria met."
+      },
+      {
+        "role": "QA",
+        "name": "PhotonTrust QA Lead",
+        "approved": true,
+        "notes": "All required checks passed in GA cycle validation run."
+      },
+      {
+        "role": "DOC",
+        "name": "PhotonTrust Documentation Lead",
+        "approved": true,
+        "notes": "Release packet and handoff docs are complete and navigable."
+      }
+    ]
+  },
+  "artifact_set_sha256": "9888b909bc9155bd9de429a9141c39bcdc49ac5af4c473dec23b6232dc1b39cc"
+}

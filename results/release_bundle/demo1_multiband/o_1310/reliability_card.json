@@ -100,11 +100,11 @@
   },
   "artifacts": {
     "plots": {
-      "key_rate_vs_distance_path": "results\\smoke\\demo1\\demo1_multiband\\key_rate_vs_distance.png"
+      "key_rate_vs_distance_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\demo1_multiband\\o_1310\\key_rate_vs_distance.png"
     },
-    "report_html_path": "results\\smoke\\demo1\\demo1_multiband\\o_1310\\report.html",
+    "report_html_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\demo1_multiband\\o_1310\\report.html",
     "report_pdf_path": null,
-    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_multiband/o_1310/reliability_card.json",
-    "results_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_multiband/o_1310/results.json"
+    "card_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\demo1_multiband\\o_1310\\reliability_card.json",
+    "results_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\demo1_multiband\\o_1310\\results.json"
   }
 }

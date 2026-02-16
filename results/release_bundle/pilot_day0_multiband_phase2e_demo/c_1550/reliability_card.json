@@ -138,10 +138,10 @@
   },
   "artifacts": {
     "plots": {},
-    "report_html_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/pilot_day0_multiband_phase2e_demo/c_1550/report.html",
+    "report_html_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/demo_pack/tmp_day0_v11_20260216T072652Z/run/pilot_day0_multiband_phase2e_demo/c_1550/report.html",
     "report_pdf_path": null,
-    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/pilot_day0_multiband_phase2e_demo/c_1550/reliability_card.json",
-    "results_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/pilot_day0_multiband_phase2e_demo/c_1550/results.json"
+    "card_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\pilot_day0_multiband_phase2e_demo\\c_1550\\reliability_card.json",
+    "results_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\pilot_day0_multiband_phase2e_demo\\c_1550\\results.json"
   },
   "security_assumptions_metadata": {
     "security_model": "asymptotic_with_optional_finite_key_surrogate",

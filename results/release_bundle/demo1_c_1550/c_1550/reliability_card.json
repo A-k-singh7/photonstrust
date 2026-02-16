@@ -98,9 +98,9 @@
   },
   "artifacts": {
     "plots": {},
-    "report_html_path": "results\\demo1_c_1550\\demo1_c_1550\\c_1550\\report.html",
+    "report_html_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\demo1_c_1550\\c_1550\\report.html",
     "report_pdf_path": null,
-    "card_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_c_1550/c_1550/reliability_card.json",
-    "results_path": "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/release_bundle/demo1_c_1550/c_1550/results.json"
+    "card_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\demo1_c_1550\\c_1550\\reliability_card.json",
+    "results_path": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\release_bundle\\demo1_c_1550\\c_1550\\results.json"
   }
 }
