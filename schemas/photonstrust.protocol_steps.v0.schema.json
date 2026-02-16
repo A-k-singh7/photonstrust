@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.protocol_steps.v0.schema.json",
+  "title": "PhotonTrust Protocol Steps v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "generated_at", "protocol", "steps"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1"},
+    "kind": {"type": "string", "const": "photonstrust.protocol_steps"},
+    "generated_at": {"type": "string"},
+    "protocol": {"type": "string"},
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["step_id", "t_ns", "operation", "resources", "measurements", "classical_messages"],
+        "properties": {
+          "step_id": {"type": "string"},
+          "t_ns": {"type": "number"},
+          "operation": {"type": "string"},
+          "resources": {"type": "object", "additionalProperties": true},
+          "measurements": {"type": "object", "additionalProperties": true},
+          "classical_messages": {
+            "type": "array",
+            "items": {"type": "object", "additionalProperties": true}
+          }
+        }
+      }
+    }
+  }
+}

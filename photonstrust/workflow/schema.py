@@ -1,0 +1,42 @@
+"""Schema helpers for workflow and evidence bundle artifacts."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+
+def _repo_root() -> Path:
+    # .../photonstrust/workflow/schema.py -> parents[2] is repo root.
+    return Path(__file__).resolve().parents[2]
+
+
+def workflow_invdesign_chain_report_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_workflow_invdesign_chain_report.v0.schema.json").resolve()
+
+
+def evidence_bundle_manifest_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.evidence_bundle_manifest.v0.schema.json").resolve()
+
+
+def evidence_bundle_signature_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.evidence_bundle_signature.v0.schema.json").resolve()
+
+
+def multifidelity_report_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.multifidelity_report.v0.schema.json").resolve()
+
+
+def pic_foundry_drc_sealed_summary_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_foundry_drc_sealed_summary.v0.schema.json").resolve()
+
+
+def event_trace_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.event_trace.v0.schema.json").resolve()
+
+
+def protocol_steps_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.protocol_steps.v0.schema.json").resolve()
+
+
+def external_sim_result_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.external_sim_result.v0.schema.json").resolve()

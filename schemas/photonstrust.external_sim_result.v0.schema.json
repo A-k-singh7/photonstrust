@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.external_sim_result.v0.schema.json",
+  "title": "PhotonTrust External Simulation Result v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "simulator_name", "metrics"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1"},
+    "kind": {"type": "string", "const": "photonstrust.external_sim_result"},
+    "simulator_name": {"type": "string", "minLength": 1},
+    "simulator_version": {"type": ["string", "null"]},
+    "scenario_description": {"type": "object", "additionalProperties": true},
+    "metrics": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["key_rate_bps", "qber_total", "fidelity_est"],
+      "properties": {
+        "key_rate_bps": {"type": "number"},
+        "qber_total": {"type": "number", "minimum": 0.0, "maximum": 0.5},
+        "fidelity_est": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "distance_km": {"type": "number", "minimum": 0.0},
+        "entanglement_rate_hz": {"type": "number"},
+        "latency_ms": {"type": "number", "minimum": 0.0}
+      }
+    },
+    "event_trace_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {"type": ["string", "null"]},
+        "sha256": {"type": ["string", "null"]}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "seed": {"type": ["integer", "null"]},
+        "input_hash": {"type": ["string", "null"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

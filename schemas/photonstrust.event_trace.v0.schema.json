@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.event_trace.v0.schema.json",
+  "title": "PhotonTrust Event Trace v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "trace_mode", "events", "summary"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "photonstrust.event_trace"
+    },
+    "trace_mode": {
+      "type": "string",
+      "enum": ["off", "summary", "sampled", "full"]
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id", "t_ns", "priority", "type", "actor", "parent_event_ids", "payload_summary", "ordering_key"],
+        "properties": {
+          "event_id": {"type": "string"},
+          "t_ns": {"type": "number"},
+          "priority": {"type": "integer"},
+          "type": {"type": "string"},
+          "actor": {"type": "string"},
+          "parent_event_ids": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "payload_summary": {
+            "type": "object"
+          },
+          "ordering_key": {
+            "type": "array",
+            "prefixItems": [
+              {"type": "number"},
+              {"type": "integer"},
+              {"type": "integer"}
+            ],
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["trace_mode", "event_count", "recorded_count", "counts_by_type"],
+      "properties": {
+        "trace_mode": {"type": "string"},
+        "event_count": {"type": "integer", "minimum": 0},
+        "recorded_count": {"type": "integer", "minimum": 0},
+        "counts_by_type": {
+          "type": "object",
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        }
+      }
+    }
+  }
+}
