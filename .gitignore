@@ -1,0 +1,26 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Coverage and test artifacts
+.coverage
+coverage.xml
+htmlcov/
+
+# Packaging/build artifacts
+build/
+dist/
+photonstrust.egg-info/
+
+# Local run outputs
+results/
+tmp_*.pdf
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+
+# Accidental shell redirection artifacts at repo root (e.g., "=1.24")
+/=*
