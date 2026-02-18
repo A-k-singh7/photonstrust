@@ -167,6 +167,16 @@ Release gate:
 python scripts/release_gate_check.py
 ```
 
+Production readiness (isolated + fail-closed):
+
+```bash
+python scripts/production_readiness_check.py --recreate-venv
+```
+
+This command bootstraps a repo-local isolated environment (`.venv.production`),
+installs with `requirements/runtime.lock.txt` constraints, runs CI/release/runtime
+checks, and refreshes + verifies the signed release gate packet artifacts.
+
 Reliability card spec:
 
 See `reports/specs/reliability_card_v1.md`.

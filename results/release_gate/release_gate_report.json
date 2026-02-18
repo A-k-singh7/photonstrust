@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-16T17:03:58.238467+00:00",
+  "generated_at": "2026-02-18T12:48:50.581240+00:00",
   "checks": [
     {
       "name": "tests",
@@ -10,7 +10,7 @@
         "pytest",
         "-q"
       ],
-      "output": "........................................................................ [ 21%]\n.......................................s..........................s..... [ 42%]\n........................................................................ [ 63%]\n........................................................................ [ 85%]\n..................................................                       [100%]\n============================== warnings summary ===============================\ntests/test_qutip_backend_interface.py::test_qutip_backend_simulation_falls_back_to_analytic_when_qutip_path_fails\n  C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\photonstrust\\physics\\emitter.py:80: UserWarning: QuTiP backend unavailable, using analytic model: forced qutip failure\n    warnings.warn(f\"QuTiP backend unavailable, using analytic model: {exc}\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n336 passed, 2 skipped, 1 warning in 32.81s"
+      "output": "........................................................................ [ 20%]\n.......................................s..........................s..... [ 41%]\n........................................................................ [ 62%]\n........................................................................ [ 83%]\n.......................................................                  [100%]\n============================== warnings summary ===============================\ntests/test_qutip_backend_interface.py::test_qutip_backend_simulation_falls_back_to_analytic_when_qutip_path_fails\n  C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\photonstrust\\physics\\emitter.py:80: UserWarning: QuTiP backend unavailable, using analytic model: forced qutip failure\n    warnings.warn(f\"QuTiP backend unavailable, using analytic model: {exc}\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n341 passed, 2 skipped, 1 warning in 34.77s"
     },
     {
       "name": "benchmark_drift",
@@ -19,7 +19,7 @@
         "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
         "scripts/check_benchmark_drift.py"
       ],
-      "output": "Benchmark drift check: PASS\nArtifacts: C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\benchmark_drift\\20260216T170433Z"
+      "output": "Benchmark drift check: PASS\nArtifacts: C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\benchmark_drift\\20260218T124927Z"
     },
     {
       "name": "open_benchmarks",
