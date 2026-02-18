@@ -51,7 +51,7 @@ Documentation = "https://github.com/photonstrust/photonstrust#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["photonstrust*"]
+include = ["photonstrust*", "ui*"]
 
 [tool.coverage.run]
 branch = true

@@ -7,6 +7,7 @@ import {
   addEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "@xyflow/react";
 
 import "./App.css";
@@ -361,8 +362,11 @@ export default function App() {
   const [orbitValidateResult, setOrbitValidateResult] = useState(null);
   const [runResult, setRunResult] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [statusText, setStatusText] = useState("Ready.");
   const statusTimer = useRef(null);
+
+  const reactFlowInstance = useReactFlow();
 
   const graphPayload = useMemo(() => {
     return buildGraphPayload({
@@ -770,7 +774,7 @@ export default function App() {
   );
 
   const addKind = useCallback(
-    (kind) => {
+    (kind, overridePosition) => {
       const def = kindDef(kind);
       const meta = kindRegistry?.byKind?.[kind];
       const title = meta?.title || def?.title || kind;
@@ -785,8 +789,8 @@ export default function App() {
       }
 
       const id = _nextNodeId(kind, nodes);
-      const x = 120 + (nodes.length % 4) * 240;
-      const y = 100 + Math.floor(nodes.length / 4) * 170;
+      const x = overridePosition ? overridePosition.x : 120 + (nodes.length % 4) * 240;
+      const y = overridePosition ? overridePosition.y : 100 + Math.floor(nodes.length / 4) * 170;
       const params = def ? { ...def.defaultParams } : {};
       if (meta && Array.isArray(meta.params)) {
         for (const p of meta.params) {
@@ -828,6 +832,29 @@ export default function App() {
     setSelectedNodeId(null);
     _setStatus("Deleted selected node.");
   }, [selectedNodeId, setNodes, setEdges, _setStatus]);
+
+  const onCanvasDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      const kind = e.dataTransfer.getData("application/reactflow-kind");
+      if (!kind || !KIND_DEFS[kind]) return;
+      if (!reactFlowInstance) return;
+      const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      addKind(kind, position);
+    },
+    [reactFlowInstance, addKind],
+  );
+
+  const onCanvasDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setIsDragOver(true);
+  }, []);
+
+  const onCanvasDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
 
   const compileGraph = useCallback(async () => {
     setBusy(true);
@@ -1517,21 +1544,45 @@ export default function App() {
               </div>
 
               <div className="ptSidebarSection">
-                <div className="ptSidebarTitle">Palette</div>
-                <div className="ptPaletteGrid">
-                  {kindOptions.map((k) => {
-                    const meta = kindRegistry?.byKind?.[k];
-                    const def = kindDef(k);
-                    const apiEnabled = meta?.availability?.api_enabled;
-                    return (
-                      <button key={k} className="ptPaletteItem" onClick={() => addKind(k)}>
-                        <div className="ptPaletteTitle">{meta?.title || def?.title || k}</div>
-                        <div className="ptPaletteKind">{k}</div>
-                        {apiEnabled === false ? <div className="ptPaletteKind">API: disabled (CLI-only)</div> : null}
-                      </button>
-                    );
-                  })}
-                </div>
+                <div className="ptSidebarTitle">Palette <span className="ptPaletteHint">drag or click</span></div>
+                {[
+                  { label: "QKD", prefix: "qkd." },
+                  { label: "PIC", prefix: "pic." },
+                ].map(({ label, prefix }) => {
+                  const group = kindOptions.filter((k) => k.startsWith(prefix));
+                  if (!group.length) return null;
+                  return (
+                    <div key={label} className="ptPaletteGroup">
+                      <div className={`ptPaletteGroupLabel ptPaletteGroupLabel--${label.toLowerCase()}`}>{label}</div>
+                      <div className="ptPaletteGrid">
+                        {group.map((k) => {
+                          const meta = kindRegistry?.byKind?.[k];
+                          const def = kindDef(k);
+                          const apiEnabled = meta?.availability?.api_enabled;
+                          return (
+                            <div
+                              key={k}
+                              className={`ptPaletteItem ptPaletteItem--${label.toLowerCase()}`}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("application/reactflow-kind", k);
+                                e.dataTransfer.effectAllowed = "move";
+                              }}
+                              onClick={() => addKind(k)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => e.key === "Enter" && addKind(k)}
+                            >
+                              <div className="ptPaletteTitle">{meta?.title || def?.title || k}</div>
+                              <div className="ptPaletteKind">{k}</div>
+                              {apiEnabled === false ? <div className="ptPaletteKind">CLI-only</div> : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="ptSidebarSection">
@@ -1698,7 +1749,13 @@ export default function App() {
         </aside>
 
         {mode === "graph" ? (
-          <section className="ptCanvas" aria-label="Graph editor canvas">
+          <section
+            className={`ptCanvas${isDragOver ? " ptCanvas--dragover" : ""}`}
+            aria-label="Graph editor canvas"
+            onDrop={onCanvasDrop}
+            onDragOver={onCanvasDragOver}
+            onDragLeave={onCanvasDragLeave}
+          >
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -3338,7 +3395,7 @@ export default function App() {
                       const row = v?.rhs && typeof v.rhs === "object" ? v.rhs : v?.lhs;
                       return (
                         <div key={`vd:app:${idx}`}>
-                          ~ {_violationSampleLabel(row)} ({lhsApp} -> {rhsApp})
+                          ~ {_violationSampleLabel(row)} ({lhsApp} {"->"} {rhsApp})
                         </div>
                       );
                     })}
