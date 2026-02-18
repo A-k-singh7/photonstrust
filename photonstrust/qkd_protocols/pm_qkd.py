@@ -24,9 +24,8 @@ Notes:
   valid sanity gate for the end-to-end distance because the physical model is
   two-segment (Alice->relay and Bob->relay).
 - The paper's Appendix B.2 assumes symmetric links. We support asymmetric link
-  splits by using an effective transmittance eta = (eta_a + eta_b)/2, matching
-  the symmetric case and preserving total mean photon number at the relay in
-  the first-order approximation.
+  splits by using an effective transmittance eta = sqrt(eta_a * eta_b), which
+  preserves the single-photon interference scaling term.
 """
 
 from __future__ import annotations
@@ -134,10 +133,11 @@ def compute_point_pm_qkd(
     f_ec = float(proto.get("ec_efficiency", 1.16) or 1.16)
     f_ec = max(1.0, f_ec)
 
-    # Effective per-photon transmittance (symmetric case: eta_a == eta_b == eta).
+    # Effective per-photon transmittance. For asymmetric links, PM/TF
+    # interference scaling follows sqrt(eta_a * eta_b).
     eta_a = float(ta) * float(eta_d)
     eta_b = float(tb) * float(eta_d)
-    eta = 0.5 * (eta_a + eta_b)
+    eta = math.sqrt(max(0.0, eta_a * eta_b))
     eta = clamp(float(eta), 0.0, 1.0)
     if eta <= 0.0:
         return _empty_result(distance_km=float(distance_km), loss_db=float(loss_db))

@@ -27,9 +27,11 @@ def build_source_profile(source: dict) -> SourceProfile:
     source_type = str(source.get("type", "emitter_cavity"))
     if source_type == "spdc":
         mu = max(0.0, float(source.get("mu", 0.0) or 0.0))
-        # Poisson pair model: P(n>=1)=1-exp(-mu), P(n>=2|n>=1)
-        p_emit = 1.0 - math.exp(-mu)
-        p_multi = 0.0 if p_emit <= 0.0 else max(0.0, 1.0 - (mu * math.exp(-mu)) / max(1e-12, p_emit))
+        # Two-mode squeezed vacuum (SPDC) thermal/geometric pair statistics:
+        # P(n) = mu^n / (1+mu)^(n+1)
+        # => P(n>=1) = mu/(1+mu), P(n>=2|n>=1) = mu/(1+mu)
+        p_emit = 0.0 if mu <= 0.0 else (mu / (1.0 + mu))
+        p_multi = 0.0 if p_emit <= 0.0 else (mu / (1.0 + mu))
         g2_0 = min(1.0, mu / (1.0 + mu))
         return SourceProfile(
             tier=tier,
@@ -37,7 +39,7 @@ def build_source_profile(source: dict) -> SourceProfile:
             emission_prob=_clamp_zero_one(p_emit, "spdc_emission_prob"),
             p_multi=_clamp_zero_one(p_multi, "spdc_p_multi"),
             g2_0=_clamp_zero_one(g2_0, "spdc_g2_0"),
-            diagnostics={"mu": mu, "model": "spdc_poisson"},
+            diagnostics={"mu": mu, "model": "spdc_thermal_geometric"},
         )
 
     stats = get_emitter_stats(source)

@@ -40,6 +40,10 @@ def main() -> int:
             "name": "pic_crosstalk_calibration_drift",
             "cmd": [sys.executable, "scripts/check_pic_crosstalk_calibration_drift.py"],
         },
+        {
+            "name": "recent_research_validation",
+            "cmd": [sys.executable, "scripts/validate_recent_research_examples.py"],
+        },
     ]
 
     report = {

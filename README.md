@@ -145,6 +145,7 @@ Open benchmarks (shareable bundles) + repro packs:
 ```bash
 python scripts/check_open_benchmarks.py
 python scripts/generate_repro_pack.py configs/demo1_quick_smoke.yml results/repro_pack_demo1_quick_smoke
+python scripts/validate_recent_research_examples.py
 ```
 
 Measurement bundles (ingestion + opt-in artifact packs):
