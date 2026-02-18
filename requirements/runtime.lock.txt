@@ -1,7 +1,8 @@
 # Production runtime constraints (Python 3.12 baseline).
-# Use as a constraints file: pip install -c requirements/runtime.lock.txt -e ".[dev,signing,qutip]"
+# Use as a constraints file: pip install -c requirements/runtime.lock.txt -e ".[dev,signing,qutip,qiskit]"
 numpy==2.3.2
 PyYAML==6.0.2
 matplotlib==3.10.6
 cryptography==46.0.5
 qutip==5.2.2
+qiskit==2.3.0

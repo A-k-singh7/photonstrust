@@ -44,6 +44,14 @@ def main() -> int:
             "name": "recent_research_validation",
             "cmd": [sys.executable, "scripts/validate_recent_research_examples.py"],
         },
+        {
+            "name": "qutip_parity_strict",
+            "cmd": [sys.executable, "scripts/run_qutip_parity_lane.py", "--strict"],
+        },
+        {
+            "name": "qiskit_lane",
+            "cmd": [sys.executable, "scripts/run_qiskit_lane.py", "--strict"],
+        },
     ]
 
     report = {

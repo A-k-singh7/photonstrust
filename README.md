@@ -112,7 +112,7 @@ Full-fidelity backends:
 pip install -e .[qutip,qiskit]
 ```
 
-Optional QuTiP parity lane (non-blocking):
+QuTiP parity lane:
 
 ```bash
 pip install -e .[dev,qutip]
@@ -120,8 +120,7 @@ python scripts/run_qutip_parity_lane.py
 ```
 
 Artifacts are written to `results/qutip_parity/` (`.json` + `.md`).
-Use `--strict` only in dedicated optional environments when you want parity
-threshold breaches to fail the lane.
+Use `--strict` to enforce parity thresholds as a fail-closed gate.
 
 CI + tests:
 
@@ -176,7 +175,8 @@ python scripts/production_readiness_check.py --recreate-venv
 
 This command bootstraps a repo-local isolated environment (`.venv.production`),
 installs with `requirements/runtime.lock.txt` constraints, runs CI/release/runtime
-checks, and refreshes + verifies the signed release gate packet artifacts.
+checks (including strict QuTiP parity + strict Qiskit lane), and refreshes +
+verifies the signed release gate packet artifacts.
 
 Reliability card spec:
 

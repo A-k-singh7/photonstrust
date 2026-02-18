@@ -36,6 +36,7 @@ def _bootstrap_isolated_env(
     venv_dir: Path,
     recreate: bool,
     lock_file: Path,
+    include_qiskit: bool,
 ) -> Path:
     if recreate and venv_dir.exists():
         shutil.rmtree(venv_dir)
@@ -47,6 +48,7 @@ def _bootstrap_isolated_env(
             raise RuntimeError("failed to create isolated virtual environment")
 
     venv_python = _venv_python_path(venv_dir)
+    extras = "dev,signing,qutip,qiskit" if include_qiskit else "dev,signing,qutip"
     install_steps = [
         [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"],
         [
@@ -57,7 +59,7 @@ def _bootstrap_isolated_env(
             "-c",
             str(lock_file),
             "-e",
-            ".[dev,signing,qutip]",
+            f".[{extras}]",
         ],
     ]
     for cmd in install_steps:
@@ -76,6 +78,7 @@ def build_command_plan(
     smoke_config: Path,
     smoke_output: Path,
     refresh_release_packet: bool,
+    include_qiskit: bool,
 ) -> list[tuple[str, list[str]]]:
     commands: list[tuple[str, list[str]]] = [
         (
@@ -89,6 +92,11 @@ def build_command_plan(
             ],
         ),
         ("ci_checks", [str(python_exe), "scripts/ci_checks.py"]),
+    ]
+    if include_qiskit:
+        commands.append(("qiskit_lane", [str(python_exe), "scripts/run_qiskit_lane.py", "--strict"]))
+    commands.extend(
+        [
         ("release_gate", [str(python_exe), "scripts/release_gate_check.py"]),
         (
             "runtime_smoke",
@@ -106,6 +114,7 @@ def build_command_plan(
         ("pilot_packet", [str(python_exe), "scripts/check_pilot_packet.py"]),
         ("milestone_archive", [str(python_exe), "scripts/check_milestone_archive.py"]),
     ]
+    )
 
     if refresh_release_packet:
         commands.append(
@@ -180,6 +189,12 @@ def main() -> int:
         default=Path("results/production_readiness/production_readiness_report.json"),
         help="Path to write machine-readable readiness report.",
     )
+    parser.add_argument(
+        "--include-qiskit",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Install qiskit extra and enforce strict Qiskit lane (default: true).",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[1]
@@ -197,6 +212,7 @@ def main() -> int:
         "venv_dir": str(venv_dir),
         "lock_file": str(lock_file),
         "refresh_release_packet": bool(args.refresh_release_packet),
+        "include_qiskit": bool(args.include_qiskit),
         "steps": [],
         "ok": True,
     }
@@ -208,6 +224,7 @@ def main() -> int:
             venv_dir=venv_dir,
             recreate=bool(args.recreate_venv),
             lock_file=lock_file,
+            include_qiskit=bool(args.include_qiskit),
         )
     except Exception as exc:
         report["ok"] = False
@@ -232,6 +249,7 @@ def main() -> int:
         smoke_config=smoke_config,
         smoke_output=smoke_output,
         refresh_release_packet=bool(args.refresh_release_packet),
+        include_qiskit=bool(args.include_qiskit),
     )
 
     all_ok = True

@@ -161,7 +161,7 @@ def _analytic_emitter(source: dict, emission_mode: str) -> Dict[str, Any]:
 
 def _qutip_emitter(source: dict, emission_mode: str) -> Dict[str, Any]:
     import numpy as np
-    from qutip import basis, destroy, expect, mesolve, qeye, steadystate, tensor
+    from qutip import basis, destroy, expect, mesolve, qeye, steadystate
 
     lifetime_ns = _positive(
         source.get("radiative_lifetime_ns", 1.0),
@@ -176,44 +176,44 @@ def _qutip_emitter(source: dict, emission_mode: str) -> Dict[str, Any]:
     )
     dephasing = max(0.0, float(source.get("dephasing_rate_per_ns", 0.0)))
     drive = max(0.0, float(source.get("drive_strength", 0.05)))
+    g2_input = _clamp_zero_one(source.get("g2_0", 0.0), "g2_0", warn_on_clip=True)
 
-    g = 1.0
-    kappa = 4.0 * g**2 / (purcell * gamma)
-
-    n_cavity = 3
-    a = tensor(destroy(n_cavity), qeye(2))
-    sm = tensor(qeye(n_cavity), destroy(2))
-
-    hamiltonian = g * (a.dag() * sm + a * sm.dag()) + drive * (a + a.dag())
-    collapse_ops = [math.sqrt(kappa) * a, math.sqrt(gamma) * sm]
-    if dephasing > 0:
-        collapse_ops.append(math.sqrt(dephasing) * sm.dag() * sm)
+    gamma_eff = gamma * (1.0 + purcell)
+    gamma_phi = max(0.0, dephasing)
+    sm = destroy(2)
+    sz = qeye(2) - 2 * sm.dag() * sm
+    hamiltonian = 0.5 * drive * (sm + sm.dag())
+    collapse_ops = [math.sqrt(gamma_eff) * sm]
+    if gamma_phi > 0.0:
+        # Use 0.5 factor so off-diagonal terms decay approximately at gamma_phi.
+        collapse_ops.append(math.sqrt(0.5 * gamma_phi) * sz)
 
     rho_ss = steadystate(hamiltonian, collapse_ops)
-    n_photon = expect(a.dag() * a, rho_ss)
-    if n_photon <= 0:
-        g2_0 = 0.0
-    else:
-        g2_0 = expect(a.dag() * a.dag() * a * a, rho_ss) / (n_photon**2)
-
-    g2_0 = _clamp_zero_one(g2_0, "g2_0")
-    p_multi = g2_0 / (1.0 + g2_0)
+    excited_population_ss = _clamp_zero_one(float(expect(sm.dag() * sm, rho_ss)), "excited_population_ss")
 
     window_ns = _positive(
         source.get("pulse_window_ns", 5.0 * lifetime_ns),
         default=5.0 * lifetime_ns,
         field_name="pulse_window_ns",
     )
-    gamma_eff = gamma * (1.0 + purcell)
     emission_prob = 1.0 - math.exp(-gamma_eff * window_ns)
     emission_prob = _clamp_zero_one(emission_prob, "emission_prob")
     spectral_purity = _clamp_zero_one(math.exp(-dephasing * window_ns * 0.2), "spectral_purity")
     transient_contrast = 0.0
+    tau = window_ns / lifetime_ns
+
+    # Treat configured g2_0 as calibrated baseline and only apply a bounded
+    # model-based correction when steady-state excitation indicates extra bunching.
+    model_excess = max(0.0, excited_population_ss - g2_input)
+    g2_0 = _clamp_zero_one(
+        g2_input + 0.05 * model_excess * (1.0 - spectral_purity),
+        "g2_0",
+    )
 
     if emission_mode == "transient":
         transient_steps = int(source.get("transient_steps", 64))
         transient_steps = max(8, min(4096, transient_steps))
-        rho0 = tensor(basis(n_cavity, 0), basis(2, 1))
+        rho0 = basis(2, 1)
         rho0 = rho0 * rho0.dag()
         times = np.linspace(0.0, window_ns, transient_steps)
         trajectory = mesolve(
@@ -229,7 +229,10 @@ def _qutip_emitter(source: dict, emission_mode: str) -> Dict[str, Any]:
             emission_prob * (0.75 + 0.25 * transient_contrast),
             "emission_prob",
         )
-        g2_0 = _clamp_zero_one(g2_0 * (1.0 + 0.25 * (1.0 - spectral_purity)), "g2_0")
+        g2_0 = _clamp_zero_one(
+            g2_0 * (1.0 + 0.30 * (1.0 - spectral_purity)) * (1.0 - 0.05 * min(tau, 10.0)),
+            "g2_0",
+        )
     else:
         excited_final = None
 
@@ -251,12 +254,12 @@ def _qutip_emitter(source: dict, emission_mode: str) -> Dict[str, Any]:
             "purcell_factor": purcell,
             "pulse_window_ns": window_ns,
             "gamma_per_ns": gamma,
-            "kappa_per_ns": kappa,
+            "gamma_phi_per_ns": gamma_phi,
             "gamma_eff_per_ns": gamma_eff,
             "window_over_lifetime": window_ns / lifetime_ns,
             "dephasing_rate_per_ns": dephasing,
             "drive_strength": drive,
-            "n_photon_ss": float(n_photon),
+            "excited_population_ss": float(excited_population_ss),
             "emission_mode": emission_mode,
             "transient_contrast": transient_contrast,
             "linewidth_mhz": linewidth_mhz,

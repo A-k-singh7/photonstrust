@@ -72,6 +72,7 @@ def test_build_command_plan_toggles_release_packet_refresh() -> None:
         "lock_file": Path("requirements/runtime.lock.txt"),
         "smoke_config": Path("configs/demo1_quick_smoke.yml"),
         "smoke_output": Path("results/production_readiness/runtime_smoke"),
+        "include_qiskit": True,
     }
     refresh_plan = build_command_plan(refresh_release_packet=True, **common_kwargs)
     verify_plan = build_command_plan(refresh_release_packet=False, **common_kwargs)
@@ -82,3 +83,27 @@ def test_build_command_plan_toggles_release_packet_refresh() -> None:
     assert "release_packet_verify" not in refresh_names
     assert "release_packet_verify" in verify_names
     assert "release_packet_signature_verify" in verify_names
+
+
+def test_build_command_plan_can_disable_qiskit_lane() -> None:
+    plan_with_qiskit = build_command_plan(
+        python_exe=Path("python"),
+        lock_file=Path("requirements/runtime.lock.txt"),
+        smoke_config=Path("configs/demo1_quick_smoke.yml"),
+        smoke_output=Path("results/production_readiness/runtime_smoke"),
+        refresh_release_packet=True,
+        include_qiskit=True,
+    )
+    plan_without_qiskit = build_command_plan(
+        python_exe=Path("python"),
+        lock_file=Path("requirements/runtime.lock.txt"),
+        smoke_config=Path("configs/demo1_quick_smoke.yml"),
+        smoke_output=Path("results/production_readiness/runtime_smoke"),
+        refresh_release_packet=True,
+        include_qiskit=False,
+    )
+
+    with_names = [name for name, _cmd in plan_with_qiskit]
+    without_names = [name for name, _cmd in plan_without_qiskit]
+    assert "qiskit_lane" in with_names
+    assert "qiskit_lane" not in without_names

@@ -80,20 +80,22 @@ def _qutip_memory(memory_cfg: dict, wait_time_ns: float) -> MemoryStats:
     sm = destroy(2)
     sz = qeye(2) - 2 * sm.dag() * sm
     gamma1 = 1.0 / t1_s
-    gamma2 = max(0.0, (1.0 / t2_s) - 0.5 * gamma1)
+    gamma_phi = max(0.0, (1.0 / t2_s) - 0.5 * gamma1)
 
     collapse_ops = [math.sqrt(gamma1) * sm]
-    if gamma2 > 0:
-        collapse_ops.append(math.sqrt(gamma2) * sz)
+    if gamma_phi > 0:
+        # Use 0.5 factor so coherence approximately decays at gamma_phi.
+        collapse_ops.append(math.sqrt(0.5 * gamma_phi) * sz)
 
-    rho0 = basis(2, 1) * basis(2, 1).dag()
+    ket_plus = (basis(2, 0) + basis(2, 1)).unit()
+    rho0 = ket_plus * ket_plus.dag()
     times = np.linspace(0, wait_s, 32)
     result = mesolve(0 * sm, rho0, times, collapse_ops, [])
     fidelity = float(expect(rho0, result.states[-1]))
 
-    rng = np.random.default_rng(seed)
-    fidelity_samples = np.clip(rng.normal(fidelity, 0.02, n_trajectories), 0.0, 1.0)
-    variance = float(np.var(fidelity_samples))
+    n_trials = max(1, n_trajectories)
+    variance = float(fidelity * (1.0 - fidelity) / n_trials)
+    coherence_decay = math.exp(-wait_s / t2_s)
     t1_decay = math.exp(-wait_s / t1_s)
     p_retrieve = _clamp_prob(p_store * retrieval * t1_decay, "p_retrieve")
 
@@ -108,10 +110,13 @@ def _qutip_memory(memory_cfg: dict, wait_time_ns: float) -> MemoryStats:
             "t1_ms": t1_ms,
             "t2_ms": t2_ms,
             "t1_decay": t1_decay,
+            "coherence_decay": coherence_decay,
             "gamma1_per_s": gamma1,
-            "gamma2_per_s": gamma2,
+            "gamma_phi_per_s": gamma_phi,
             "seed": seed,
             "n_trajectories": n_trajectories,
+            "variance_model": "binomial_projection",
+            "initial_state": "plus",
         },
     )
 
