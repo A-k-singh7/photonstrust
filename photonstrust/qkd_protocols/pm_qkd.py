@@ -14,7 +14,7 @@ Key anchors used (arXiv:1805.05538):
 - QBER E^Z_mu: Appendix B.2, Eq. (B22) with e_delta from Eq. (B19)
 - k-photon yields Y_k: Appendix B.2, Eq. (B13) (approx.)
 - k-photon bit error e_k^Z: Appendix B.2, Eq. (B20) (approx.)
-- Phase error bound: Appendix B.2, Eq. (B27) (truncated at k=0,1,3,5 with
+- Phase error bound: Appendix B.2, Eq. (B27) (truncated at k=0,1,3,5,7,9,11 with
   worst-case assignment to remaining components, as in the paper's MATLAB
   reference code).
 
@@ -157,6 +157,9 @@ def compute_point_pm_qkd(
     y1 = _yield_k(pd=pd, eta=eta, k=1)
     y3 = _yield_k(pd=pd, eta=eta, k=3)
     y5 = _yield_k(pd=pd, eta=eta, k=5)
+    y7 = _yield_k(pd=pd, eta=eta, k=7)
+    y9 = _yield_k(pd=pd, eta=eta, k=9)
+    y11 = _yield_k(pd=pd, eta=eta, k=11)
 
     qmu = 1.0 - (1.0 - 2.0 * pd) * math.exp(-mu * eta)
     qmu = clamp(float(qmu), 0.0, 1.0)
@@ -174,12 +177,26 @@ def compute_point_pm_qkd(
     ez = clamp(float(ez), 0.0, 0.5)
 
     # Phase error bound (Eq. (B27) truncation in paper's MATLAB code).
-    q0, q1, q3, q5 = _clicked_fractions(mu=mu, qmu=qmu, y0=y0, y1=y1, y3=y3, y5=y5)
+    q0, q1, q3, q5, q7, q9, q11 = _clicked_fractions(
+        mu=mu,
+        qmu=qmu,
+        y0=y0,
+        y1=y1,
+        y3=y3,
+        y5=y5,
+        y7=y7,
+        y9=y9,
+        y11=y11,
+    )
     e0 = 0.5
     e1z = _bit_error_k(pd=pd, eta=eta, e_mis=e_mis, k=1, yk=y1)
     e3z = _bit_error_k(pd=pd, eta=eta, e_mis=e_mis, k=3, yk=y3)
     e5z = _bit_error_k(pd=pd, eta=eta, e_mis=e_mis, k=5, yk=y5)
-    ex = q0 * e0 + q1 * e1z + q3 * e3z + q5 * e5z + max(0.0, 1.0 - (q0 + q1 + q3 + q5))
+    e7z = _bit_error_k(pd=pd, eta=eta, e_mis=e_mis, k=7, yk=y7)
+    e9z = _bit_error_k(pd=pd, eta=eta, e_mis=e_mis, k=9, yk=y9)
+    e11z = _bit_error_k(pd=pd, eta=eta, e_mis=e_mis, k=11, yk=y11)
+    residual = max(0.0, 1.0 - (q0 + q1 + q3 + q5 + q7 + q9 + q11))
+    ex = q0 * e0 + q1 * e1z + q3 * e3z + q5 * e5z + q7 * e7z + q9 * e9z + q11 * e11z + residual
     ex = clamp(float(ex), 0.0, 0.5)
 
     # Secret fraction per signal use (Eq. (B23)).
@@ -207,6 +224,18 @@ def compute_point_pm_qkd(
     q_background = qber_total * ((det_bg_cps + ch_bg_cps) / denom_noise)
     q_raman = qber_total * (raman_cps / denom_noise)
 
+    eta_channel_geom = math.sqrt(max(0.0, float(ta) * float(tb)))
+    eta_expected_sqrt_loss = 10.0 ** (-float(loss_db) / 20.0)
+    protocol_diagnostics = {
+        "eta_channel_geometric_mean": float(eta_channel_geom),
+        "eta_expected_sqrt_total_loss": float(eta_expected_sqrt_loss),
+        "eta_effective_with_detector": float(eta),
+        "eta_detector_window": float(eta_d),
+        "sqrt_loss_consistency_ratio": float(
+            eta_channel_geom / max(1e-300, eta_expected_sqrt_loss)
+        ),
+    }
+
     return QKDResult(
         distance_km=float(distance_km),
         entanglement_rate_hz=float(event_rate_hz),
@@ -230,6 +259,7 @@ def compute_point_pm_qkd(
         privacy_term_effective=0.0,
         finite_key_penalty=0.0,
         loss_db=float(loss_db),
+        protocol_diagnostics=protocol_diagnostics,
     )
 
 
@@ -309,8 +339,11 @@ def _clicked_fractions(
     y1: float,
     y3: float,
     y5: float,
-) -> tuple[float, float, float, float]:
-    """Clicked fractions q_k from Eq. (B25) for k=0,1,3,5."""
+    y7: float,
+    y9: float,
+    y11: float,
+) -> tuple[float, float, float, float, float, float, float]:
+    """Clicked fractions q_k from Eq. (B25) for k=0,1,3,5,7,9,11."""
 
     qmu = max(1e-30, float(qmu))
     mu = float(mu)
@@ -320,13 +353,19 @@ def _clicked_fractions(
     q1 = float(y1) * (mu * p0) / qmu
     q3 = float(y3) * (mu**3 * p0) / (math.factorial(3) * qmu)
     q5 = float(y5) * (mu**5 * p0) / (math.factorial(5) * qmu)
+    q7 = float(y7) * (mu**7 * p0) / (math.factorial(7) * qmu)
+    q9 = float(y9) * (mu**9 * p0) / (math.factorial(9) * qmu)
+    q11 = float(y11) * (mu**11 * p0) / (math.factorial(11) * qmu)
 
     # Numerical safety; these are conditional fractions and should sum <= 1.
     q0 = clamp(q0, 0.0, 1.0)
     q1 = clamp(q1, 0.0, 1.0)
     q3 = clamp(q3, 0.0, 1.0)
     q5 = clamp(q5, 0.0, 1.0)
-    return q0, q1, q3, q5
+    q7 = clamp(q7, 0.0, 1.0)
+    q9 = clamp(q9, 0.0, 1.0)
+    q11 = clamp(q11, 0.0, 1.0)
+    return q0, q1, q3, q5, q7, q9, q11
 
 
 def _edelta_from_phase_slices(m: int) -> float:

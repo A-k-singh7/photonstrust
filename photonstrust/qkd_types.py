@@ -37,3 +37,4 @@ class QKDResult:
     single_photon_yield_lb: float = 0.0
     single_photon_error_ub: float = 0.0
     finite_key_epsilon: float = 0.0
+    protocol_diagnostics: dict | None = None

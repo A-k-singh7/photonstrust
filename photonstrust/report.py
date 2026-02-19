@@ -226,6 +226,7 @@ def _build_reliability_card_v1_0(
         notes_lines.append("Background counts enabled (channel + detector additive count-rate model).")
 
     notes = "\n".join(notes_lines).strip()
+    protocol_diag = primary.protocol_diagnostics if isinstance(primary.protocol_diagnostics, dict) else None
 
     card = {
         "schema_version": "1.0",
@@ -309,6 +310,8 @@ def _build_reliability_card_v1_0(
             "report_pdf_path": None,
         },
     }
+    if protocol_diag is not None:
+        card["derived"]["protocol_diagnostics"] = protocol_diag
     card.update(_build_trust_metadata(scenario=scenario, card=card))
     return card
 
@@ -446,7 +449,7 @@ def _build_trust_metadata(*, scenario: dict, card: dict) -> dict:
     ci = (card.get("outputs", {}) or {}).get("uncertainty")
     channel_model = str(channel.get("model", "fiber")).lower()
     proto_norm = normalize_protocol_name(protocol.get("name"))
-    decoy_assumption_default = proto_norm in {"bb84_decoy", "mdi_qkd"}
+    decoy_assumption_default = proto_norm in {"bb84_decoy", "mdi_qkd", "amdi_qkd"}
 
     return {
         "security_assumptions_metadata": {

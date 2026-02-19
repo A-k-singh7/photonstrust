@@ -6,6 +6,7 @@ The main entry point remains :mod:`photonstrust.qkd`.
 from __future__ import annotations
 
 __all__ = [
+    "amdi_qkd",
     "base",
     "bb84_decoy",
     "bbm92",

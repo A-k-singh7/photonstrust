@@ -75,3 +75,5 @@ Release tooling:
 
 Customer/pilot demo operations:
 - `phase2e_demo_pack.md`
+- `product/30_day_product_execution_board_2026-02-18.md`
+- `product/10_minute_quickstart_2026-02-18.md`

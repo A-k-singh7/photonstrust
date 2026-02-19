@@ -15,6 +15,8 @@ def normalize_protocol_name(name: str | None) -> str:
         return "bb84_decoy"
     if raw in {"mdi", "mdi_qkd"}:
         return "mdi_qkd"
+    if raw in {"amdi", "amdi_qkd", "async_mdi", "mp_qkd", "mode_pairing"}:
+        return "amdi_qkd"
     if raw in {"pm", "pm_qkd"}:
         return "pm_qkd"
     if raw in {"tf", "tf_qkd", "twin_field", "twinfield"}:

@@ -30,6 +30,7 @@ from photonstrust.api import compile_cache as compile_cache_store
 from photonstrust.api import jobs as job_store
 from photonstrust.api import projects as project_store
 from photonstrust.api import runs as run_store
+from photonstrust.api import ui_metrics as ui_metrics_store
 from photonstrust.api.diff import diff_json, diff_violations
 from photonstrust.benchmarks.schema import validate_instance
 from photonstrust.evidence.bundle import verify_bundle_zip
@@ -147,6 +148,22 @@ def _extract_violation_rows(value: Any) -> list[dict[str, Any]] | None:
 _EXECUTION_MODES = {"preview", "certification"}
 _AUTH_MODES = {"off", "header"}
 _ROLE_SET = {"viewer", "runner", "approver", "admin"}
+_UI_TELEMETRY_EVENT_NAMES = {
+    "ui_session_started",
+    "ui_guided_flow_started",
+    "ui_guided_flow_completed",
+    "ui_run_started",
+    "ui_run_succeeded",
+    "ui_run_failed",
+    "ui_error_recovered",
+    "ui_compare_completed",
+    "ui_packet_exported",
+    "ui_demo_mode_completed",
+}
+_UI_TELEMETRY_USER_MODES = {"builder", "reviewer", "exec"}
+_UI_TELEMETRY_PROFILES = {"qkd_link", "pic_circuit", "orbit"}
+_UI_TELEMETRY_OUTCOMES = {"success", "failure", "abandoned"}
+_UI_TELEMETRY_EVENT_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
 
 
 def _parse_execution_mode(payload: dict[str, Any] | None) -> str:
@@ -233,6 +250,21 @@ def _enforce_project_scope_or_403(ctx: dict[str, Any], project_id: str | None) -
 def _run_project_id_from_manifest(manifest: dict[str, Any] | None) -> str:
     m = manifest if isinstance(manifest, dict) else {}
     return str(((m.get("input") if isinstance(m.get("input"), dict) else {}) or {}).get("project_id") or "default").strip().lower() or "default"
+
+
+def _normalize_utc_timestamp(value: Any, *, field_name: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return datetime.now(timezone.utc).isoformat()
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"{field_name} must be ISO-8601 timestamp") from exc
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.isoformat()
 
 
 def _safe_read_json_object(path: Path) -> dict[str, Any] | None:
@@ -1509,6 +1541,99 @@ def projects_approvals_create(request: Request, project_id: str, payload: dict =
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "event": event,
+        "provenance": {
+            "photonstrust_version": app.version,
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+
+
+@app.post("/v0/ui/telemetry/events")
+def ui_telemetry_events_ingest(request: Request, payload: dict = Body(...)) -> dict[str, Any]:
+    ctx = _require_roles(request, "runner", "approver")
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Expected JSON object for telemetry event")
+
+    event_name = str(payload.get("event_name") or payload.get("event") or "").strip().lower()
+    if not event_name:
+        raise HTTPException(status_code=400, detail="event_name is required")
+    if not _UI_TELEMETRY_EVENT_RE.match(event_name) or event_name not in _UI_TELEMETRY_EVENT_NAMES:
+        raise HTTPException(status_code=400, detail="unsupported event_name")
+
+    session_id = str(payload.get("session_id") or "").strip()
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    if len(session_id) > 128:
+        raise HTTPException(status_code=400, detail="session_id must be <= 128 chars")
+
+    user_mode = str(payload.get("user_mode") or "").strip().lower()
+    if user_mode not in _UI_TELEMETRY_USER_MODES:
+        raise HTTPException(status_code=400, detail="user_mode must be one of: builder, reviewer, exec")
+
+    profile = str(payload.get("profile") or "").strip().lower()
+    if profile not in _UI_TELEMETRY_PROFILES:
+        raise HTTPException(status_code=400, detail="profile must be one of: qkd_link, pic_circuit, orbit")
+
+    outcome = str(payload.get("outcome") or "success").strip().lower() or "success"
+    if outcome not in _UI_TELEMETRY_OUTCOMES:
+        raise HTTPException(status_code=400, detail="outcome must be one of: success, failure, abandoned")
+
+    run_id = str(payload.get("run_id") or "").strip()
+    if len(run_id) > 128:
+        raise HTTPException(status_code=400, detail="run_id must be <= 128 chars")
+
+    duration_ms: int | None = None
+    duration_raw = payload.get("duration_ms")
+    if duration_raw is not None and str(duration_raw).strip() != "":
+        try:
+            duration_ms = int(round(float(duration_raw)))
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="duration_ms must be numeric when provided") from exc
+        if duration_ms < 0:
+            raise HTTPException(status_code=400, detail="duration_ms must be >= 0")
+
+    payload_obj = payload.get("payload")
+    if payload_obj is None:
+        payload_obj = {}
+    if not isinstance(payload_obj, dict):
+        raise HTTPException(status_code=400, detail="payload must be a JSON object when provided")
+    if len(json.dumps(payload_obj, ensure_ascii=True)) > 64000:
+        raise HTTPException(status_code=400, detail="payload too large")
+
+    timestamp_utc = _normalize_utc_timestamp(payload.get("timestamp_utc"), field_name="timestamp_utc")
+    try:
+        project_id = project_store.validate_project_id(payload.get("project_id", "default"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _enforce_project_scope_or_403(ctx, project_id)
+
+    event = {
+        "schema_version": "0.1",
+        "kind": "photonstrust.ui_metric_event",
+        "event_id": uuid.uuid4().hex[:12],
+        "event_name": event_name,
+        "timestamp_utc": timestamp_utc,
+        "ingested_at": datetime.now(timezone.utc).isoformat(),
+        "session_id": session_id,
+        "user_mode": user_mode,
+        "profile": profile,
+        "project_id": project_id,
+        "run_id": run_id or None,
+        "duration_ms": duration_ms,
+        "outcome": outcome,
+        "payload": payload_obj,
+    }
+    try:
+        out_path = ui_metrics_store.append_ui_metric_event(event)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "accepted": True,
+        "path": str(out_path),
         "event": event,
         "provenance": {
             "photonstrust_version": app.version,

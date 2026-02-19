@@ -1083,6 +1083,93 @@ def test_api_projects_and_approvals(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert res.status_code == 400
 
 
+def test_api_ui_telemetry_ingest_writes_events_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path / "api_runs"))
+    client = TestClient(app)
+
+    event_1 = {
+        "event_name": "ui_session_started",
+        "timestamp_utc": "2026-02-19T10:00:00Z",
+        "session_id": "ui_session_1",
+        "user_mode": "builder",
+        "profile": "qkd_link",
+        "outcome": "success",
+        "payload": {"screen": "landing"},
+    }
+    res = client.post("/v0/ui/telemetry/events", json=event_1)
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload.get("accepted") is True
+    assert (payload.get("event") or {}).get("event_name") == "ui_session_started"
+
+    event_2 = {
+        "event_name": "ui_run_succeeded",
+        "session_id": "ui_session_1",
+        "user_mode": "builder",
+        "profile": "qkd_link",
+        "run_id": "abcdef123456",
+        "duration_ms": 420,
+        "outcome": "success",
+    }
+    res = client.post("/v0/ui/telemetry/events", json=event_2)
+    assert res.status_code == 200
+
+    events_path = tmp_path / "ui_metrics" / "events.jsonl"
+    assert events_path.exists()
+    lines = [ln for ln in events_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 2
+    rows = [json.loads(ln) for ln in lines]
+    assert rows[0].get("event_name") == "ui_session_started"
+    assert rows[1].get("event_name") == "ui_run_succeeded"
+    assert rows[1].get("duration_ms") == 420
+
+
+def test_api_ui_telemetry_ingest_rejects_invalid_payload(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    bad_event = {
+        "event_name": "ui_not_supported",
+        "session_id": "s1",
+        "user_mode": "builder",
+        "profile": "qkd_link",
+    }
+    res = client.post("/v0/ui/telemetry/events", json=bad_event)
+    assert res.status_code == 400
+
+    bad_duration = {
+        "event_name": "ui_run_started",
+        "session_id": "s1",
+        "user_mode": "builder",
+        "profile": "qkd_link",
+        "duration_ms": -1,
+    }
+    res = client.post("/v0/ui/telemetry/events", json=bad_duration)
+    assert res.status_code == 400
+
+
+def test_api_ui_telemetry_ingest_honors_results_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    results_root = tmp_path / "custom_results_root"
+    monkeypatch.setenv("PHOTONTRUST_RESULTS_ROOT", str(results_root))
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path / "api_runs"))
+    client = TestClient(app)
+
+    event = {
+        "event_name": "ui_compare_completed",
+        "session_id": "s2",
+        "user_mode": "reviewer",
+        "profile": "pic_circuit",
+        "outcome": "success",
+    }
+    res = client.post("/v0/ui/telemetry/events", json=event)
+    assert res.status_code == 200
+
+    events_path = results_root / "ui_metrics" / "events.jsonl"
+    assert events_path.exists()
+    row = json.loads(events_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert row.get("event_name") == "ui_compare_completed"
+
+
 def test_api_orbit_pass_validate_returns_diagnostics() -> None:
     client = TestClient(app)
     res = client.post("/v0/orbit/pass/validate", json={"config": _orbit_pass_config(), "require_schema": True})

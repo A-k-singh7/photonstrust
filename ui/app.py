@@ -6,6 +6,7 @@ import json
 import io
 import os
 import statistics
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -140,6 +141,98 @@ SESSION_PIC_GRAPH_JSON_KEY = "ui_pic_graph_json"
 SESSION_LAST_PIC_PAYLOAD_KEY = "ui_last_pic_payload"
 SESSION_LAST_PIC_REQUEST_KEY = "ui_last_pic_request"
 SESSION_LAST_PIC_BUNDLE_DIR_KEY = "ui_last_pic_bundle_dir"
+SESSION_CAPABILITY_LAST_RESULT_KEY = "ui_capability_last_result"
+SESSION_CAPABILITY_HISTORY_KEY = "ui_capability_history"
+
+CAPABILITY_API_SURFACE: list[dict[str, str]] = [
+    {"domain": "Core API", "capability": "Health probe", "method": "GET", "path": "/healthz", "ui_status": "Console", "startup_value": "Runtime liveness and version check."},
+    {"domain": "Core API", "capability": "Kinds registry", "method": "GET", "path": "/v0/registry/kinds", "ui_status": "Builder+Console", "startup_value": "Machine-readable parameter and component taxonomy."},
+    {"domain": "Graph", "capability": "Graph validation", "method": "POST", "path": "/v0/graph/validate", "ui_status": "Console", "startup_value": "Pre-flight schema and semantic diagnostics."},
+    {"domain": "Graph", "capability": "Graph compilation", "method": "POST", "path": "/v0/graph/compile", "ui_status": "Console", "startup_value": "Deterministic compile step with cache metadata."},
+    {"domain": "QKD", "capability": "Run QKD simulation", "method": "POST", "path": "/v0/qkd/run", "ui_status": "Run Builder+Console", "startup_value": "Reliability-card-grade simulation with provenance."},
+    {"domain": "QKD", "capability": "Run QKD async", "method": "POST", "path": "/v0/qkd/run/async", "ui_status": "Console", "startup_value": "Queue-based execution for larger jobs."},
+    {"domain": "QKD", "capability": "Import external result", "method": "POST", "path": "/v0/qkd/import_external", "ui_status": "Console", "startup_value": "Interop bridge from third-party simulators."},
+    {"domain": "Jobs", "capability": "List jobs", "method": "GET", "path": "/v0/jobs", "ui_status": "Console", "startup_value": "Execution queue observability."},
+    {"domain": "Jobs", "capability": "Get job", "method": "GET", "path": "/v0/jobs/{job_id}", "ui_status": "Console", "startup_value": "Full async job manifest retrieval."},
+    {"domain": "Jobs", "capability": "Get job status", "method": "GET", "path": "/v0/jobs/{job_id}/status", "ui_status": "Console", "startup_value": "Lightweight async polling endpoint."},
+    {"domain": "Runs", "capability": "List runs", "method": "GET", "path": "/v0/runs", "ui_status": "Run Registry+Console", "startup_value": "Unified run registry across workflows."},
+    {"domain": "Runs", "capability": "Get run manifest", "method": "GET", "path": "/v0/runs/{run_id}", "ui_status": "Run Registry+Console", "startup_value": "Single-run provenance and artifact index."},
+    {"domain": "Runs", "capability": "Fetch run artifact", "method": "GET", "path": "/v0/runs/{run_id}/artifact", "ui_status": "Run Builder+Registry+Console", "startup_value": "Safe artifact serving with path constraints."},
+    {"domain": "Runs", "capability": "Build evidence bundle", "method": "GET", "path": "/v0/runs/{run_id}/bundle", "ui_status": "Console", "startup_value": "Portable evidence package for offline review."},
+    {"domain": "Runs", "capability": "Publish evidence bundle", "method": "POST", "path": "/v0/runs/{run_id}/bundle/publish", "ui_status": "Console", "startup_value": "Digest-addressable bundle publication."},
+    {"domain": "Evidence", "capability": "Fetch published bundle", "method": "GET", "path": "/v0/evidence/bundle/by-digest/{digest}", "ui_status": "Console", "startup_value": "Immutable, hash-addressed evidence retrieval."},
+    {"domain": "Evidence", "capability": "Verify published bundle", "method": "GET", "path": "/v0/evidence/bundle/by-digest/{digest}/verify", "ui_status": "Console", "startup_value": "Server-side integrity verification report."},
+    {"domain": "Runs", "capability": "Run diff", "method": "POST", "path": "/v0/runs/diff", "ui_status": "Run Registry+Console", "startup_value": "Input/output delta and violation-diff analysis."},
+    {"domain": "Projects", "capability": "List projects", "method": "GET", "path": "/v0/projects", "ui_status": "Console", "startup_value": "Project-level aggregation over run history."},
+    {"domain": "Projects", "capability": "List approvals", "method": "GET", "path": "/v0/projects/{project_id}/approvals", "ui_status": "Console", "startup_value": "Approval ledger for governance."},
+    {"domain": "Projects", "capability": "Create approval", "method": "POST", "path": "/v0/projects/{project_id}/approvals", "ui_status": "Console", "startup_value": "Machine-checkable signoff trail."},
+    {"domain": "Orbit", "capability": "Validate orbit pass", "method": "POST", "path": "/v0/orbit/pass/validate", "ui_status": "Console", "startup_value": "Mission-envelope diagnostics before execution."},
+    {"domain": "Orbit", "capability": "Run orbit pass", "method": "POST", "path": "/v0/orbit/pass/run", "ui_status": "Console", "startup_value": "Time-resolved pass simulation with trust labels."},
+    {"domain": "PIC", "capability": "Simulate PIC graph", "method": "POST", "path": "/v0/pic/simulate", "ui_status": "PIC+Console", "startup_value": "Single-point and sweep photonic simulation."},
+    {"domain": "PIC", "capability": "Inverse design (MZI phase)", "method": "POST", "path": "/v0/pic/invdesign/mzi_phase", "ui_status": "Console", "startup_value": "Objective-driven phase tuning with evidence."},
+    {"domain": "PIC", "capability": "Inverse design (coupler ratio)", "method": "POST", "path": "/v0/pic/invdesign/coupler_ratio", "ui_status": "Console", "startup_value": "Coupler optimization for target split ratios."},
+    {"domain": "PIC", "capability": "Workflow chain", "method": "POST", "path": "/v0/pic/workflow/invdesign_chain", "ui_status": "Console", "startup_value": "Chained invdesign->layout->LVS->SPICE workflow."},
+    {"domain": "PIC", "capability": "Workflow replay", "method": "POST", "path": "/v0/pic/workflow/invdesign_chain/replay", "ui_status": "Console", "startup_value": "Deterministic replay from stored request snapshot."},
+    {"domain": "PIC", "capability": "Layout build", "method": "POST", "path": "/v0/pic/layout/build", "ui_status": "Console", "startup_value": "Deterministic PIC layout artifact generation."},
+    {"domain": "PIC", "capability": "LVS-lite", "method": "POST", "path": "/v0/pic/layout/lvs_lite", "ui_status": "Console", "startup_value": "Topology and signoff-bundle consistency checks."},
+    {"domain": "PIC", "capability": "KLayout artifact pack", "method": "POST", "path": "/v0/pic/layout/klayout/run", "ui_status": "Console", "startup_value": "Tool-seam output bundle for DRC/LVS integration."},
+    {"domain": "PIC", "capability": "Foundry DRC sealed seam", "method": "POST", "path": "/v0/pic/layout/foundry_drc/run", "ui_status": "Console", "startup_value": "Fail-closed foundry DRC bridge with metadata-only exposure."},
+    {"domain": "PIC", "capability": "SPICE export", "method": "POST", "path": "/v0/pic/spice/export", "ui_status": "Console", "startup_value": "Circuit export into SPICE-compatible artifacts."},
+    {"domain": "PIC", "capability": "Performance DRC crosstalk", "method": "POST", "path": "/v0/performance_drc/crosstalk", "ui_status": "Console", "startup_value": "Physical performance checks against crosstalk budgets."},
+]
+
+CAPABILITY_CLI_SURFACE: list[dict[str, str]] = [
+    {"domain": "CLI", "capability": "Scenario run", "command": "photonstrust run <config.yaml>", "startup_value": "One-command local execution for research and ops."},
+    {"domain": "CLI", "capability": "Config validation only", "command": "photonstrust run <config.yaml> --validate-only", "startup_value": "Pre-flight config checks in CI and review loops."},
+    {"domain": "CLI", "capability": "Graph compile artifacts", "command": "photonstrust graph compile <graph.json> --output results/graphs", "startup_value": "Deterministic graph-to-engine build artifact chain."},
+    {"domain": "CLI", "capability": "GraphSpec canonical formatter", "command": "photonstrust fmt graphspec <graph.toml> --check --print-hash", "startup_value": "Stable formatting and hash-based reproducibility."},
+    {"domain": "CLI", "capability": "PIC simulation", "command": "photonstrust pic simulate <netlist.json> --wavelength-sweep-nm 1540 1550 1560", "startup_value": "Local photonic simulation path without API layer."},
+    {"domain": "CLI", "capability": "PIC crosstalk predictor", "command": "photonstrust pic crosstalk --gap-um 0.6 --length-um 1000 --wavelength-nm 1550", "startup_value": "Quick route-geometry performance checks."},
+    {"domain": "CLI", "capability": "Evidence key generation", "command": "photonstrust bundle keygen --private keys/private.pem --public keys/public.pem", "startup_value": "Ed25519 signing key lifecycle bootstrap."},
+    {"domain": "CLI", "capability": "Evidence signing", "command": "photonstrust bundle sign <bundle.zip> --key keys/private.pem", "startup_value": "Cryptographic release/evidence attestation."},
+    {"domain": "CLI", "capability": "Evidence verification", "command": "photonstrust bundle verify <bundle.zip> --pubkey keys/public.pem --require-signature", "startup_value": "Integrity and signature checks for auditors."},
+    {"domain": "CLI", "capability": "Reliability card validation", "command": "photonstrust card validate <reliability_card.json> --schema v1.1", "startup_value": "Schema-level quality gate for card artifacts."},
+    {"domain": "CLI", "capability": "Reliability card diff", "command": "photonstrust card diff <lhs.json> <rhs.json> --limit 200", "startup_value": "Change tracking across candidate releases."},
+]
+
+CAPABILITY_DEMOS: dict[str, dict[str, str]] = {
+    "platform_smoke": {
+        "title": "Platform smoke check",
+        "description": "Checks health, kinds registry, runs listing, and projects listing to prove runtime readiness.",
+    },
+    "qkd_sync": {
+        "title": "QKD synchronous run",
+        "description": "Runs `/v0/qkd/run` and emits a reliability-card-bearing run manifest.",
+    },
+    "qkd_async": {
+        "title": "QKD async + jobs",
+        "description": "Submits `/v0/qkd/run/async`, then polls `/v0/jobs/{job_id}/status` to terminal state.",
+    },
+    "qkd_external_import": {
+        "title": "QKD external import",
+        "description": "Imports an external simulator result and converts it into a PhotonTrust reliability card.",
+    },
+    "orbit_validate_run": {
+        "title": "Orbit validate + run",
+        "description": "Validates and executes an orbit-pass envelope configuration.",
+    },
+    "pic_simulate": {
+        "title": "PIC simulation sweep",
+        "description": "Executes `/v0/pic/simulate` on an interferometer graph with wavelength sweep.",
+    },
+    "pic_workflow_chain": {
+        "title": "PIC workflow chain",
+        "description": "Runs inverse design + layout + LVS + SPICE in one chained workflow.",
+    },
+    "performance_drc": {
+        "title": "Performance DRC crosstalk",
+        "description": "Runs crosstalk/loss-budget checks with pdk context and violation summaries.",
+    },
+    "bundle_publish_verify": {
+        "title": "Evidence bundle publish + verify",
+        "description": "Publishes a run evidence bundle and verifies by digest.",
+    },
+}
 
 
 def _builder_key(name: str) -> str:
@@ -545,6 +638,623 @@ def _execute_qkd_run(*, state: dict[str, Any], graph: dict[str, Any], results_ro
         )
         st.error(f"{diag.get('title', 'Run failed')}: {diag.get('detail', str(exc))}")
         st.info(f"Recovery hint: {diag.get('hint', 'Check payload and API logs, then retry.')}")
+
+
+def _capability_rows() -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for item in CAPABILITY_API_SURFACE:
+        rows.append(
+            {
+                "surface": "API",
+                "domain": str(item.get("domain", "")),
+                "capability": str(item.get("capability", "")),
+                "entrypoint": f"{item.get('method', '')} {item.get('path', '')}",
+                "ui_status": str(item.get("ui_status", "")),
+                "startup_value": str(item.get("startup_value", "")),
+            }
+        )
+    for item in CAPABILITY_CLI_SURFACE:
+        rows.append(
+            {
+                "surface": "CLI",
+                "domain": str(item.get("domain", "")),
+                "capability": str(item.get("capability", "")),
+                "entrypoint": str(item.get("command", "")),
+                "ui_status": "Console reference",
+                "startup_value": str(item.get("startup_value", "")),
+            }
+        )
+    return rows
+
+
+def _capability_qkd_demo_graph() -> dict[str, Any]:
+    state = dict(DEFAULT_BUILDER_STATE)
+    now_tag = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    state["scenario_id"] = f"caps_qkd_{now_tag}"
+    state["graph_id"] = f"caps_qkd_{now_tag}"
+    state["protocol_name"] = "BBM92"
+    state["distance_km"] = 25.0
+    state["rep_rate_mhz"] = 120.0
+    state["execution_mode"] = "preview"
+    return _build_qkd_graph(state)
+
+
+def _capability_orbit_demo_config() -> dict[str, Any]:
+    return {
+        "orbit_pass": {
+            "id": f"caps_orbit_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}",
+            "band": "c_1550",
+            "dt_s": 30,
+            "samples": [
+                {"t_s": 0, "distance_km": 10, "elevation_deg": 20, "background_counts_cps": 0},
+                {"t_s": 30, "distance_km": 50, "elevation_deg": 40, "background_counts_cps": 0},
+                {"t_s": 60, "distance_km": 100, "elevation_deg": 70, "background_counts_cps": 0},
+            ],
+            "cases": [
+                {"id": "median", "label": "Median", "channel_overrides": {}},
+            ],
+        },
+        "source": {"type": "emitter_cavity", "g2_0": 0.0},
+        "channel": {"model": "free_space"},
+        "detector": {"class": "snspd"},
+        "timing": {},
+        "protocol": {"name": "BBM92"},
+        "uncertainty": {},
+    }
+
+
+def _capability_external_result_payload() -> dict[str, Any]:
+    return {
+        "schema_version": "0.1",
+        "kind": "photonstrust.external_sim_result",
+        "simulator_name": "PhotonTrust_Demo_Interop",
+        "simulator_version": "0.1",
+        "scenario_description": {
+            "scenario_id": f"caps_external_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}",
+            "band": "c_1550",
+            "wavelength_nm": 1550.0,
+            "protocol": "BB84",
+        },
+        "metrics": {
+            "key_rate_bps": 120.0,
+            "qber_total": 0.02,
+            "fidelity_est": 0.98,
+            "distance_km": 40.0,
+        },
+        "provenance": {"seed": 7, "notes": "UI capability demo payload"},
+    }
+
+
+def _capability_pic_mzi_graph() -> dict[str, Any]:
+    graph = _pic_mzi_template_graph()
+    now_tag = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    graph["graph_id"] = f"caps_pic_mzi_{now_tag}"
+    circuit = graph.get("circuit") if isinstance(graph.get("circuit"), dict) else {}
+    circuit["id"] = str(graph["graph_id"])
+    graph["circuit"] = circuit
+    return graph
+
+
+def _poll_job_terminal_status(api_base_url: str, job_id: str, timeout_s: float = 20.0) -> dict[str, Any]:
+    deadline = time.time() + max(1.0, float(timeout_s))
+    last_payload: dict[str, Any] = {}
+    while time.time() <= deadline:
+        payload = api_get_json(api_base_url, f"/v0/jobs/{job_id}/status", timeout_s=15.0)
+        last_payload = payload
+        status = str(payload.get("status", "")).strip().lower()
+        if status in {"succeeded", "failed"}:
+            return payload
+        time.sleep(0.25)
+    return last_payload
+
+
+def _capability_history_entries() -> list[dict[str, str]]:
+    raw = st.session_state.get(SESSION_CAPABILITY_HISTORY_KEY)
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, str]] = []
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        out.append(
+            {
+                "kind": str(row.get("kind", "")),
+                "id": str(row.get("id", "")),
+                "source": str(row.get("source", "")),
+                "captured_at": str(row.get("captured_at", "")),
+            }
+        )
+    return out
+
+
+def _append_capability_history(*, kind: str, identifier: str, source: str) -> None:
+    ident = str(identifier or "").strip()
+    if not ident:
+        return
+    history = _capability_history_entries()
+    deduped = [row for row in history if not (row.get("kind") == kind and row.get("id") == ident)]
+    deduped.insert(
+        0,
+        {
+            "kind": str(kind),
+            "id": ident,
+            "source": str(source),
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+    st.session_state[SESSION_CAPABILITY_HISTORY_KEY] = deduped[:30]
+
+
+def _capability_recent_run_ids(api_base_url: str) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+
+    for row in _capability_history_entries():
+        if str(row.get("kind", "")) != "run":
+            continue
+        rid = str(row.get("id", "")).strip()
+        if rid and rid not in seen:
+            out.append(rid)
+            seen.add(rid)
+
+    try:
+        runs_payload = api_get_json(api_base_url, "/v0/runs?limit=100", timeout_s=20.0)
+        runs = runs_payload.get("runs") if isinstance(runs_payload.get("runs"), list) else []
+        for row in runs:
+            if not isinstance(row, dict):
+                continue
+            rid = str(row.get("run_id", "")).strip()
+            if rid and rid not in seen:
+                out.append(rid)
+                seen.add(rid)
+    except Exception:
+        return out
+    return out
+
+
+def _run_capability_demo(*, demo_id: str, api_base_url: str, selected_run_id: str | None = None) -> dict[str, Any]:
+    refs: list[dict[str, str]] = []
+    summary_rows: list[dict[str, Any]] = []
+
+    if demo_id == "platform_smoke":
+        health = api_get_json(api_base_url, "/healthz")
+        registry = api_get_json(api_base_url, "/v0/registry/kinds")
+        runs_payload = api_get_json(api_base_url, "/v0/runs?limit=20")
+        projects_payload = api_get_json(api_base_url, "/v0/projects?limit=20")
+
+        kinds = (((registry.get("registry") if isinstance(registry.get("registry"), dict) else {}) or {}).get("kinds"))
+        run_rows = runs_payload.get("runs") if isinstance(runs_payload.get("runs"), list) else []
+        project_rows = projects_payload.get("projects") if isinstance(projects_payload.get("projects"), list) else []
+        summary_rows = [
+            {"metric": "health", "value": health.get("status")},
+            {"metric": "version", "value": health.get("version")},
+            {"metric": "registered_kinds", "value": len(kinds) if isinstance(kinds, list) else 0},
+            {"metric": "runs_visible", "value": len(run_rows)},
+            {"metric": "projects_visible", "value": len(project_rows)},
+        ]
+        return {
+            "demo_id": demo_id,
+            "summary_rows": summary_rows,
+            "response": {
+                "health": health,
+                "registry": registry,
+                "runs": runs_payload,
+                "projects": projects_payload,
+            },
+            "references": refs,
+        }
+
+    if demo_id == "qkd_sync":
+        payload = {
+            "graph": _capability_qkd_demo_graph(),
+            "project_id": "startup_pitch",
+            "execution_mode": "preview",
+            "include_qasm": True,
+        }
+        run = api_post_json(api_base_url, "/v0/qkd/run", payload, timeout_s=240.0)
+        run_id = str(run.get("run_id", "")).strip()
+        if run_id:
+            refs.append({"kind": "run", "id": run_id, "source": demo_id})
+
+        cards = (((run.get("results") if isinstance(run.get("results"), dict) else {}) or {}).get("cards"))
+        first = cards[0] if isinstance(cards, list) and cards and isinstance(cards[0], dict) else {}
+        key_rate = ((first.get("outputs") if isinstance(first.get("outputs"), dict) else {}) or {}).get("key_rate_bps")
+        qber = ((first.get("derived") if isinstance(first.get("derived"), dict) else {}) or {}).get("qber_total")
+        summary_rows = [
+            {"metric": "run_id", "value": run_id},
+            {"metric": "graph_hash", "value": run.get("graph_hash")},
+            {"metric": "key_rate_bps", "value": key_rate},
+            {"metric": "qber_total", "value": qber},
+        ]
+        return {"demo_id": demo_id, "summary_rows": summary_rows, "response": run, "references": refs}
+
+    if demo_id == "qkd_async":
+        payload = {
+            "graph": _capability_qkd_demo_graph(),
+            "project_id": "startup_pitch",
+            "execution_mode": "preview",
+            "include_qasm": True,
+        }
+        queued = api_post_json(api_base_url, "/v0/qkd/run/async", payload, timeout_s=60.0)
+        job_id = str(queued.get("job_id", "")).strip()
+        if job_id:
+            refs.append({"kind": "job", "id": job_id, "source": demo_id})
+        terminal = _poll_job_terminal_status(api_base_url, job_id, timeout_s=30.0)
+        result = terminal.get("result") if isinstance(terminal.get("result"), dict) else {}
+        run_id = str(result.get("run_id", "")).strip()
+        if run_id:
+            refs.append({"kind": "run", "id": run_id, "source": demo_id})
+        summary_rows = [
+            {"metric": "job_id", "value": job_id},
+            {"metric": "status", "value": terminal.get("status")},
+            {"metric": "run_id", "value": run_id or "n/a"},
+        ]
+        return {
+            "demo_id": demo_id,
+            "summary_rows": summary_rows,
+            "response": {"queued": queued, "terminal_status": terminal},
+            "references": refs,
+        }
+
+    if demo_id == "qkd_external_import":
+        payload = {
+            "project_id": "startup_pitch",
+            "external_result": _capability_external_result_payload(),
+        }
+        imported = api_post_json(api_base_url, "/v0/qkd/import_external", payload, timeout_s=120.0)
+        run_id = str(imported.get("run_id", "")).strip()
+        if run_id:
+            refs.append({"kind": "run", "id": run_id, "source": demo_id})
+        summary_rows = [
+            {"metric": "run_id", "value": run_id},
+            {"metric": "external_result_hash", "value": imported.get("external_result_hash")},
+            {"metric": "card_path", "value": imported.get("card_path")},
+        ]
+        return {"demo_id": demo_id, "summary_rows": summary_rows, "response": imported, "references": refs}
+
+    if demo_id == "orbit_validate_run":
+        config = _capability_orbit_demo_config()
+        validation = api_post_json(api_base_url, "/v0/orbit/pass/validate", {"config": config}, timeout_s=60.0)
+        run = api_post_json(
+            api_base_url,
+            "/v0/orbit/pass/run",
+            {"config": config, "project_id": "startup_pitch"},
+            timeout_s=180.0,
+        )
+        run_id = str(run.get("run_id", "")).strip()
+        if run_id:
+            refs.append({"kind": "run", "id": run_id, "source": demo_id})
+        errors = (((validation.get("diagnostics") if isinstance(validation.get("diagnostics"), dict) else {}) or {}).get("summary") or {}).get(
+            "error_count", 0
+        )
+        summary_rows = [
+            {"metric": "validation_errors", "value": errors},
+            {"metric": "run_id", "value": run_id},
+            {"metric": "results_path", "value": run.get("results_path")},
+            {"metric": "report_html_path", "value": run.get("report_html_path")},
+        ]
+        return {
+            "demo_id": demo_id,
+            "summary_rows": summary_rows,
+            "response": {"validation": validation, "run": run},
+            "references": refs,
+        }
+
+    if demo_id == "pic_simulate":
+        payload = {
+            "graph": _capability_pic_mzi_graph(),
+            "wavelength_sweep_nm": [1545.0, 1550.0, 1555.0],
+        }
+        sim = api_post_json(api_base_url, "/v0/pic/simulate", payload, timeout_s=180.0)
+        sweep = (((sim.get("results") if isinstance(sim.get("results"), dict) else {}) or {}).get("sweep"))
+        points = sweep.get("points") if isinstance(sweep, dict) and isinstance(sweep.get("points"), list) else []
+        summary_rows = [
+            {"metric": "graph_hash", "value": sim.get("graph_hash")},
+            {"metric": "sweep_points", "value": len(points)},
+        ]
+        return {"demo_id": demo_id, "summary_rows": summary_rows, "response": sim, "references": refs}
+
+    if demo_id == "pic_workflow_chain":
+        graph = _capability_pic_mzi_graph()
+        payload = {
+            "project_id": "startup_pitch",
+            "graph": graph,
+            "invdesign": {
+                "kind": "mzi_phase",
+                "phase_node_id": "ps1",
+                "target_output_node": "cpl_out",
+                "target_output_port": "out1",
+                "target_power_fraction": 0.9,
+                "steps": 31,
+                "wavelength_sweep_nm": [1550.0],
+            },
+            "layout": {"pdk": {"name": "generic_silicon_photonics"}, "settings": {"ui_scale_um_per_unit": 1.0}},
+            "lvs_lite": {"settings": {"coord_tol_um": 1.0e-6}},
+            "klayout": {"settings": {}},
+            "spice": {"settings": {"top_name": "PT_TOP", "subckt_prefix": "PT", "include_stub_subckts": True}},
+        }
+        workflow = api_post_json(api_base_url, "/v0/pic/workflow/invdesign_chain", payload, timeout_s=240.0)
+        run_id = str(workflow.get("run_id", "")).strip()
+        if run_id:
+            refs.append({"kind": "run", "id": run_id, "source": demo_id})
+        steps = workflow.get("steps") if isinstance(workflow.get("steps"), dict) else {}
+        for step_name in ("invdesign", "layout_build", "lvs_lite", "spice_export"):
+            step = steps.get(step_name) if isinstance(steps.get(step_name), dict) else {}
+            child_run_id = str(step.get("run_id", "")).strip()
+            if child_run_id:
+                refs.append({"kind": "run", "id": child_run_id, "source": f"{demo_id}:{step_name}"})
+        summary_rows = [
+            {"metric": "workflow_run_id", "value": run_id},
+            {"metric": "status", "value": workflow.get("status")},
+            {"metric": "manifest_path", "value": workflow.get("manifest_path")},
+        ]
+        return {"demo_id": demo_id, "summary_rows": summary_rows, "response": workflow, "references": refs}
+
+    if demo_id == "performance_drc":
+        payload = {
+            "project_id": "startup_pitch",
+            "routes": [
+                {"route_id": "wg_a", "width_um": 0.5, "points_um": [[0.0, 0.0], [100.0, 0.0]]},
+                {"route_id": "wg_b", "width_um": 0.5, "points_um": [[0.0, 1.0], [100.0, 1.0]]},
+            ],
+            "layout_extract": {"max_gap_um": 5.0, "min_parallel_length_um": 1.0},
+            "wavelength_sweep_nm": [1550.0],
+            "target_xt_db": -40.0,
+            "pdk": {"name": "generic_silicon_photonics"},
+        }
+        perf = api_post_json(api_base_url, "/v0/performance_drc/crosstalk", payload, timeout_s=180.0)
+        run_id = str(perf.get("run_id", "")).strip()
+        if run_id:
+            refs.append({"kind": "run", "id": run_id, "source": demo_id})
+        report = perf.get("report") if isinstance(perf.get("report"), dict) else {}
+        results = report.get("results") if isinstance(report.get("results"), dict) else {}
+        summary_rows = [
+            {"metric": "run_id", "value": run_id},
+            {"metric": "status", "value": results.get("status")},
+            {"metric": "worst_xt_db", "value": results.get("worst_xt_db")},
+            {"metric": "recommended_min_gap_um", "value": results.get("recommended_min_gap_um")},
+        ]
+        return {"demo_id": demo_id, "summary_rows": summary_rows, "response": perf, "references": refs}
+
+    if demo_id == "bundle_publish_verify":
+        run_id = str(selected_run_id or "").strip()
+        if not run_id:
+            raise ValueError("A run ID is required for bundle publish/verify.")
+        publish = api_post_json(
+            api_base_url,
+            f"/v0/runs/{run_id}/bundle/publish?include_children=false",
+            {},
+            timeout_s=180.0,
+        )
+        digest = str(publish.get("bundle_sha256", "")).strip()
+        if digest:
+            refs.append({"kind": "digest", "id": digest, "source": demo_id})
+        verify = api_get_json(api_base_url, f"/v0/evidence/bundle/by-digest/{digest}/verify", timeout_s=120.0)
+        summary_rows = [
+            {"metric": "source_run_id", "value": run_id},
+            {"metric": "bundle_sha256", "value": digest},
+            {"metric": "verify_ok", "value": ((verify.get("verify") if isinstance(verify.get("verify"), dict) else {}) or {}).get("ok")},
+        ]
+        return {
+            "demo_id": demo_id,
+            "summary_rows": summary_rows,
+            "response": {
+                "publish": publish,
+                "verify": verify,
+                "download_url": f"{str(api_base_url).rstrip('/')}/v0/evidence/bundle/by-digest/{digest}",
+            },
+            "references": refs,
+        }
+
+    raise ValueError(f"Unknown capability demo: {demo_id}")
+
+
+def _render_capabilities_console(results_root: Path) -> None:
+    _ensure_builder_defaults()
+    if "caps_api_base_url" not in st.session_state:
+        st.session_state["caps_api_base_url"] = str(st.session_state.get(_builder_key("api_base_url"), "")).strip()
+
+    st.markdown(
+        """
+        <style>
+        .caps-hero {
+            border: 1px solid rgba(22, 88, 81, 0.35);
+            background: linear-gradient(135deg, rgba(240, 249, 247, 0.95), rgba(247, 252, 251, 0.95));
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+        }
+        .caps-hero h3 {
+            margin: 0;
+            color: #174d47;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            letter-spacing: 0.01em;
+        }
+        .caps-hero p {
+            margin: 6px 0 0 0;
+            color: #2f4f4a;
+            font-family: "Source Serif 4", "Georgia", serif;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div class="caps-hero">
+            <h3>Platform Capabilities Console</h3>
+            <p>Startup pitch surface for PhotonTrust: full API/CLI capability map, live demos, and evidence-trace execution IDs.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    top_left, top_right = st.columns([2, 1])
+    with top_left:
+        st.text_input("API base URL", key="caps_api_base_url")
+    api_base_url = str(st.session_state.get("caps_api_base_url", "")).strip()
+    with top_right:
+        if st.button("Check platform", key="caps_check_platform"):
+            try:
+                health = api_get_json(api_base_url, "/healthz")
+                registry = api_get_json(api_base_url, "/v0/registry/kinds")
+                runs_payload = api_get_json(api_base_url, "/v0/runs?limit=20")
+                kinds = (((registry.get("registry") if isinstance(registry.get("registry"), dict) else {}) or {}).get("kinds"))
+                run_rows = runs_payload.get("runs") if isinstance(runs_payload.get("runs"), list) else []
+                st.session_state["caps_live_snapshot"] = {
+                    "health_status": str(health.get("status", "")),
+                    "version": str(health.get("version", "")),
+                    "kinds": len(kinds) if isinstance(kinds, list) else 0,
+                    "runs": len(run_rows),
+                }
+                st.success("Platform checks completed.")
+            except Exception as exc:
+                diag = diagnose_api_runtime_error(exc)
+                st.error(f"{diag.get('title', 'Check failed')}: {diag.get('detail', str(exc))}")
+                st.info(f"Recovery hint: {diag.get('hint', '')}")
+
+    snapshot = st.session_state.get("caps_live_snapshot")
+    kinds_count = int(snapshot.get("kinds", 0)) if isinstance(snapshot, dict) else 0
+    runs_count = int(snapshot.get("runs", 0)) if isinstance(snapshot, dict) else 0
+    version = str(snapshot.get("version", "unknown")) if isinstance(snapshot, dict) else "unknown"
+
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.metric("API endpoints", f"{len(CAPABILITY_API_SURFACE)}")
+    with m2:
+        st.metric("CLI workflows", f"{len(CAPABILITY_CLI_SURFACE)}")
+    with m3:
+        st.metric("Protocols", f"{len(FALLBACK_PROTOCOLS)}")
+    with m4:
+        st.metric("Live runs visible", f"{runs_count}" if runs_count > 0 else "-", help=f"Server version: {version}")
+    st.caption(f"Registry kinds discovered: {kinds_count} | Server version: {version}")
+    st.caption("Auth note: this console assumes `PHOTONTRUST_API_AUTH_MODE=off` for local pitch demos.")
+
+    rows = _capability_rows()
+    all_domains = sorted({str(row.get("domain", "")) for row in rows})
+    all_surfaces = sorted({str(row.get("surface", "")) for row in rows})
+    filter_col_1, filter_col_2 = st.columns(2)
+    with filter_col_1:
+        selected_domains = st.multiselect("Domain filter", all_domains, default=all_domains, key="caps_domain_filter")
+    with filter_col_2:
+        selected_surfaces = st.multiselect("Surface filter", all_surfaces, default=all_surfaces, key="caps_surface_filter")
+    filtered_rows = [
+        row
+        for row in rows
+        if str(row.get("domain", "")) in selected_domains and str(row.get("surface", "")) in selected_surfaces
+    ]
+    st.caption(f"Showing {len(filtered_rows)} capability entries.")
+    st.table(filtered_rows)
+
+    catalog_payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "api_surface": CAPABILITY_API_SURFACE,
+        "cli_surface": CAPABILITY_CLI_SURFACE,
+    }
+    st.download_button(
+        "Download Capability Catalog JSON",
+        data=json.dumps(catalog_payload, indent=2, sort_keys=True),
+        file_name=f"photonstrust_capability_catalog_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json",
+        key="caps_download_catalog",
+    )
+
+    st.markdown("**Live Capability Demos**")
+    demo_ids = list(CAPABILITY_DEMOS.keys())
+    selected_demo = st.selectbox(
+        "Demo scenario",
+        demo_ids,
+        format_func=lambda key: str((CAPABILITY_DEMOS.get(key) or {}).get("title", key)),
+        key="caps_demo_id",
+    )
+    st.caption(str((CAPABILITY_DEMOS.get(selected_demo) or {}).get("description", "")))
+
+    selected_run_id = ""
+    if selected_demo == "bundle_publish_verify":
+        run_id_options = _capability_recent_run_ids(api_base_url)
+        if run_id_options:
+            selected_run_id = st.selectbox("Run ID for bundle publish", run_id_options, key="caps_bundle_run_id")
+        else:
+            st.warning("No run IDs found yet. Execute a run demo first.")
+
+    if st.button("Run Selected Demo", key="caps_run_demo", type="primary"):
+        try:
+            with st.spinner("Executing capability demo..."):
+                result = _run_capability_demo(
+                    demo_id=selected_demo,
+                    api_base_url=api_base_url,
+                    selected_run_id=selected_run_id,
+                )
+            st.session_state[SESSION_CAPABILITY_LAST_RESULT_KEY] = result
+
+            refs = result.get("references") if isinstance(result.get("references"), list) else []
+            for row in refs:
+                if not isinstance(row, dict):
+                    continue
+                _append_capability_history(
+                    kind=str(row.get("kind", "")),
+                    identifier=str(row.get("id", "")),
+                    source=str(row.get("source", selected_demo)),
+                )
+
+            _log_ui_event(
+                results_root=results_root,
+                event_name="capability_demo_succeeded",
+                payload={
+                    "demo_id": selected_demo,
+                    "api_base_url": api_base_url,
+                    "reference_count": len(refs),
+                },
+            )
+            st.success(f"Demo completed: {str((CAPABILITY_DEMOS.get(selected_demo) or {}).get('title', selected_demo))}")
+        except Exception as exc:
+            diag = diagnose_api_runtime_error(exc)
+            _log_ui_event(
+                results_root=results_root,
+                event_name="capability_demo_failed",
+                payload={
+                    "demo_id": selected_demo,
+                    "error_category": diag.get("category"),
+                    "error_title": diag.get("title"),
+                    "error": diag.get("detail"),
+                },
+            )
+            st.error(f"{diag.get('title', 'Demo failed')}: {diag.get('detail', str(exc))}")
+            st.info(f"Recovery hint: {diag.get('hint', 'Check API status and endpoint prerequisites.')}")
+
+    last_result = st.session_state.get(SESSION_CAPABILITY_LAST_RESULT_KEY)
+    if isinstance(last_result, dict):
+        st.markdown("**Latest Demo Output**")
+        summary_rows = last_result.get("summary_rows") if isinstance(last_result.get("summary_rows"), list) else []
+        if summary_rows:
+            st.table(summary_rows)
+
+        response_payload = last_result.get("response") if isinstance(last_result.get("response"), dict) else {}
+        refs = last_result.get("references") if isinstance(last_result.get("references"), list) else []
+        ref_rows = [row for row in refs if isinstance(row, dict)]
+        if ref_rows:
+            st.caption("Captured references")
+            st.table(ref_rows)
+
+        download_url = str(response_payload.get("download_url", "")).strip()
+        if download_url:
+            st.markdown(f"[Download Published Bundle]({download_url})")
+
+        with st.expander("Demo Response JSON", expanded=False):
+            st.json(response_payload)
+
+    history = _capability_history_entries()
+    if history:
+        st.markdown("**Recent Captured IDs**")
+        st.table(history[:15])
+
+    st.markdown("**CLI Quickstart Surface**")
+    cli_lines: list[str] = []
+    for item in CAPABILITY_CLI_SURFACE:
+        cli_lines.append(f"# {item['capability']}")
+        cli_lines.append(str(item["command"]))
+        cli_lines.append("")
+    st.code("\n".join(cli_lines).strip() + "\n", language="bash")
 
 
 def _render_run_builder(results_root: Path) -> None:
@@ -1348,14 +2058,16 @@ def main() -> None:
     results_default = str(os.environ.get("PHOTONTRUST_RESULTS_ROOT", "results"))
     results_root = Path(st.sidebar.text_input("Results directory", results_default))
 
-    tabs = st.tabs(["Run Builder", "PIC", "Run Registry", "Dataset Entries"])
+    tabs = st.tabs(["Capabilities Console", "Run Builder", "PIC", "Run Registry", "Dataset Entries"])
     with tabs[0]:
-        _render_run_builder(results_root)
+        _render_capabilities_console(results_root)
     with tabs[1]:
-        _render_pic_workbench(results_root)
+        _render_run_builder(results_root)
     with tabs[2]:
-        _render_run_registry(results_root)
+        _render_pic_workbench(results_root)
     with tabs[3]:
+        _render_run_registry(results_root)
+    with tabs[4]:
         _render_dataset_entries(results_root)
 
 

@@ -68,3 +68,70 @@ def test_measure_quickstart_timing_script_runs_trivial_command() -> None:
     assert payload["returncode"] == 0
     assert payload["elapsed_seconds"] >= 0
     assert "123" in payload["stdout"]
+
+
+def test_start_product_local_script_dry_run_prints_commands() -> None:
+    script = REPO_ROOT / "scripts" / "start_product_local.py"
+    assert script.exists(), "Week 4 local launcher script should exist"
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--dry-run",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "api_cmd:" in completed.stdout
+    assert "ui_cmd:" in completed.stdout
+    assert "PhotonTrust local product launcher" in completed.stdout
+
+
+def test_run_product_pilot_demo_script_dry_run_writes_requests(tmp_path: Path) -> None:
+    script = REPO_ROOT / "scripts" / "run_product_pilot_demo.py"
+    assert script.exists(), "Week 4 pilot demo script should exist"
+
+    results_root = tmp_path / "pilot_results"
+    label = "dryrun_test"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--dry-run",
+            "--results-root",
+            str(results_root),
+            "--label",
+            label,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "[dry-run] case=bbm92_metro_50km" in completed.stdout
+    assert "[dry-run] case=mdi_intercity_150km" in completed.stdout
+    assert "[dry-run] case=tf_backbone_300km" in completed.stdout
+
+    raw_dir = results_root / label / "raw"
+    assert (raw_dir / "bbm92_metro_50km.request.json").exists()
+    assert (raw_dir / "mdi_intercity_150km.request.json").exists()
+    assert (raw_dir / "tf_backbone_300km.request.json").exists()
+
+
+def test_product_readiness_gate_script_dry_run() -> None:
+    script = REPO_ROOT / "scripts" / "product_readiness_gate.py"
+    assert script.exists(), "Product readiness gate script should exist"
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--dry-run",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "[dry-run] Product readiness gate plan" in completed.stdout
+    assert "report_path:" in completed.stdout

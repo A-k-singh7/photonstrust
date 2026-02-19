@@ -86,8 +86,40 @@ Streamlit dashboard:
 
 ```bash
 pip install -e .[ui]
+uvicorn photonstrust.api.server:app --host 127.0.0.1 --port 8000
 streamlit run ui/app.py
 ```
+
+Week 4 product packaging (single-command local start + pilot demo):
+
+```bash
+pip install -e .[api,ui]
+python scripts/start_product_local.py
+python scripts/run_product_pilot_demo.py --project-id pilot_demo_week4
+python scripts/product_readiness_gate.py --spawn-api
+```
+
+Quickstart runbook:
+
+- `docs/operations/product/10_minute_quickstart_2026-02-18.md`
+
+UI run-builder walkthrough:
+
+1. Open `Run Builder` tab.
+2. Click `Check API health`.
+3. Click `Run Golden Path Demo` (recommended).
+4. Confirm `Decision Summary` and `Time to first value`.
+5. Export a deterministic `Run Profile (Export / Import)` JSON for reuse.
+
+Run profile reuse:
+
+- `Run Profile (Export / Import)` allows downloading/importing exact builder settings.
+- Saved profiles are written under `results/ui_profiles/*.json`.
+
+Error recovery hints:
+
+- API failures in Run Builder are categorized (connectivity, validation, auth scope, backend failure)
+  and shown with direct recovery guidance.
 
 UI comparison walkthrough:
 
@@ -97,8 +129,20 @@ photonstrust run configs/demo1_nir_795.yml --output results/compare_b
 streamlit run ui/app.py
 ```
 
-In the UI sidebar, set `Results directory` to `results`, then use `Select runs`
-to pick at least two cards and verify the comparison table appears.
+In `Run Registry`, set `Results directory` to `results`, select at least two
+runs, and verify delta metrics appear.
+
+Baseline decision workflow:
+
+- In `Run Registry`, set `Project ID for baseline promotion`.
+- Promote a selected run as baseline.
+- Select a candidate run and review recommendation (`promote` or `hold`) before
+  promoting candidate baseline.
+- Baseline state persists in `results/ui_product_state/state.json`.
+
+UI telemetry events are written to:
+
+`results/ui_metrics/events.jsonl`
 
 PDF reports:
 
@@ -145,6 +189,7 @@ Open benchmarks (shareable bundles) + repro packs:
 python scripts/check_open_benchmarks.py
 python scripts/generate_repro_pack.py configs/demo1_quick_smoke.yml results/repro_pack_demo1_quick_smoke
 python scripts/validate_recent_research_examples.py
+python scripts/compare_recent_research_benchmarks.py
 ```
 
 Measurement bundles (ingestion + opt-in artifact packs):

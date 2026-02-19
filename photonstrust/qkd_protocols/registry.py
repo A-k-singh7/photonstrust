@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from photonstrust.qkd_protocols.base import ProtocolApplicability, QKDProtocolModule
+from photonstrust.qkd_protocols.amdi_qkd import compute_point_amdi_qkd
 from photonstrust.qkd_protocols.bb84_decoy import compute_point_bb84_decoy
 from photonstrust.qkd_protocols.bbm92 import compute_point_bbm92
 from photonstrust.qkd_protocols.common import normalize_protocol_name
@@ -71,6 +72,16 @@ _PROTOCOLS: dict[str, QKDProtocolModule] = {
         gate_policy={
             "plob_repeaterless_bound": "skip",
             "rationale": "Relay-based protocol; direct-link repeaterless bound is not applied as a global gate.",
+        },
+    ),
+    "amdi_qkd": QKDProtocolModule(
+        protocol_id="amdi_qkd",
+        aliases=("amdi", "async_mdi", "mp_qkd", "mode_pairing"),
+        evaluator=compute_point_amdi_qkd,
+        applicability_fn=_applicability_mdi,
+        gate_policy={
+            "plob_repeaterless_bound": "skip",
+            "rationale": "Asynchronous/mode-pairing relay protocol; direct-link repeaterless bound is not applied as a global gate.",
         },
     ),
     "pm_qkd": QKDProtocolModule(

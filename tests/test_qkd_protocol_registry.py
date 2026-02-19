@@ -41,11 +41,12 @@ def _base_scenario() -> dict:
 
 
 def test_protocol_registry_resolution_and_aliases() -> None:
-    assert available_protocols() == ("bb84_decoy", "bbm92", "mdi_qkd", "pm_qkd", "tf_qkd")
+    assert available_protocols() == ("amdi_qkd", "bb84_decoy", "bbm92", "mdi_qkd", "pm_qkd", "tf_qkd")
 
     assert resolve_protocol_module(None).protocol_id == "bbm92"
     assert resolve_protocol_module("bb84").protocol_id == "bb84_decoy"
     assert resolve_protocol_module("mdi").protocol_id == "mdi_qkd"
+    assert resolve_protocol_module("amdi").protocol_id == "amdi_qkd"
     assert resolve_protocol_module("pm").protocol_id == "pm_qkd"
     assert resolve_protocol_module("tf").protocol_id == "tf_qkd"
 
@@ -67,6 +68,7 @@ def test_protocol_gate_policy_routes_plob_by_protocol_family() -> None:
     assert protocol_gate_policy("bbm92")["plob_repeaterless_bound"] == "apply"
     assert protocol_gate_policy("bb84_decoy")["plob_repeaterless_bound"] == "apply"
     assert protocol_gate_policy("mdi_qkd")["plob_repeaterless_bound"] == "skip"
+    assert protocol_gate_policy("amdi_qkd")["plob_repeaterless_bound"] == "skip"
     assert protocol_gate_policy("pm_qkd")["plob_repeaterless_bound"] == "skip"
     assert protocol_gate_policy("tf_qkd")["plob_repeaterless_bound"] == "skip"
 
