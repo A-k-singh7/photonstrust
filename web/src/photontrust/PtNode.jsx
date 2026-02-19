@@ -9,13 +9,21 @@ function _portTop(idx, count) {
   return `${start + (span * idx) / (count - 1)}%`;
 }
 
+function _ports(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((p) => String(p || "").trim())
+    .filter(Boolean);
+}
+
 export default function PtNode({ id, data, selected }) {
   const kind = String(data?.kind || "");
   const def = kindDef(kind);
-  const title = String(def?.title || kind || "Node");
-  const category = String(def?.category || "custom");
-  const inPorts = Array.isArray(def?.ports?.in) ? def.ports.in : [];
-  const outPorts = Array.isArray(def?.ports?.out) ? def.ports.out : [];
+  const categoryGuess = kind.startsWith("pic.") ? "pic" : kind.startsWith("qkd.") ? "qkd" : "custom";
+  const title = String(data?.title || def?.title || kind || "Node");
+  const category = String(data?.category || def?.category || categoryGuess);
+  const inPorts = _ports(data?.inPorts ?? def?.ports?.in);
+  const outPorts = _ports(data?.outPorts ?? def?.ports?.out);
 
   return (
     <div className={`ptNode ${selected ? "isSelected" : ""}`} data-category={category}>

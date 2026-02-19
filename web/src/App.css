@@ -15,6 +15,274 @@
   backdrop-filter: blur(10px);
 }
 
+.ptStageNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--pt-border);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.ptActivityStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(15, 20, 23, 0.09);
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.ptActivityLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pt-muted);
+}
+
+.ptActivityItem {
+  font-size: 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.14);
+  background: rgba(255, 255, 255, 0.58);
+  padding: 4px 8px;
+  color: rgba(15, 20, 23, 0.86);
+}
+
+.ptDemoWrap {
+  margin: 12px 14px 0;
+}
+
+.ptStagePill {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.64);
+  color: var(--pt-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ptStagePill.active {
+  border-color: rgba(46, 230, 214, 0.52);
+  background: rgba(46, 230, 214, 0.18);
+  color: rgba(6, 32, 29, 0.95);
+}
+
+.ptStagePill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ptLanding {
+  margin: 12px 14px 0;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 20, 23, 0.14);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.52));
+  box-shadow: 0 16px 38px rgba(15, 20, 23, 0.12);
+  padding: 14px;
+}
+
+.ptLandingHero {
+  display: grid;
+  gap: 8px;
+}
+
+.ptLandingKicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pt-muted);
+}
+
+.ptLandingTitle {
+  margin: 0;
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.ptLandingLead {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(15, 20, 23, 0.88);
+  line-height: 1.45;
+  max-width: 980px;
+}
+
+.ptLandingSub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pt-muted);
+}
+
+.ptLandingStages {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ptLandingStage {
+  text-align: left;
+  border-radius: var(--pt-radius);
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 10px;
+  cursor: pointer;
+}
+
+.ptLandingStage.active {
+  border-color: rgba(46, 230, 214, 0.52);
+  background: rgba(46, 230, 214, 0.14);
+}
+
+.ptLandingStageTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ptLandingStageSub {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--pt-muted);
+  line-height: 1.35;
+}
+
+.ptGuidedFlow {
+  margin: 12px 14px 0;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 20, 23, 0.14);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 14px 32px rgba(15, 20, 23, 0.12);
+  padding: 12px;
+}
+
+.ptGuidedFlowTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ptGuidedFlowKicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pt-muted);
+}
+
+.ptGuidedFlowTitle {
+  margin-top: 4px;
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ptGuidedFlowSteps {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ptGuidedStep {
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.15);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--pt-muted);
+}
+
+.ptGuidedStep span {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.ptGuidedStep em {
+  font-style: normal;
+  text-transform: capitalize;
+}
+
+.ptGuidedStep.active {
+  border-color: rgba(46, 230, 214, 0.6);
+  background: rgba(46, 230, 214, 0.16);
+  color: rgba(6, 32, 29, 0.95);
+}
+
+.ptGuidedStep.done {
+  border-color: rgba(46, 230, 214, 0.3);
+  background: rgba(46, 230, 214, 0.1);
+}
+
+.ptGuidedFlowBody {
+  margin-top: 12px;
+}
+
+.ptGuidedCardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ptGuidedCard {
+  text-align: left;
+  border-radius: var(--pt-radius);
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 10px;
+  cursor: pointer;
+}
+
+.ptGuidedCard.active {
+  border-color: rgba(46, 230, 214, 0.58);
+  background: rgba(46, 230, 214, 0.15);
+}
+
+.ptGuidedCardTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ptGuidedCardDesc {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--pt-muted);
+  line-height: 1.35;
+}
+
+.ptGuidedSection {
+  display: grid;
+  gap: 8px;
+}
+
+.ptGuidedFlowFooter {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .ptBrandTitle {
   font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
   font-weight: 600;
@@ -112,7 +380,7 @@
   height: 34px;
   padding: 0 10px;
   border-radius: var(--pt-radius-sm);
-  border: 1px solid var(--pt-border);
+  border: 1px solid var(--pt-border-strong);
   background: var(--pt-panel-2);
   color: var(--pt-ink);
   font: inherit;
@@ -122,8 +390,8 @@
 
 .ptField input:focus,
 .ptField select:focus {
-  border-color: rgba(46, 230, 214, 0.6);
-  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+  border-color: var(--pt-focus-ring);
+  box-shadow: 0 0 0 3px rgba(10, 123, 113, 0.22);
 }
 
 .ptFieldWide {
@@ -222,6 +490,138 @@
   color: var(--pt-muted);
 }
 
+.ptPaletteDesc {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(15, 20, 23, 0.78);
+}
+
+.ptPaletteStats {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--pt-muted);
+}
+
+.ptPaletteCounts {
+  margin: 8px 0 10px;
+  font-size: 11px;
+  color: var(--pt-muted);
+}
+
+.ptSegment {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--pt-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.56);
+  padding: 2px;
+  margin-bottom: 8px;
+}
+
+.ptSegmentBtn {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pt-muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ptSegmentBtn.active {
+  background: rgba(46, 230, 214, 0.16);
+  color: rgba(6, 32, 29, 0.95);
+}
+
+.ptPaletteMeta {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ptPaletteBadges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ptPaletteBadge {
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(15, 20, 23, 0.05);
+  color: rgba(15, 20, 23, 0.8);
+}
+
+/* Palette drag-and-drop enhancements */
+.ptPaletteHint {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--pt-muted);
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+
+.ptPaletteGroup {
+  margin-bottom: 10px;
+}
+
+.ptPaletteGroupLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 0 6px;
+  color: var(--pt-muted);
+  border-bottom: 1px solid var(--pt-border);
+  margin-bottom: 8px;
+}
+
+.ptPaletteGroupLabel--qkd {
+  color: rgba(46, 160, 230, 0.9);
+  border-color: rgba(46, 160, 230, 0.25);
+}
+
+.ptPaletteGroupLabel--pic {
+  color: rgba(46, 230, 214, 0.9);
+  border-color: rgba(46, 230, 214, 0.25);
+}
+
+.ptPaletteItem {
+  cursor: grab;
+}
+
+.ptPaletteItem--qkd {
+  border-left: 3px solid rgba(46, 160, 230, 0.5);
+}
+
+.ptPaletteItem--pic {
+  border-left: 3px solid rgba(46, 230, 214, 0.5);
+}
+
+.ptPaletteItem[draggable="true"]:active,
+.ptPaletteItem[draggable="true"].dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+  transform: scale(0.97);
+}
+
+/* Drop zone highlight on canvas */
+.ptCanvas--dragover {
+  outline: 2px dashed rgba(46, 230, 214, 0.7);
+  outline-offset: -4px;
+  background: rgba(46, 230, 214, 0.04);
+}
+
 .ptTabs {
   position: sticky;
   top: 0;
@@ -262,6 +662,15 @@
   background: rgba(255, 255, 255, 0.68);
   box-shadow: 0 10px 26px rgba(15, 20, 23, 0.09);
   padding: 12px 12px 14px;
+  margin-bottom: 12px;
+}
+
+.ptCard {
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  border-radius: var(--pt-radius);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 20px rgba(15, 20, 23, 0.08);
+  padding: 12px;
   margin-bottom: 12px;
 }
 
@@ -328,8 +737,8 @@
 }
 
 .ptTextarea:focus {
-  border-color: rgba(46, 230, 214, 0.6);
-  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+  border-color: var(--pt-focus-ring);
+  box-shadow: 0 0 0 3px rgba(10, 123, 113, 0.22);
 }
 
 .ptPre {
@@ -451,8 +860,8 @@
 }
 
 .ptParamControl:focus {
-  border-color: rgba(46, 230, 214, 0.6);
-  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+  border-color: var(--pt-focus-ring);
+  box-shadow: 0 0 0 3px rgba(10, 123, 113, 0.22);
 }
 
 .ptParamControl.isBad {
@@ -694,6 +1103,15 @@
 }
 
 @media (max-width: 980px) {
+  .ptLandingStages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ptGuidedFlowSteps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ptGuidedCardGrid {
+    grid-template-columns: 1fr;
+  }
   .ptMain {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(48vh, 1fr) auto;

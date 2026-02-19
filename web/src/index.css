@@ -4,6 +4,7 @@
   --pt-muted: rgba(15, 20, 23, 0.62);
   --pt-faint: rgba(15, 20, 23, 0.12);
   --pt-border: rgba(15, 20, 23, 0.16);
+  --pt-border-strong: rgba(15, 20, 23, 0.3);
   --pt-panel: rgba(255, 255, 255, 0.7);
   --pt-panel-2: rgba(255, 255, 255, 0.9);
   --pt-shadow: 0 16px 40px rgba(15, 20, 23, 0.12);
@@ -11,6 +12,7 @@
   --pt-accent: #2ee6d6;
   --pt-accent-2: #e7343f;
   --pt-accent-ink: #06201d;
+  --pt-focus-ring: #0a7b71;
 
   --pt-radius: 14px;
   --pt-radius-sm: 10px;

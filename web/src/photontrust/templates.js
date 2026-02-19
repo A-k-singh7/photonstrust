@@ -69,3 +69,22 @@ export function templatePicMzi() {
   ];
   return { nodes, edges };
 }
+
+export function templatePicSpiceImportHarness() {
+  const nodes = [
+    node("gc_in", "pic.grating_coupler", 80, 140, "Input Coupler", { insertion_loss_db: 2.5 }),
+    node("ts_model", "pic.touchstone_2port", 340, 140, "Touchstone Model", {
+      touchstone_path: "models/component.s2p",
+      forward: "s21",
+      allow_extrapolation: false,
+    }),
+    node("iso_out", "pic.isolator_2port", 600, 140, "Output Isolator", { insertion_loss_db: 1.0, isolation_db: 30.0 }),
+    node("ec_out", "pic.edge_coupler", 860, 140, "Edge Out", { insertion_loss_db: 1.5 }),
+  ];
+  const edges = [
+    edge("e1", "gc_in", "ts_model", "out", "in"),
+    edge("e2", "ts_model", "iso_out", "out", "in"),
+    edge("e3", "iso_out", "ec_out", "out", "in"),
+  ];
+  return { nodes, edges };
+}

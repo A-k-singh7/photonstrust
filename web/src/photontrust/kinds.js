@@ -77,6 +77,13 @@ export const KIND_DEFS = {
     portDomains: { in: { in: "optical" }, out: { out: "optical" } },
     defaultParams: { phase_rad: 0.0, insertion_loss_db: 0.1 },
   },
+  "pic.isolator_2port": {
+    title: "Isolator (2-port)",
+    category: "pic",
+    ports: { in: ["in"], out: ["out"] },
+    portDomains: { in: { in: "optical" }, out: { out: "optical" } },
+    defaultParams: { insertion_loss_db: 1.0, phase_rad: 0.0, isolation_db: 30.0 },
+  },
   "pic.ring": {
     title: "Ring (v0.1 placeholder)",
     category: "pic",
@@ -90,6 +97,31 @@ export const KIND_DEFS = {
     ports: { in: ["in1", "in2"], out: ["out1", "out2"] },
     portDomains: { in: { in1: "optical", in2: "optical" }, out: { out1: "optical", out2: "optical" } },
     defaultParams: { coupling_ratio: 0.5, insertion_loss_db: 0.2 },
+  },
+  "pic.touchstone_2port": {
+    title: "Touchstone 2-port (S2P)",
+    category: "pic",
+    ports: { in: ["in"], out: ["out"] },
+    portDomains: { in: { in: "optical" }, out: { out: "optical" } },
+    availability: { api_enabled: false, cli_enabled: true },
+    defaultParams: { touchstone_path: "", forward: "s21", allow_extrapolation: false },
+  },
+  "pic.touchstone_nport": {
+    title: "Touchstone N-port (SNP)",
+    category: "pic",
+    ports: { in: ["p1", "p2"], out: ["p3", "p4"] },
+    portDomains: {
+      in: { p1: "optical", p2: "optical" },
+      out: { p3: "optical", p4: "optical" },
+    },
+    availability: { api_enabled: false, cli_enabled: true },
+    defaultParams: {
+      touchstone_path: "",
+      n_ports: 4,
+      in_ports: ["p1", "p2"],
+      out_ports: ["p3", "p4"],
+      allow_extrapolation: false,
+    },
   },
 };
 

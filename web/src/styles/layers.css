@@ -1,0 +1,35 @@
+.ptLayerSurface1 {
+  background: var(--pt-sem-surface-1);
+  border: 1px solid var(--pt-sem-border-subtle);
+}
+
+.ptLayerSurface2 {
+  background: var(--pt-sem-surface-2);
+  border: 1px solid var(--pt-sem-border-strong);
+}
+
+.ptStatePass {
+  background: var(--pt-sem-success-bg);
+  color: var(--pt-sem-success-ink);
+}
+
+.ptStateCaution {
+  background: var(--pt-sem-caution-bg);
+  color: var(--pt-sem-caution-ink);
+}
+
+.ptStateBlock {
+  background: var(--pt-sem-danger-bg);
+  color: var(--pt-sem-danger-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

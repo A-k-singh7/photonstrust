@@ -1,0 +1,15 @@
+:root {
+  --pt-sem-surface-1: rgba(255, 255, 255, 0.72);
+  --pt-sem-surface-2: rgba(255, 255, 255, 0.86);
+  --pt-sem-border-subtle: rgba(15, 20, 23, 0.12);
+  --pt-sem-border-strong: rgba(15, 20, 23, 0.28);
+  --pt-sem-success-bg: rgba(34, 143, 86, 0.12);
+  --pt-sem-success-ink: #134d2f;
+  --pt-sem-caution-bg: rgba(184, 130, 33, 0.14);
+  --pt-sem-caution-ink: #5c3d05;
+  --pt-sem-danger-bg: rgba(190, 42, 56, 0.14);
+  --pt-sem-danger-ink: #65121a;
+
+  --pt-motion-fast: 120ms;
+  --pt-motion-base: 180ms;
+}

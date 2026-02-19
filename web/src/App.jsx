@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
   addEdge,
   useEdgesState,
   useNodesState,
@@ -11,9 +7,43 @@ import {
 } from "@xyflow/react";
 
 import "./App.css";
+import CertificationWorkspace from "./features/certify/CertificationWorkspace";
+import CompareLabPanel from "./features/compare/CompareLabPanel";
+import DemoModeOrchestrator from "./features/demo/DemoModeOrchestrator";
+import DemoProofSnapshot from "./features/demo/DemoProofSnapshot";
+import GraphRightSidebarContent from "./features/graph/GraphRightSidebarContent";
+import OrbitValidatePanel from "./features/orbit/OrbitValidatePanel";
+import OrbitConfigPanel from "./features/orbit/OrbitConfigPanel";
+import ApprovalControls from "./features/runs/ApprovalControls";
+import DiffPanel from "./features/runs/DiffPanel";
+import ManifestPanel from "./features/runs/ManifestPanel";
+import AppTopBar from "./features/shell/AppTopBar";
+import CenterWorkspacePane from "./features/shell/CenterWorkspacePane";
+import GraphJsonModals from "./features/shell/GraphJsonModals";
+import LandingWorkspace from "./features/shell/LandingWorkspace";
+import LeftSidebarByMode from "./features/shell/LeftSidebarByMode";
+import RightSidebarTabs from "./features/shell/RightSidebarTabs";
+import StatusFooter from "./features/shell/StatusFooter";
+import GuidedFlowWizard from "./features/guided-flow/GuidedFlowWizard";
+import RunModePanel from "./features/results/RunModePanel";
+import { PRODUCT_STAGE_ITEMS, PRODUCT_STAGE_ROUTES, stageLabel, stageSubtitle } from "./features/shell/copy";
+import ProvenanceTimeline from "./features/trust/ProvenanceTimeline";
+import RunCollectionsPanel from "./features/workspace/RunCollectionsPanel";
+import WorkspaceContextBar from "./features/workspace/WorkspaceContextBar";
+import { createUiSessionId, createUiTelemetrySink } from "./state/uiTelemetry";
+import {
+  addTagToRun,
+  createCollection,
+  loadCollectionsState,
+  removeTagFromRun,
+  saveCollection,
+  setBaselineRun,
+  setCandidateRuns,
+} from "./state/runCollectionsState";
+import { loadRecentActivity, loadViewPresets, saveRecentActivity, saveViewPreset } from "./state/workspaceState";
 
-import { BAND_OPTIONS, KIND_DEFS, PROFILE_OPTIONS, kindDef, portDomainFor } from "./photontrust/kinds";
-import { templatePicChain, templatePicMzi, templateQkdLink } from "./photontrust/templates";
+import { BAND_OPTIONS, KIND_DEFS, kindDef, portDomainFor } from "./photontrust/kinds";
+import { templatePicChain, templatePicMzi, templatePicSpiceImportHarness, templateQkdLink } from "./photontrust/templates";
 import { buildGraphPayload } from "./photontrust/graph";
 import PtNode from "./photontrust/PtNode";
 import {
@@ -183,26 +213,13 @@ function _nextNodeId(kind, existingNodes) {
   return `${slug}_${Math.floor(Math.random() * 1e9)}`;
 }
 
-function _violationSampleLabel(v) {
-  if (!v || typeof v !== "object") return "(invalid)";
-  const code = String(v.code || "").trim();
-  const entityRef = String(v.entity_ref || "").trim();
-  const message = String(v.message || "").trim();
-  const applicability = String(v.applicability || "").trim();
-  const head = [code || "unknown", entityRef || "n/a"].join(" @ ");
-  return applicability ? `${head} [${applicability}] - ${message || "(no message)"}` : `${head} - ${message || "(no message)"}`;
-}
-
-function _violationSamples(items, limit = 2) {
-  if (!Array.isArray(items) || !items.length) return [];
-  return items.slice(0, Math.max(1, Number(limit) || 1));
-}
-
-function _flowFromGraph(graph) {
+function _flowFromGraph(graph, registryByKind = null) {
   const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
   const edges = Array.isArray(graph?.edges) ? graph.edges : [];
+  const byKind = registryByKind && typeof registryByKind === "object" ? registryByKind : {};
   const flowNodes = nodes.map((n, idx) => {
-    const def = kindDef(n.kind);
+    const kind = String(n?.kind || "");
+    const blueprint = _kindBlueprint(kind, byKind?.[kind]);
     const pos = n?.ui?.position || n?.ui || {};
     const x = Number(pos?.x ?? 80 + idx * 220);
     const y = Number(pos?.y ?? 90);
@@ -212,8 +229,13 @@ function _flowFromGraph(graph) {
       position: { x, y },
       data: {
         id: String(n.id),
-        kind: String(n.kind),
-        label: n.label || (def ? def.title : String(n.kind)),
+        kind,
+        label: n.label || blueprint.title || kind,
+        title: blueprint.title,
+        category: blueprint.category,
+        inPorts: blueprint.inPorts,
+        outPorts: blueprint.outPorts,
+        portDomains: blueprint.portDomains,
         params: n.params && typeof n.params === "object" ? n.params : {},
       },
     };
@@ -234,6 +256,164 @@ function _defaultGraphIdForProfile(profile) {
   return "ui_qkd_link";
 }
 
+function _normalizeStringList(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+}
+
+function _defaultDomainForKind(kind, category) {
+  const k = String(kind || "");
+  const cat = String(category || "");
+  if (cat === "pic" || k.startsWith("pic.")) return "optical";
+  return "control";
+}
+
+function _mergePortDomains(kind, category, inPorts, outPorts, ...domainSpecs) {
+  const fallback = _defaultDomainForKind(kind, category);
+  const out = { in: {}, out: {} };
+  for (const spec of domainSpecs) {
+    if (!spec || typeof spec !== "object") continue;
+    for (const dir of ["in", "out"]) {
+      const byPort = spec?.[dir];
+      if (!byPort || typeof byPort !== "object") continue;
+      for (const [port, domain] of Object.entries(byPort)) {
+        const p = String(port || "").trim();
+        const d = String(domain || "").trim();
+        if (!p || !d) continue;
+        out[dir][p] = d;
+      }
+    }
+  }
+  for (const p of inPorts) {
+    if (!Object.prototype.hasOwnProperty.call(out.in, p)) out.in[p] = fallback;
+  }
+  for (const p of outPorts) {
+    if (!Object.prototype.hasOwnProperty.call(out.out, p)) out.out[p] = fallback;
+  }
+  return out;
+}
+
+function _kindBlueprint(kind, kindRegistryEntry = null) {
+  const kindId = String(kind || "").trim();
+  const def = kindDef(kindId);
+  const meta = kindRegistryEntry && typeof kindRegistryEntry === "object" ? kindRegistryEntry : null;
+  const categoryGuess = kindId.startsWith("pic.") ? "pic" : kindId.startsWith("qkd.") ? "qkd" : "custom";
+  const category = String(meta?.category || def?.category || categoryGuess);
+  const metaInPorts = _normalizeStringList(meta?.in_ports);
+  const metaOutPorts = _normalizeStringList(meta?.out_ports);
+  const defInPorts = _normalizeStringList(def?.ports?.in);
+  const defOutPorts = _normalizeStringList(def?.ports?.out);
+  const inPorts = metaInPorts.length ? metaInPorts : defInPorts;
+  const outPorts = metaOutPorts.length ? metaOutPorts : defOutPorts;
+  const defaultParams = def?.defaultParams && typeof def.defaultParams === "object" ? { ...def.defaultParams } : {};
+  if (Array.isArray(meta?.params)) {
+    for (const p of meta.params) {
+      if (!p || typeof p !== "object") continue;
+      const key = String(p?.name || "").trim();
+      if (!key) continue;
+      if (Object.prototype.hasOwnProperty.call(defaultParams, key)) continue;
+      if (Object.prototype.hasOwnProperty.call(p, "default") && p.default !== undefined) {
+        defaultParams[key] = p.default;
+      } else if (p.required) {
+        defaultParams[key] = null;
+      }
+    }
+  }
+  const portDomains = _mergePortDomains(kindId, category, inPorts, outPorts, def?.portDomains, meta?.port_domains);
+  return {
+    kind: kindId,
+    title: String(meta?.title || def?.title || kindId || "Node"),
+    category,
+    inPorts,
+    outPorts,
+    defaultParams,
+    portDomains,
+    meta,
+    def,
+  };
+}
+
+function _kindAvailability(kind, kindRegistryEntry = null) {
+  const kindId = String(kind || "").trim();
+  const def = kindDef(kindId);
+  const meta = kindRegistryEntry && typeof kindRegistryEntry === "object" ? kindRegistryEntry : null;
+  const apiEnabled =
+    typeof meta?.availability?.api_enabled === "boolean"
+      ? meta.availability.api_enabled
+      : typeof def?.availability?.api_enabled === "boolean"
+        ? def.availability.api_enabled
+        : true;
+  const cliEnabled =
+    typeof meta?.availability?.cli_enabled === "boolean"
+      ? meta.availability.cli_enabled
+      : typeof def?.availability?.cli_enabled === "boolean"
+        ? def.availability.cli_enabled
+        : true;
+  return { apiEnabled, cliEnabled };
+}
+
+function _nodePortDomain(node, direction, portName) {
+  const dir = String(direction || "").toLowerCase() === "in" ? "in" : "out";
+  const port = String(portName || "").trim();
+  const byPort = node?.data?.portDomains?.[dir];
+  if (byPort && typeof byPort === "object") {
+    const d = String(byPort?.[port] || "").trim();
+    if (d) return d;
+  }
+  return portDomainFor(String(node?.data?.kind || ""), dir, port);
+}
+
+const ROLE_PRESET_OPTIONS = [
+  { id: "builder", label: "Builder" },
+  { id: "reviewer", label: "Reviewer" },
+  { id: "exec", label: "Exec" },
+];
+
+const DEMO_SCENE_PLANS = {
+  benchmark: {
+    scene: "benchmark",
+    stage: "compare",
+    mode: "runs",
+    tab: "diff",
+    statusText: "Demo scene: Benchmark. Compare baseline and candidate outcomes.",
+  },
+  trust: {
+    scene: "trust",
+    stage: "certify",
+    mode: "runs",
+    tab: "manifest",
+    statusText: "Demo scene: Trust. Review provenance and certification posture.",
+  },
+  decision: {
+    scene: "decision",
+    stage: "run",
+    mode: "graph",
+    tab: "run",
+    statusText: "Demo scene: Decision. Present recommendation and confidence framing.",
+  },
+  packet: {
+    scene: "packet",
+    stage: "export",
+    mode: "runs",
+    tab: "manifest",
+    statusText: "Demo scene: Packet. Export meeting-ready evidence.",
+  },
+};
+
+function _demoScenePlan(sceneId) {
+  const key = String(sceneId || "benchmark").trim().toLowerCase();
+  return DEMO_SCENE_PLANS[key] || DEMO_SCENE_PLANS.benchmark;
+}
+
+function _rolePresetBehavior(roleId) {
+  const role = String(roleId || "builder");
+  if (role === "reviewer") return { stage: "compare", mode: "runs", tab: "diff" };
+  if (role === "exec") return { stage: "export", mode: "runs", tab: "manifest" };
+  return { stage: "build", mode: "graph", tab: "inspect" };
+}
+
 export default function App() {
   const nodeTypes = useMemo(() => ({ ptNode: PtNode }), []);
 
@@ -248,6 +428,22 @@ export default function App() {
   });
 
   const [mode, setMode] = useState(() => localStorage.getItem("pt_mode") || "graph");
+  const [programStage, setProgramStage] = useState(() => localStorage.getItem("pt_program_stage") || "build");
+  const [showLanding, setShowLanding] = useState(() => localStorage.getItem("pt_show_landing") !== "0");
+  const [userMode, setUserMode] = useState(() => localStorage.getItem("pt_user_mode") || "builder");
+  const [savedViews, setSavedViews] = useState(() => loadViewPresets());
+  const [selectedViewPresetId, setSelectedViewPresetId] = useState("");
+  const [recentActivity, setRecentActivity] = useState(() => loadRecentActivity());
+  const [demoModeOpen, setDemoModeOpen] = useState(false);
+  const [demoInitialScene, setDemoInitialScene] = useState("benchmark");
+  const [demoScene, setDemoScene] = useState("benchmark");
+  const [uiSessionId] = useState(() => createUiSessionId());
+  const guidedFlowRef = useRef({ active: false, startedAtMs: 0 });
+  const runRecoveryRef = useRef({ hadFailure: false, failedAtMs: 0 });
+  const demoResumeRef = useRef({ mode: "graph", stage: "build", tab: "inspect", userMode: "builder" });
+  const telemetrySessionStartedRef = useRef(false);
+  const [guidedFlowWizardOpen, setGuidedFlowWizardOpen] = useState(false);
+  const [guidedFlowInitialGoal, setGuidedFlowInitialGoal] = useState("qkd");
 
   const [profile, setProfile] = useState("qkd_link");
   const [graphId, setGraphId] = useState("ui_qkd_link");
@@ -346,6 +542,10 @@ export default function App() {
     projectId: null,
     approvals: [],
   });
+  const [collectionsState, setCollectionsState] = useState(() => loadCollectionsState());
+  const [selectedCollectionId, setSelectedCollectionId] = useState("");
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [collectionTagInput, setCollectionTagInput] = useState("");
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -363,10 +563,28 @@ export default function App() {
   const [runResult, setRunResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const [paletteScope, setPaletteScope] = useState("all");
   const [statusText, setStatusText] = useState("Ready.");
   const statusTimer = useRef(null);
 
   const reactFlowInstance = useReactFlow();
+
+  const uiTelemetry = useMemo(
+    () =>
+      createUiTelemetrySink({
+        apiBase,
+        getContext: () => ({ sessionId: uiSessionId, userMode, profile }),
+      }),
+    [apiBase, uiSessionId, userMode, profile],
+  );
+
+  const emitUiEvent = useCallback(
+    (eventName, fields = {}) => {
+      uiTelemetry.emit(eventName, fields);
+    },
+    [uiTelemetry],
+  );
 
   const graphPayload = useMemo(() => {
     return buildGraphPayload({
@@ -412,6 +630,43 @@ export default function App() {
     return uniq;
   }, [selectedRunManifest]);
 
+  const collectionOptions = useMemo(() => {
+    const rows = Array.isArray(collectionsState?.collections) ? collectionsState.collections : [];
+    return rows.map((item) => ({ id: String(item?.id || ""), name: String(item?.name || item?.id || "") })).filter((item) => item.id);
+  }, [collectionsState]);
+
+  const selectedCollection = useMemo(() => {
+    const rows = Array.isArray(collectionsState?.collections) ? collectionsState.collections : [];
+    return rows.find((item) => String(item?.id || "") === String(selectedCollectionId || "")) || null;
+  }, [collectionsState, selectedCollectionId]);
+
+  const selectedRunForCollection = useMemo(() => {
+    const rid = String(selectedRunId || selectedRunManifest?.run_id || diffLhsRunId || diffRhsRunId || "").trim();
+    return rid;
+  }, [selectedRunId, selectedRunManifest, diffLhsRunId, diffRhsRunId]);
+
+  const runOptionsForCollections = useMemo(() => {
+    const rows = Array.isArray(runsIndex?.runs) ? runsIndex.runs : [];
+    return rows
+      .map((run) => {
+        const runId = String(run?.run_id || "").trim();
+        if (!runId) return null;
+        return {
+          run_id: runId,
+          run_type: String(run?.run_type || "run"),
+          project_id: String(run?.project_id || ""),
+        };
+      })
+      .filter(Boolean);
+  }, [runsIndex]);
+
+  const selectedRunTags = useMemo(() => {
+    const tagsByRun =
+      selectedCollection?.tagsByRun && typeof selectedCollection.tagsByRun === "object" ? selectedCollection.tagsByRun : {};
+    const tags = tagsByRun[String(selectedRunForCollection || "")] || [];
+    return Array.isArray(tags) ? tags : [];
+  }, [selectedCollection, selectedRunForCollection]);
+
   const kindOptions = useMemo(() => {
     const cat = profile === "pic_circuit" ? "pic" : "qkd";
     if (kindRegistry.status === "ok" && Array.isArray(kindRegistry.kinds) && kindRegistry.kinds.length) {
@@ -424,6 +679,124 @@ export default function App() {
       .filter((k) => KIND_DEFS[k]?.category === cat)
       .sort((a, b) => String(a).localeCompare(String(b)));
   }, [profile, kindRegistry.status, kindRegistry.kinds]);
+
+  const filteredKindOptions = useMemo(() => {
+    const q = String(paletteQuery || "").trim().toLowerCase();
+    const out = kindOptions.filter((kind) => {
+      const meta = kindRegistry?.byKind?.[kind];
+      const def = kindDef(kind);
+      const availability = _kindAvailability(kind, meta);
+      if (paletteScope === "api" && availability.apiEnabled !== true) return false;
+      if (paletteScope === "cli" && availability.cliEnabled !== true) return false;
+      if (!q) return true;
+      const notes = Array.isArray(meta?.notes) ? meta.notes.join(" ") : "";
+      const search = `${kind} ${meta?.title || ""} ${def?.title || ""} ${notes}`.toLowerCase();
+      return search.includes(q);
+    });
+    out.sort((lhs, rhs) => {
+      const lMeta = kindRegistry?.byKind?.[lhs];
+      const rMeta = kindRegistry?.byKind?.[rhs];
+      const lAvail = _kindAvailability(lhs, lMeta);
+      const rAvail = _kindAvailability(rhs, rMeta);
+      if (lAvail.apiEnabled !== rAvail.apiEnabled) return lAvail.apiEnabled ? -1 : 1;
+      return lhs.localeCompare(rhs, undefined, { sensitivity: "base" });
+    });
+    return out;
+  }, [kindOptions, kindRegistry.byKind, paletteQuery, paletteScope]);
+
+  const paletteSummary = useMemo(() => {
+    let apiReady = 0;
+    let cliOnly = 0;
+    for (const kind of kindOptions) {
+      const meta = kindRegistry?.byKind?.[kind];
+      const availability = _kindAvailability(kind, meta);
+      if (availability.apiEnabled) apiReady += 1;
+      if (!availability.apiEnabled && availability.cliEnabled) cliOnly += 1;
+    }
+    return { apiReady, cliOnly };
+  }, [kindOptions, kindRegistry.byKind]);
+
+  const decisionContext = useMemo(() => {
+    const compileErrors = Array.isArray(compileResult?.diagnostics?.errors) ? compileResult.diagnostics.errors : [];
+    const compileWarnings = Array.isArray(compileResult?.diagnostics?.warnings) ? compileResult.diagnostics.warnings : [];
+    const runError = String(runResult?.error || "").trim();
+    const diffSummary = runsDiffResult?.diff?.violation_diff?.summary || {};
+    const newViolationCount = Number(diffSummary?.new_count || 0);
+    const approvalsCount = Array.isArray(projectApprovals?.approvals) ? projectApprovals.approvals.length : 0;
+
+    const firstFinite = (...vals) => {
+      for (const raw of vals) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) return n;
+      }
+      return null;
+    };
+
+    const rawConfidence = firstFinite(
+      runResult?.confidence_score,
+      runResult?.outputs_summary?.confidence_score,
+      compileResult?.confidence_score,
+      compileResult?.outputs_summary?.confidence_score,
+    );
+    const confidenceScore =
+      rawConfidence == null
+        ? compileErrors.length
+          ? 0.42
+          : compileWarnings.length
+            ? 0.74
+            : 0.9
+        : rawConfidence <= 1
+          ? rawConfidence
+          : rawConfidence / 100;
+
+    const blockers = [];
+    if (runError) blockers.push(`Run failed: ${runError}`);
+    if (compileErrors.length) blockers.push(`${compileErrors.length} compile error(s) still open.`);
+    if (newViolationCount > 0) blockers.push(`${newViolationCount} new violation(s) vs baseline.`);
+    if (!String(selectedRunManifest?.run_id || runResult?.run_id || "").trim()) blockers.push("No selected run evidence bundle.");
+
+    const highlights = [];
+    if (runResult?.run_id) highlights.push(`Latest run id: ${String(runResult.run_id)}`);
+    if (compileWarnings.length) highlights.push(`${compileWarnings.length} compile warning(s) flagged for review.`);
+    if (approvalsCount) highlights.push(`${approvalsCount} approval event(s) recorded.`);
+    if (!highlights.length) highlights.push("Run, compile, and trust surfaces are ready for review.");
+
+    const actions = blockers.length
+      ? [
+          { id: "fix", title: "Resolve blockers in Run/Compile", owner: "builder", eta: "today", priority: "high" },
+          { id: "diff", title: "Open compare lab and rerun baseline diff", owner: "reviewer", eta: "today", priority: "high" },
+          { id: "retry", title: "Retry run and refresh manifest", owner: "builder", eta: "today", priority: "medium" },
+        ]
+      : [
+          { id: "certify", title: "Open certify workspace", owner: "reviewer", eta: "today", priority: "high" },
+          { id: "packet", title: "Export decision packet", owner: "exec", eta: "today", priority: "high" },
+          { id: "save", title: "Save view preset for handoff", owner: "builder", eta: "today", priority: "low" },
+        ];
+
+    const recommendation = blockers.length
+      ? "Resolve blockers and rerun compare before signoff."
+      : "Proceed to certify, approve, and export the decision packet.";
+
+    const decision = blockers.length ? "Review" : "Pass";
+    const riskLevel = blockers.length ? "high" : compileWarnings.length ? "medium" : "low";
+
+    return {
+      decision,
+      riskLevel,
+      confidenceScore,
+      blockers,
+      highlights,
+      actions,
+      recommendation,
+      payload: {
+        run_id: String(runResult?.run_id || selectedRunManifest?.run_id || ""),
+        confidence_score: confidenceScore,
+        risk_level: riskLevel,
+        recommendation,
+      },
+      uncertaintyList: Array.isArray(uncertainty) ? uncertainty : Object.entries(uncertainty || {}).map(([k, v]) => `${k}: ${String(v)}`),
+    };
+  }, [runResult, compileResult, runsDiffResult, projectApprovals, selectedRunManifest, uncertainty]);
 
   const phaseNodeIds = useMemo(() => {
     if (profile !== "pic_circuit") return [];
@@ -470,6 +843,18 @@ export default function App() {
     setStatusText(String(msg || ""));
     if (statusTimer.current) clearTimeout(statusTimer.current);
     statusTimer.current = setTimeout(() => setStatusText("Ready."), 7000);
+  }, []);
+
+  const recordActivity = useCallback((type, message, context = {}) => {
+    const updated = saveRecentActivity(
+      {
+        type: String(type || "info"),
+        message: String(message || ""),
+        context: context && typeof context === "object" ? context : {},
+      },
+      { max: 24 },
+    );
+    setRecentActivity(updated);
   }, []);
 
   const pingApi = useCallback(async () => {
@@ -590,6 +975,10 @@ export default function App() {
         note: String(approvalNote || ""),
       });
       setApprovalResult(payload);
+      recordActivity("approval", "Approved selected run.", {
+        run_id: rid,
+        project_id: pid,
+      });
       _setStatus(`Approved run (${rid}) in project=${pid}.`);
       try {
         const approvalsPayload = await apiListProjectApprovals(apiBase, pid, { limit: 50 });
@@ -600,29 +989,52 @@ export default function App() {
       }
     } catch (err) {
       setApprovalResult({ error: String(err?.message || err) });
+      recordActivity("approval", "Approval failed.", {
+        run_id: rid,
+        project_id: pid,
+      });
       _setStatus(`Approve failed: ${String(err?.message || err)}`);
     } finally {
       setBusy(false);
     }
-  }, [apiBase, selectedRunManifest, approvalActor, approvalNote, _setStatus]);
+  }, [apiBase, selectedRunManifest, approvalActor, approvalNote, recordActivity, _setStatus]);
 
   const diffRuns = useCallback(async () => {
     const lhs = String(diffLhsRunId || "").trim();
     const rhs = String(diffRhsRunId || "").trim();
     if (!lhs || !rhs) return;
+    const startedAtMs = Date.now();
     setBusy(true);
     setRunsDiffResult(null);
     try {
       const payload = await apiDiffRuns(apiBase, lhs, rhs, { scope: String(diffScope || "input"), limit: 200 });
       setRunsDiffResult(payload);
+      emitUiEvent("ui_compare_completed", {
+        duration_ms: Date.now() - startedAtMs,
+        outcome: "success",
+      });
+      recordActivity("compare", "Computed baseline-candidate diff.", {
+        lhs: lhs,
+        rhs: rhs,
+        scope: String(diffScope || "input"),
+      });
       _setStatus(`Diff computed (${lhs} vs ${rhs}).`);
     } catch (err) {
       setRunsDiffResult({ error: String(err?.message || err) });
+      emitUiEvent("ui_compare_completed", {
+        duration_ms: Date.now() - startedAtMs,
+        outcome: "failure",
+      });
+      recordActivity("compare", "Diff failed.", {
+        lhs: lhs,
+        rhs: rhs,
+        scope: String(diffScope || "input"),
+      });
       _setStatus(`Diff failed: ${String(err?.message || err)}`);
     } finally {
       setBusy(false);
     }
-  }, [apiBase, diffLhsRunId, diffRhsRunId, diffScope, _setStatus]);
+  }, [apiBase, diffLhsRunId, diffRhsRunId, diffScope, emitUiEvent, recordActivity, _setStatus]);
 
   useEffect(() => {
     localStorage.setItem("pt_api_base", String(apiBase));
@@ -633,12 +1045,43 @@ export default function App() {
   }, [mode]);
 
   useEffect(() => {
+    localStorage.setItem("pt_program_stage", String(programStage));
+  }, [programStage]);
+
+  useEffect(() => {
+    localStorage.setItem("pt_show_landing", showLanding ? "1" : "0");
+  }, [showLanding]);
+
+  useEffect(() => {
+    localStorage.setItem("pt_user_mode", String(userMode));
+  }, [userMode]);
+
+  useEffect(() => {
+    if (telemetrySessionStartedRef.current) return;
+    telemetrySessionStartedRef.current = true;
+    emitUiEvent("ui_session_started", { outcome: "success" });
+    recordActivity("session", "UI session started.", { user_mode: userMode, profile });
+  }, [emitUiEvent, profile, recordActivity, userMode]);
+
+  useEffect(() => {
     localStorage.setItem("pt_project_id", String(selectedProjectId));
   }, [selectedProjectId]);
 
   useEffect(() => {
     localStorage.setItem("pt_approval_actor", String(approvalActor));
   }, [approvalActor]);
+
+  useEffect(() => {
+    const rows = Array.isArray(collectionsState?.collections) ? collectionsState.collections : [];
+    if (!rows.length) {
+      if (selectedCollectionId) setSelectedCollectionId("");
+      return;
+    }
+    const exists = rows.some((item) => String(item?.id || "") === String(selectedCollectionId || ""));
+    if (!exists) {
+      setSelectedCollectionId(String(rows[0]?.id || ""));
+    }
+  }, [collectionsState, selectedCollectionId]);
 
   useEffect(() => {
     // Seed with a useful default template.
@@ -678,14 +1121,12 @@ export default function App() {
 
       const sourceNode = (nodes || []).find((n) => String(n?.id) === sourceId);
       const targetNode = (nodes || []).find((n) => String(n?.id) === targetId);
-      const sourceKind = String(sourceNode?.data?.kind || "");
-      const targetKind = String(targetNode?.data?.kind || "");
       const fromPort = String(params?.sourceHandle || "out");
       const toPort = String(params?.targetHandle || "in");
       const edgeKind = "optical";
       if (profile === "pic_circuit") {
-        const fromDomain = portDomainFor(sourceKind, "out", fromPort);
-        const toDomain = portDomainFor(targetKind, "in", toPort);
+        const fromDomain = _nodePortDomain(sourceNode, "out", fromPort);
+        const toDomain = _nodePortDomain(targetNode, "in", toPort);
 
         if (fromDomain !== toDomain) {
           _setStatus(
@@ -769,15 +1210,435 @@ export default function App() {
         _setStatus("Loaded template: PIC MZI.");
         return;
       }
+      if (templateId === "pic_spice_import") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicSpiceImportHarness();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: PIC SPICE import harness (Touchstone path required for CLI runs).");
+      }
     },
     [setNodes, setEdges, _setStatus, setCompileResult, setRunResult, setActiveRightTab],
   );
 
+  const switchOperationalMode = useCallback(
+    (nextMode, { nextTab = null, nextStage = null, statusText = "" } = {}) => {
+      const next = String(nextMode || "graph");
+      setMode(next);
+      setCompileResult(null);
+      setOrbitValidateResult(null);
+      setRunResult(null);
+      setSelectedNodeId(null);
+      setSelectedRunId(null);
+      setSelectedRunManifest(null);
+      setRunsDiffResult(null);
+      setDiffLhsRunId("");
+      setDiffRhsRunId("");
+      setDiffScope("input");
+      if (nextStage) setProgramStage(String(nextStage));
+      setActiveRightTab(nextTab || (next === "orbit" ? "orbit" : next === "runs" ? "manifest" : "inspect"));
+      if (statusText) {
+        _setStatus(statusText);
+      } else {
+        _setStatus(next === "orbit" ? "Switched to Orbit Pass mode." : next === "runs" ? "Switched to Runs mode." : "Switched to Graph Editor mode.");
+      }
+    },
+    [_setStatus],
+  );
+
+  const openProgramStage = useCallback(
+    (stageId, options = {}) => {
+      const key = String(stageId || "build");
+      const route = PRODUCT_STAGE_ROUTES[key] || PRODUCT_STAGE_ROUTES.build;
+      setProgramStage(key);
+      setShowLanding(false);
+      if (options.userMode) setUserMode(String(options.userMode));
+      switchOperationalMode(route.mode, {
+        nextTab: route.tab,
+        nextStage: key,
+        statusText: options.statusText || `Stage: ${stageLabel(key)}.`,
+      });
+      recordActivity("stage_change", `Opened ${stageLabel(key)} stage.`, { stage: key, mode: route.mode });
+    },
+    [switchOperationalMode, recordActivity],
+  );
+
+  const saveCurrentViewPreset = useCallback(() => {
+    const name = `${stageLabel(programStage)} view ${new Date().toISOString().slice(11, 16)}`;
+    const presets = saveViewPreset({
+      name,
+      mode,
+      stage: programStage,
+      graphId,
+      view: {
+        userMode,
+        activeRightTab,
+        selectedProjectId,
+        diffScope,
+      },
+    });
+    setSavedViews(presets);
+    const firstId = String(presets?.[0]?.id || "");
+    if (firstId) setSelectedViewPresetId(firstId);
+    _setStatus("Saved current workspace view.");
+    recordActivity("view_saved", "Saved workspace view preset.", { preset_id: firstId, stage: programStage, mode });
+  }, [programStage, mode, graphId, userMode, activeRightTab, selectedProjectId, diffScope, _setStatus, recordActivity]);
+
+  const applyViewPresetById = useCallback(
+    (presetId) => {
+      const id = String(presetId || "").trim();
+      setSelectedViewPresetId(id);
+      if (!id) return;
+      const preset = (savedViews || []).find((v) => String(v?.id || "") === id);
+      if (!preset) {
+        _setStatus("Selected view preset was not found.");
+        return;
+      }
+      const stage = String(preset?.stage || "build");
+      const route = PRODUCT_STAGE_ROUTES[stage] || PRODUCT_STAGE_ROUTES.build;
+      const view = preset?.view && typeof preset.view === "object" ? preset.view : {};
+      if (view.userMode) setUserMode(String(view.userMode));
+      if (Object.prototype.hasOwnProperty.call(view, "selectedProjectId")) setSelectedProjectId(String(view.selectedProjectId || ""));
+      if (view.diffScope) setDiffScope(String(view.diffScope));
+      switchOperationalMode(String(preset?.mode || route.mode || "graph"), {
+        nextTab: String(view.activeRightTab || route.tab || "inspect"),
+        nextStage: stage,
+        statusText: `Loaded view preset: ${String(preset?.name || "workspace")}.`,
+      });
+      setShowLanding(false);
+      recordActivity("view_loaded", `Loaded view preset ${String(preset?.name || "workspace")}.`, { preset_id: id, stage });
+    },
+    [savedViews, _setStatus, switchOperationalMode, recordActivity],
+  );
+
+  const applyRolePreset = useCallback(
+    (roleId) => {
+      const role = String(roleId || "builder");
+      const behavior = _rolePresetBehavior(role);
+      setUserMode(role);
+      switchOperationalMode(behavior.mode, {
+        nextTab: behavior.tab,
+        nextStage: behavior.stage,
+        statusText: `Role preset applied: ${role}.`,
+      });
+      setShowLanding(false);
+      recordActivity("role_preset", `Applied role preset ${role}.`, {
+        role,
+        stage: behavior.stage,
+      });
+    },
+    [switchOperationalMode, recordActivity],
+  );
+
+  const createRunCollection = useCallback(
+    (name) => {
+      const cleanName = String(name || "").trim();
+      if (!cleanName) return;
+      const collection = createCollection({ name: cleanName });
+      const nextState = saveCollection(collection);
+      setCollectionsState(nextState);
+      setSelectedCollectionId(String(collection.id || ""));
+      setNewCollectionName("");
+      recordActivity("collection", `Created run collection ${cleanName}.`, { collection_id: String(collection.id || "") });
+      _setStatus(`Created run collection: ${cleanName}.`);
+    },
+    [recordActivity, _setStatus],
+  );
+
+  const persistUpdatedCollection = useCallback(
+    (nextCollection, activityMessage) => {
+      if (!nextCollection || typeof nextCollection !== "object") return;
+      const nextState = saveCollection(nextCollection);
+      setCollectionsState(nextState);
+      if (nextCollection.id) setSelectedCollectionId(String(nextCollection.id));
+      if (activityMessage) {
+        recordActivity("collection", activityMessage, { collection_id: String(nextCollection.id || "") });
+      }
+    },
+    [recordActivity],
+  );
+
+  const addCollectionTag = useCallback(
+    (runId, tag) => {
+      if (!selectedCollection) return;
+      const updated = addTagToRun(selectedCollection, runId, tag);
+      persistUpdatedCollection(updated, "Added run tag to collection.");
+      setCollectionTagInput("");
+    },
+    [selectedCollection, persistUpdatedCollection],
+  );
+
+  const removeCollectionTag = useCallback(
+    (runId, tag) => {
+      if (!selectedCollection) return;
+      const updated = removeTagFromRun(selectedCollection, runId, tag);
+      persistUpdatedCollection(updated, "Removed run tag from collection.");
+    },
+    [selectedCollection, persistUpdatedCollection],
+  );
+
+  const setCollectionBaseline = useCallback(
+    (runId) => {
+      if (!selectedCollection) return;
+      const updated = setBaselineRun(selectedCollection, runId);
+      persistUpdatedCollection(updated, "Updated collection baseline run.");
+    },
+    [selectedCollection, persistUpdatedCollection],
+  );
+
+  const setCollectionCandidates = useCallback(
+    (runIds) => {
+      if (!selectedCollection) return;
+      const updated = setCandidateRuns(selectedCollection, runIds);
+      persistUpdatedCollection(updated, "Updated collection candidate runs.");
+    },
+    [selectedCollection, persistUpdatedCollection],
+  );
+
+  const handleWorkspaceProjectChange = useCallback(
+    (projectId) => {
+      const pid = String(projectId || "");
+      setSelectedProjectId(pid);
+      setSelectedRunId(null);
+      setSelectedRunManifest(null);
+      setDiffLhsRunId("");
+      setDiffRhsRunId("");
+      setRunsDiffResult(null);
+      setApprovalResult(null);
+      setApprovalNote("");
+      setProjectApprovals({ status: "idle", error: null, projectId: null, approvals: [] });
+      refreshRuns(pid || null);
+      recordActivity("workspace_project", `Switched workspace project to ${pid || "(all)"}.`, { project_id: pid || null });
+    },
+    [refreshRuns, recordActivity],
+  );
+
+  const handleRecentActivityClick = useCallback(
+    (item) => {
+      const message = String(item?.message || item?.label || "").trim();
+      if (message) {
+        _setStatus(message);
+      }
+    },
+    [_setStatus],
+  );
+
+  const startGuidedFlow = useCallback(
+    (templateId = "qkd") => {
+      const nextTemplate = String(templateId || "qkd");
+      const nextProfile = nextTemplate === "pic_mzi" ? "pic_circuit" : "qkd_link";
+      guidedFlowRef.current = { active: true, startedAtMs: Date.now() };
+      emitUiEvent("ui_guided_flow_started", {
+        user_mode: "builder",
+        profile: nextProfile,
+        outcome: "success",
+      });
+      setUserMode("builder");
+      setGuidedFlowInitialGoal(nextTemplate === "pic_mzi" ? "pic_mzi" : "qkd");
+      setGuidedFlowWizardOpen(true);
+      openProgramStage("build", {
+        statusText: "Guided flow started. Continue through goal, template, params, preflight, and run.",
+      });
+    },
+    [emitUiEvent, openProgramStage],
+  );
+
+  const closeGuidedFlowWizard = useCallback(
+    ({ abandoned = false } = {}) => {
+      setGuidedFlowWizardOpen(false);
+      if (abandoned && guidedFlowRef.current.active) {
+        const elapsed = guidedFlowRef.current.startedAtMs ? Date.now() - Number(guidedFlowRef.current.startedAtMs) : null;
+        emitUiEvent("ui_guided_flow_completed", {
+          duration_ms: Number.isFinite(elapsed) && elapsed >= 0 ? elapsed : null,
+          outcome: "abandoned",
+        });
+        guidedFlowRef.current = { active: false, startedAtMs: 0 };
+      }
+    },
+    [emitUiEvent],
+  );
+
+  const applyGuidedTemplate = useCallback(
+    async (templateId) => {
+      const nextTemplate = String(templateId || "qkd");
+      loadTemplate(nextTemplate === "pic_mzi" ? "pic_mzi" : "qkd");
+      return { ok: true };
+    },
+    [loadTemplate],
+  );
+
+  const runGuidedPreflight = useCallback(
+    async ({ templateId }) => {
+      const nextTemplate = String(templateId || "qkd");
+      const expectedProfile = nextTemplate === "pic_mzi" ? "pic_circuit" : "qkd_link";
+      const errors = [];
+      const warnings = [];
+
+      if (!String(apiBase || "").trim()) {
+        errors.push("API base URL is required.");
+      }
+      if (mode !== "graph") {
+        warnings.push("Preflight works best in Graph Editor mode.");
+      }
+      if (profile !== expectedProfile) {
+        warnings.push(`Profile mismatch: expected ${expectedProfile}, current ${profile}.`);
+      }
+      if (!Array.isArray(nodes) || !nodes.length) {
+        errors.push("Graph has no nodes. Apply a template before preflight.");
+      }
+      if (apiHealth.status === "error") {
+        errors.push("API health is error. Fix connectivity before preflight.");
+      }
+
+      const cliOnlyKinds = (nodes || [])
+        .map((n) => String(n?.data?.kind || "").trim())
+        .filter(Boolean)
+        .filter((kind) => {
+          const availability = _kindAvailability(kind, kindRegistry?.byKind?.[kind]);
+          return availability.apiEnabled !== true && availability.cliEnabled === true;
+        });
+      if (cliOnlyKinds.length) {
+        errors.push(`CLI-only components present: ${cliOnlyKinds.join(", ")}`);
+      }
+
+      if (errors.length) {
+        return { ok: false, errors, warnings, graphHash: null };
+      }
+
+      try {
+        const payload = await apiCompileGraph(apiBase, graphPayload, { requireSchema: true });
+        setCompileResult(payload);
+        setActiveRightTab("compile");
+
+        const compileErrors = Array.isArray(payload?.diagnostics?.errors)
+          ? payload.diagnostics.errors.map((d) => `${String(d?.code || "error")}: ${String(d?.message || "")}`)
+          : [];
+        const compileWarnings = Array.isArray(payload?.diagnostics?.warnings)
+          ? payload.diagnostics.warnings.map((d) => `${String(d?.code || "warning")}: ${String(d?.message || "")}`)
+          : [];
+
+        if (compileErrors.length) {
+          return {
+            ok: false,
+            errors: [...errors, ...compileErrors],
+            warnings: [...warnings, ...compileWarnings],
+            graphHash: String(payload?.graph_hash || "") || null,
+          };
+        }
+
+        return {
+          ok: true,
+          errors: [],
+          warnings: [...warnings, ...compileWarnings],
+          graphHash: String(payload?.graph_hash || "") || null,
+        };
+      } catch (err) {
+        const msg = String(err?.message || err);
+        setCompileResult({ error: msg });
+        setActiveRightTab("compile");
+        return { ok: false, errors: [...errors, `Compile failed: ${msg}`], warnings, graphHash: null };
+      }
+    },
+    [apiBase, mode, profile, nodes, apiHealth.status, kindRegistry.byKind, graphPayload],
+  );
+
+  const applyDemoScene = useCallback(
+    (sceneId, { statusText = "" } = {}) => {
+      const plan = _demoScenePlan(sceneId);
+      setDemoScene(plan.scene);
+      setProgramStage(plan.stage);
+      setMode(plan.mode);
+      setActiveRightTab(plan.tab);
+      setShowLanding(false);
+      _setStatus(statusText || plan.statusText);
+      recordActivity("demo_scene", `Demo scene: ${plan.scene}.`, {
+        scene: plan.scene,
+        stage: plan.stage,
+        mode: plan.mode,
+        tab: plan.tab,
+      });
+    },
+    [_setStatus, recordActivity],
+  );
+
+  const handleDemoSceneChange = useCallback(
+    (payload) => {
+      applyDemoScene(payload?.scene || "benchmark");
+    },
+    [applyDemoScene],
+  );
+
+  const investorDemoCheckpoint = useCallback(() => {
+    demoResumeRef.current = {
+      mode,
+      stage: programStage,
+      tab: activeRightTab,
+      userMode,
+    };
+    setUserMode("exec");
+    setDemoInitialScene("benchmark");
+    setDemoScene("benchmark");
+    setDemoModeOpen(true);
+    applyDemoScene("benchmark", {
+      statusText: "Demo mode started. Walk through benchmark, trust, decision, and packet scenes.",
+    });
+    recordActivity("demo_start", "Demo mode started from landing workspace.", { stage: "compare" });
+  }, [activeRightTab, applyDemoScene, mode, programStage, recordActivity, userMode]);
+
+  const closeDemoMode = useCallback(
+    ({ completed = false, scene = "packet" } = {}) => {
+      setDemoModeOpen(false);
+      setDemoScene(String(scene || "benchmark"));
+      const resume = demoResumeRef.current || {};
+      setMode(String(resume.mode || "graph"));
+      setProgramStage(String(resume.stage || "build"));
+      setActiveRightTab(String(resume.tab || (String(resume.mode || "graph") === "runs" ? "manifest" : "inspect")));
+      setUserMode(String(resume.userMode || "builder"));
+      emitUiEvent("ui_demo_mode_completed", {
+        user_mode: "exec",
+        outcome: completed ? "success" : "abandoned",
+      });
+      _setStatus(completed ? "Demo mode completed." : "Demo mode closed.");
+      recordActivity("demo_end", completed ? "Demo mode completed." : "Demo mode exited.", {
+        scene: String(scene || "packet"),
+        completed: Boolean(completed),
+      });
+    },
+    [emitUiEvent, _setStatus, recordActivity],
+  );
+
+  const exportDecisionPacket = useCallback(() => {
+    const rid = String(selectedRunManifest?.run_id || workflowResult?.run_id || runResult?.run_id || "").trim();
+    if (!rid) {
+      emitUiEvent("ui_packet_exported", { outcome: "abandoned" });
+      recordActivity("packet_export", "Packet export abandoned (no run selected).", {});
+      _setStatus("No run selected for packet export. Select a run manifest or execute a run first.");
+      return;
+    }
+
+    const url = _runBundleUrl(apiBase, rid);
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+      emitUiEvent("ui_packet_exported", { run_id: rid, outcome: "success" });
+      recordActivity("packet_export", "Opened decision packet bundle.", { run_id: rid });
+      _setStatus(`Opened decision packet bundle (${rid}).`);
+    } catch (err) {
+      emitUiEvent("ui_packet_exported", { run_id: rid, outcome: "failure" });
+      recordActivity("packet_export", "Packet export failed.", { run_id: rid });
+      _setStatus(`Packet export failed: ${String(err?.message || err)}`);
+    }
+  }, [apiBase, selectedRunManifest, workflowResult, runResult, emitUiEvent, recordActivity, _setStatus]);
+
   const addKind = useCallback(
     (kind, overridePosition) => {
-      const def = kindDef(kind);
-      const meta = kindRegistry?.byKind?.[kind];
-      const title = meta?.title || def?.title || kind;
+      const blueprint = _kindBlueprint(kind, kindRegistry?.byKind?.[kind]);
+      if (!blueprint?.def && !blueprint?.meta) {
+        _setStatus(`Unknown component kind: ${String(kind || "")}.`);
+        return;
+      }
+      const title = blueprint.title;
       if (profile === "qkd_link") {
         // qkd_link compiler expects exactly one of each required kind.
         const already = nodes.find((n) => String(n?.data?.kind) === String(kind));
@@ -791,21 +1652,7 @@ export default function App() {
       const id = _nextNodeId(kind, nodes);
       const x = overridePosition ? overridePosition.x : 120 + (nodes.length % 4) * 240;
       const y = overridePosition ? overridePosition.y : 100 + Math.floor(nodes.length / 4) * 170;
-      const params = def ? { ...def.defaultParams } : {};
-      if (meta && Array.isArray(meta.params)) {
-        for (const p of meta.params) {
-          if (!p || typeof p !== "object") continue;
-          if (!p.required) continue;
-          if (!p.name) continue;
-          const key = String(p.name);
-          if (Object.prototype.hasOwnProperty.call(params, key)) continue;
-          if (Object.prototype.hasOwnProperty.call(p, "default")) {
-            params[key] = p.default;
-          } else {
-            params[key] = null;
-          }
-        }
-      }
+      const params = { ...blueprint.defaultParams };
       setNodes((nds) =>
         nds.concat({
           id,
@@ -815,6 +1662,11 @@ export default function App() {
             id,
             kind,
             label: title,
+            title: blueprint.title,
+            category: blueprint.category,
+            inPorts: blueprint.inPorts,
+            outPorts: blueprint.outPorts,
+            portDomains: blueprint.portDomains,
             params,
           },
         }),
@@ -838,12 +1690,16 @@ export default function App() {
       e.preventDefault();
       setIsDragOver(false);
       const kind = e.dataTransfer.getData("application/reactflow-kind");
-      if (!kind || !KIND_DEFS[kind]) return;
+      const blueprint = _kindBlueprint(kind, kindRegistry?.byKind?.[kind]);
+      if (!kind || (!blueprint?.def && !blueprint?.meta)) {
+        _setStatus(`Drop ignored: unknown component kind '${String(kind || "")}'.`);
+        return;
+      }
       if (!reactFlowInstance) return;
       const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
       addKind(kind, position);
     },
-    [reactFlowInstance, addKind],
+    [reactFlowInstance, addKind, kindRegistry, _setStatus],
   );
 
   const onCanvasDragOver = useCallback((e) => {
@@ -891,7 +1747,44 @@ export default function App() {
     }
   }, [apiBase, orbitConfig, orbitRequireSchema, _setStatus]);
 
+  const markRunSucceeded = useCallback(
+    (payload) => {
+      const rid = String(payload?.run_id || "").trim();
+      emitUiEvent("ui_run_succeeded", {
+        run_id: rid || null,
+        outcome: "success",
+      });
+
+      if (runRecoveryRef.current.hadFailure) {
+        const elapsed = runRecoveryRef.current.failedAtMs ? Date.now() - Number(runRecoveryRef.current.failedAtMs) : null;
+        emitUiEvent("ui_error_recovered", {
+          run_id: rid || null,
+          duration_ms: Number.isFinite(elapsed) && elapsed >= 0 ? elapsed : null,
+          outcome: "success",
+        });
+        runRecoveryRef.current = { hadFailure: false, failedAtMs: 0 };
+      }
+
+      if (guidedFlowRef.current.active) {
+        const durationMs = guidedFlowRef.current.startedAtMs ? Date.now() - Number(guidedFlowRef.current.startedAtMs) : null;
+        emitUiEvent("ui_guided_flow_completed", {
+          run_id: rid || null,
+          duration_ms: Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : null,
+          outcome: "success",
+        });
+        guidedFlowRef.current = { active: false, startedAtMs: 0 };
+      }
+    },
+    [emitUiEvent],
+  );
+
+  const markRunFailed = useCallback(() => {
+    runRecoveryRef.current = { hadFailure: true, failedAtMs: Date.now() };
+    emitUiEvent("ui_run_failed", { outcome: "failure" });
+  }, [emitUiEvent]);
+
   const runGraph = useCallback(async () => {
+    emitUiEvent("ui_run_started", { outcome: "success" });
     setBusy(true);
     setRunResult(null);
     try {
@@ -899,14 +1792,19 @@ export default function App() {
         const payload = await apiRunOrbitPass(apiBase, orbitConfig, { requireSchema: orbitRequireSchema, projectId: selectedProjectId || null });
         setRunResult(payload);
         setActiveRightTab("run");
+        markRunSucceeded(payload);
+        recordActivity("run", "Executed orbit pass run.", { run_id: String(payload?.run_id || "") });
         _setStatus(`Ran orbit pass (${payload?.run_id || "run"}).`);
-        return;
+        return { ok: true, payload };
       }
       if (profile === "qkd_link") {
         const payload = await apiRunQkd(apiBase, graphPayload, { executionMode: qkdExecutionMode, projectId: selectedProjectId || null });
         setRunResult(payload);
         setActiveRightTab("run");
+        markRunSucceeded(payload);
+        recordActivity("run", "Executed QKD run.", { run_id: String(payload?.run_id || "") });
         _setStatus(`Ran QKD (${payload?.run_id || "run"}).`);
+        return { ok: true, payload };
       } else {
         const sweep = String(picSweepNmText || "")
           .split(",")
@@ -917,16 +1815,46 @@ export default function App() {
         const payload = await apiSimulatePic(apiBase, graphPayload, { sweepNm: sweep.length ? sweep : null });
         setRunResult(payload);
         setActiveRightTab("run");
+        markRunSucceeded(payload);
+        recordActivity("run", "Executed PIC simulation.", { run_id: String(payload?.run_id || "") });
         _setStatus("Simulated PIC netlist.");
+        return { ok: true, payload };
       }
     } catch (err) {
-      setRunResult({ error: String(err?.message || err) });
+      const msg = String(err?.message || err);
+      setRunResult({ error: msg });
       setActiveRightTab("run");
-      _setStatus(`Run failed: ${String(err?.message || err)}`);
+      markRunFailed();
+      recordActivity("run", "Run failed.", { error: msg });
+      _setStatus(`Run failed: ${msg}`);
+      return { ok: false, error: msg };
     } finally {
       setBusy(false);
     }
-  }, [apiBase, graphPayload, profile, qkdExecutionMode, picSweepNmText, orbitConfig, orbitRequireSchema, mode, selectedProjectId, _setStatus]);
+  }, [
+    apiBase,
+    graphPayload,
+    profile,
+    qkdExecutionMode,
+    picSweepNmText,
+    orbitConfig,
+    orbitRequireSchema,
+    mode,
+    selectedProjectId,
+    emitUiEvent,
+    markRunSucceeded,
+    markRunFailed,
+    recordActivity,
+    _setStatus,
+  ]);
+
+  const runGuidedFlowNow = useCallback(async () => {
+    const result = await runGraph();
+    if (result?.ok) {
+      setGuidedFlowWizardOpen(false);
+    }
+    return result || { ok: false, error: "Run did not return a result." };
+  }, [runGraph]);
 
   const runCrosstalkDrc = useCallback(
     async ({ reason = "manual" } = {}) => {
@@ -963,6 +1891,11 @@ export default function App() {
     [apiBase, mode, profile, picSweepNmText, circuit, xtGapUm, xtLengthUm, xtTargetDb, selectedProjectId, _setStatus],
   );
 
+  const scheduleLiveCrosstalkDrc = useCallback(() => {
+    if (xtDebounceTimer.current) clearTimeout(xtDebounceTimer.current);
+    xtDebounceTimer.current = setTimeout(() => runCrosstalkDrc({ reason: "live" }), 140);
+  }, [runCrosstalkDrc]);
+
   const runInvdesign = useCallback(async () => {
     if (mode !== "graph" || profile !== "pic_circuit") return;
     setBusy(true);
@@ -993,7 +1926,7 @@ export default function App() {
           : await apiInvdesignMziPhase(apiBase, graphPayload, { ...common, phaseNodeId: invPhaseNodeId });
       setInvResult(payload);
       if (payload?.optimized_graph) {
-        const flow = _flowFromGraph(payload.optimized_graph);
+        const flow = _flowFromGraph(payload.optimized_graph, kindRegistry?.byKind);
         setNodes(flow.nodes);
         setEdges(flow.edges);
         setSelectedNodeId(null);
@@ -1026,6 +1959,7 @@ export default function App() {
     selectedProjectId,
     setNodes,
     setEdges,
+    kindRegistry.byKind,
     _setStatus,
   ]);
 
@@ -1063,7 +1997,7 @@ export default function App() {
       });
       setWorkflowResult(payload);
       if (payload?.optimized_graph) {
-        const flow = _flowFromGraph(payload.optimized_graph);
+        const flow = _flowFromGraph(payload.optimized_graph, kindRegistry?.byKind);
         setNodes(flow.nodes);
         setEdges(flow.edges);
         setSelectedNodeId(null);
@@ -1102,6 +2036,7 @@ export default function App() {
     selectedProjectId,
     setNodes,
     setEdges,
+    kindRegistry.byKind,
     _setStatus,
   ]);
 
@@ -1392,7 +2327,7 @@ export default function App() {
       setCircuit(graph.circuit && typeof graph.circuit === "object" ? graph.circuit : { ...DEFAULT_PIC_CIRCUIT });
     }
 
-    const flow = _flowFromGraph(graph);
+    const flow = _flowFromGraph(graph, kindRegistry?.byKind);
     setNodes(flow.nodes);
     setEdges(flow.edges);
     setSelectedNodeId(null);
@@ -1403,2294 +2338,609 @@ export default function App() {
     setImportOpen(false);
     setActiveRightTab("inspect");
     _setStatus("Imported graph into editor.");
-  }, [importText, setNodes, setEdges, _setStatus]);
+  }, [importText, setNodes, setEdges, kindRegistry.byKind, _setStatus]);
+
+  const approvalControlsNode = selectedRunManifest?.run_id ? (
+    <ApprovalControls
+      approvalActor={approvalActor}
+      approvalNote={approvalNote}
+      onApprovalActorChange={(value) => setApprovalActor(String(value))}
+      onApprovalNoteChange={(value) => setApprovalNote(String(value))}
+      onApprove={approveSelectedRun}
+      busy={busy}
+    />
+  ) : null;
+
+  const demoDegraded = demoModeOpen && apiHealth.status !== "ok";
+  const demoRunId = String(selectedRunManifest?.run_id || runResult?.run_id || workflowResult?.run_id || "").trim();
+  const demoPacketHref = demoRunId ? _runBundleUrl(apiBase, demoRunId) : "";
+  const demoDiffSummary =
+    runsDiffResult?.diff?.violation_diff?.summary && typeof runsDiffResult.diff.violation_diff.summary === "object"
+      ? runsDiffResult.diff.violation_diff.summary
+      : runsDiffResult?.diff?.summary && typeof runsDiffResult.diff.summary === "object"
+        ? runsDiffResult.diff.summary
+        : null;
+  const demoApprovalCount = Array.isArray(projectApprovals?.approvals) ? projectApprovals.approvals.length : 0;
+  const demoPacketActionEnabled = !demoModeOpen || demoScene === "packet";
 
   return (
     <div className="ptApp">
-      <header className="ptTopbar">
-        <div className="ptBrand">
-          <div className="ptBrandTitle">PhotonTrust</div>
-          <div className="ptBrandSub">
-            {mode === "graph" ? "graph -> compile -> run" : mode === "orbit" ? "config -> validate -> run" : "run registry -> diff"}
-          </div>
-        </div>
+      <AppTopBar
+        programStageSubtitle={stageSubtitle(programStage)}
+        mode={mode}
+        onModeChange={(nextValue) => {
+          const next = String(nextValue);
+          const inferredStage = next === "runs" ? "compare" : next === "orbit" ? "validate" : "build";
+          switchOperationalMode(next, { nextStage: inferredStage });
+          setShowLanding(false);
+        }}
+        userMode={userMode}
+        onUserModeChange={setUserMode}
+        selectedViewPresetId={selectedViewPresetId}
+        savedViews={savedViews}
+        onViewPresetChange={applyViewPresetById}
+        onSaveView={saveCurrentViewPreset}
+        profile={profile}
+        onProfileChange={(nextValue) => {
+          const next = String(nextValue);
+          setProfile(next);
+          setGraphId(_defaultGraphIdForProfile(next));
+          setCompileResult(null);
+          setRunResult(null);
+          if (next === "qkd_link") {
+            setScenario({ ...DEFAULT_QKD_SCENARIO });
+            loadTemplate("qkd");
+          } else {
+            setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+            loadTemplate("pic_mzi");
+          }
+        }}
+        graphId={graphId}
+        onGraphIdChange={setGraphId}
+        apiBase={apiBase}
+        onApiBaseChange={setApiBase}
+        onDemoMode={investorDemoCheckpoint}
+        onPing={pingApi}
+        busy={busy}
+        onPrimaryAction={mode === "graph" ? compileGraph : mode === "orbit" ? validateOrbit : refreshRuns}
+        primaryActionLabel={mode === "graph" ? "Compile" : mode === "orbit" ? "Validate" : "Refresh"}
+        onRunOrDiff={mode === "runs" ? diffRuns : runGraph}
+        runOrDiffLabel={mode === "runs" ? "Diff" : "Run"}
+        runOrDiffDisabled={mode === "runs" ? !diffLhsRunId || !diffRhsRunId : false}
+        showGraphDrc={mode === "graph" && profile === "pic_circuit"}
+        onGraphDrc={() => runCrosstalkDrc({ reason: "manual" })}
+        showLanding={showLanding}
+        onToggleLanding={() => setShowLanding((v) => !v)}
+        onExportPacket={exportDecisionPacket}
+        exportPacketDisabled={!demoPacketActionEnabled}
+        demoModeOpen={demoModeOpen}
+        apiHealthStatus={apiHealth.status}
+        apiHealthVersion={apiHealth.version}
+        apiHealthError={apiHealth.error}
+        showGraphProfileControls={mode === "graph"}
+      />
 
-        <div className="ptTopControls">
-          <label className="ptField">
-            <span>Mode</span>
-            <select
-              value={mode}
-              onChange={(e) => {
-                const next = String(e.target.value);
-                setMode(next);
+      <nav className="ptStageNav" aria-label="Product stage navigation">
+        {PRODUCT_STAGE_ITEMS.map((stage) => {
+          const active = String(stage.id) === String(programStage);
+          return (
+            <button
+              key={stage.id}
+              className={`ptStagePill ${active ? "active" : ""}`}
+              onClick={() => openProgramStage(stage.id)}
+              type="button"
+              disabled={demoModeOpen}
+            >
+              {stage.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      <WorkspaceContextBar
+        projects={(projectsIndex?.projects || [])
+          .map((p) => {
+            const id = String(p?.project_id || "").trim();
+            if (!id) return null;
+            const count = Number(p?.run_count ?? 0);
+            const name = Number.isFinite(count) && count > 0 ? `${id} (${count})` : id;
+            return { id, name };
+          })
+          .filter(Boolean)}
+        selectedProjectId={selectedProjectId}
+        onProjectChange={handleWorkspaceProjectChange}
+        rolePresets={ROLE_PRESET_OPTIONS}
+        selectedRolePreset={userMode}
+        onRolePresetChange={applyRolePreset}
+        savedViews={(savedViews || []).map((v) => ({ id: String(v?.id || ""), name: String(v?.name || v?.id || "") })).filter((v) => v.id)}
+        selectedSavedViewId={selectedViewPresetId}
+        onSavedViewChange={applyViewPresetById}
+        onSaveView={saveCurrentViewPreset}
+        saveViewLabel="Save view"
+        saveViewDisabled={demoModeOpen}
+        recentActivity={recentActivity}
+        onRecentActivityClick={handleRecentActivityClick}
+        disabled={demoModeOpen}
+      />
+
+      {showLanding ? (
+        <LandingWorkspace
+          currentStage={programStage}
+          onOpenStage={openProgramStage}
+          onStartGuidedFlow={startGuidedFlow}
+          onInvestorDemoCheckpoint={investorDemoCheckpoint}
+          onDismiss={() => setShowLanding(false)}
+        />
+      ) : null}
+
+      <GuidedFlowWizard
+        open={guidedFlowWizardOpen}
+        busy={busy}
+        profile={profile}
+        apiHealthStatus={apiHealth.status}
+        scenario={scenario}
+        circuit={circuit}
+        initialGoal={guidedFlowInitialGoal}
+        onClose={closeGuidedFlowWizard}
+        onGoalChange={(goalId) => setGuidedFlowInitialGoal(String(goalId || "qkd"))}
+        onTemplateApply={applyGuidedTemplate}
+        onRunPreflight={runGuidedPreflight}
+        onRun={runGuidedFlowNow}
+        onOpenStage={openProgramStage}
+      />
+
+      {demoModeOpen ? (
+        <section className="ptDemoWrap">
+          <DemoModeOrchestrator
+            initialScene={demoInitialScene}
+            degraded={demoDegraded}
+            degradedReason={apiHealth.status === "ok" ? "" : String(apiHealth.error || "API not healthy")}
+            onSceneChange={handleDemoSceneChange}
+            onExit={closeDemoMode}
+          />
+          <DemoProofSnapshot
+            scene={demoScene}
+            degraded={demoDegraded}
+            decision={decisionContext.decision}
+            confidence={decisionContext.confidenceScore}
+            riskLevel={decisionContext.riskLevel}
+            diffSummary={demoDiffSummary}
+            approvalCount={demoApprovalCount}
+            runId={demoRunId}
+            packetHref={demoPacketHref}
+          />
+        </section>
+      ) : null}
+
+      <div className="ptMain" style={demoModeOpen ? { pointerEvents: "none" } : undefined}>
+        <aside className="ptSidebar ptSidebarLeft">
+          <LeftSidebarByMode
+            mode={mode}
+            graphProps={{
+              busy,
+              profile,
+              paletteScope,
+              onPaletteScopeChange: setPaletteScope,
+              paletteQuery,
+              onPaletteQueryChange: setPaletteQuery,
+              filteredKindOptions,
+              kindOptions,
+              paletteSummary,
+              kindRegistry,
+              onAddKind: addKind,
+              onLoadTemplate: loadTemplate,
+              onOpenExport: () => setExportOpen(true),
+              onOpenImport: () => setImportOpen(true),
+              requireSchema,
+              onRequireSchemaChange: setRequireSchema,
+              kindBlueprint: _kindBlueprint,
+              kindAvailability: _kindAvailability,
+            }}
+            orbitProps={{
+              busy,
+              orbitRequireSchema,
+              onLoadPassEnvelope: () => {
+                setOrbitConfig(_cloneJson(DEFAULT_ORBIT_PASS_CONFIG));
+                setRunResult(null);
                 setCompileResult(null);
                 setOrbitValidateResult(null);
-                setRunResult(null);
-                setSelectedNodeId(null);
-                setSelectedRunId(null);
-                setSelectedRunManifest(null);
-                setRunsDiffResult(null);
-                setDiffLhsRunId("");
-                setDiffRhsRunId("");
-                setDiffScope("input");
-                setActiveRightTab(next === "orbit" ? "orbit" : next === "runs" ? "manifest" : "inspect");
-                _setStatus(next === "orbit" ? "Switched to Orbit Pass mode." : next === "runs" ? "Switched to Runs mode." : "Switched to Graph Editor mode.");
-              }}
-            >
-              <option value="graph">Graph Editor</option>
-              <option value="orbit">Orbit Pass</option>
-              <option value="runs">Runs</option>
-            </select>
-          </label>
-
-          {mode === "graph" ? (
-            <>
-              <label className="ptField">
-                <span>Profile</span>
-                <select
-                  value={profile}
-                  onChange={(e) => {
-                    const next = String(e.target.value);
-                    setProfile(next);
-                    setGraphId(_defaultGraphIdForProfile(next));
-                    setCompileResult(null);
-                    setRunResult(null);
-                    if (next === "qkd_link") {
-                      setScenario({ ...DEFAULT_QKD_SCENARIO });
-                      loadTemplate("qkd");
-                    } else {
-                      setCircuit({ ...DEFAULT_PIC_CIRCUIT });
-                      loadTemplate("pic_mzi");
+                setActiveRightTab("orbit");
+                _setStatus("Loaded template: Orbit pass envelope.");
+              },
+              onOrbitRequireSchemaChange: setOrbitRequireSchema,
+            }}
+            runsProps={{
+              busy,
+              runsIndex,
+              projectsIndex,
+              selectedProjectId,
+              onProjectChange: handleWorkspaceProjectChange,
+              onRefreshAll: () => {
+                refreshProjects();
+                refreshRuns();
+              },
+              diffLhsRunId,
+              diffRhsRunId,
+              diffScope,
+              onDiffLhsChange: setDiffLhsRunId,
+              onDiffRhsChange: setDiffRhsRunId,
+              onDiffScopeChange: setDiffScope,
+              onDiffRuns: diffRuns,
+              collectionsNode: (
+                <RunCollectionsPanel
+                  collections={collectionOptions}
+                  selectedCollectionId={selectedCollectionId}
+                  onCollectionChange={(value) => {
+                    setSelectedCollectionId(String(value || ""));
+                    setCollectionTagInput("");
+                  }}
+                  newCollectionName={newCollectionName}
+                  onNewCollectionNameChange={setNewCollectionName}
+                  onCreateCollection={createRunCollection}
+                  selectedRunId={selectedRunForCollection}
+                  runOptions={runOptionsForCollections}
+                  runTags={selectedRunTags}
+                  tagInput={collectionTagInput}
+                  onTagInputChange={setCollectionTagInput}
+                  onAddTag={addCollectionTag}
+                  onRemoveTag={removeCollectionTag}
+                  baselineRunId={String(selectedCollection?.baselineRunId || diffLhsRunId || "")}
+                  candidateRunIds={selectedCollection?.candidateRunIds || []}
+                  onBaselineRunChange={(runId) => {
+                    setCollectionBaseline(runId);
+                    setDiffLhsRunId(String(runId || ""));
+                  }}
+                  onCandidateRunIdsChange={(runIds) => {
+                    const rows = Array.isArray(runIds) ? runIds : [];
+                    setCollectionCandidates(rows);
+                    if (rows.length) setDiffRhsRunId(String(rows[0] || ""));
+                  }}
+                  onUseSelectedAsBaseline={(runId) => {
+                    setCollectionBaseline(runId);
+                    if (runId) setDiffLhsRunId(String(runId));
+                  }}
+                  onAddSelectedAsCandidate={(runId) => {
+                    const rid = String(runId || "").trim();
+                    if (!rid) return;
+                    const existing = Array.isArray(selectedCollection?.candidateRunIds) ? selectedCollection.candidateRunIds : [];
+                    const merged = Array.from(new Set([...existing, rid]));
+                    setCollectionCandidates(merged);
+                    setDiffRhsRunId(rid);
+                  }}
+                  onRemoveSelectedFromCandidates={(runId) => {
+                    const rid = String(runId || "").trim();
+                    const existing = Array.isArray(selectedCollection?.candidateRunIds) ? selectedCollection.candidateRunIds : [];
+                    const filtered = existing.filter((item) => String(item) !== rid);
+                    setCollectionCandidates(filtered);
+                    if (String(diffRhsRunId || "") === rid) {
+                      setDiffRhsRunId(String(filtered[0] || ""));
                     }
                   }}
-                >
-                  {PROFILE_OPTIONS.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="ptField">
-                <span>graph_id</span>
-                <input value={graphId} onChange={(e) => setGraphId(String(e.target.value))} />
-              </label>
-            </>
-          ) : null}
-
-          <label className="ptField ptFieldWide">
-            <span>API</span>
-            <input value={apiBase} onChange={(e) => setApiBase(String(e.target.value))} placeholder="http://127.0.0.1:8000" />
-          </label>
-
-          <button className="ptBtn ptBtnGhost" onClick={pingApi} disabled={busy}>
-            Ping
-          </button>
-
-          {mode === "graph" ? (
-            <button className="ptBtn" onClick={compileGraph} disabled={busy}>
-              Compile
-            </button>
-          ) : mode === "orbit" ? (
-            <button className="ptBtn" onClick={validateOrbit} disabled={busy}>
-              Validate
-            </button>
-          ) : (
-            <button className="ptBtn" onClick={refreshRuns} disabled={busy}>
-              Refresh
-            </button>
-          )}
-
-          {mode === "runs" ? (
-            <button className="ptBtn ptBtnPrimary" onClick={diffRuns} disabled={busy || !diffLhsRunId || !diffRhsRunId}>
-              Diff
-            </button>
-          ) : (
-            <button className="ptBtn ptBtnPrimary" onClick={runGraph} disabled={busy}>
-              Run
-            </button>
-          )}
-
-          {mode === "graph" && profile === "pic_circuit" ? (
-            <button className="ptBtn ptBtnGhost" onClick={() => runCrosstalkDrc({ reason: "manual" })} disabled={busy}>
-              DRC
-            </button>
-          ) : null}
-        </div>
-
-        <div className={`ptApiPill ${apiHealth.status}`} title={apiHealth.error || ""}>
-          API: {apiHealth.status === "ok" ? `ok (v${apiHealth.version || "?"})` : apiHealth.status}
-        </div>
-      </header>
-
-      <div className="ptMain">
-        <aside className="ptSidebar ptSidebarLeft">
-          {mode === "graph" ? (
-            <>
-              <div className="ptSidebarSection">
-                <div className="ptSidebarTitle">Templates</div>
-                <div className="ptBtnRow">
-                  <button className="ptBtn ptBtnGhost" onClick={() => loadTemplate("qkd")} disabled={busy}>
-                    QKD Link
-                  </button>
-                  <button className="ptBtn ptBtnGhost" onClick={() => loadTemplate("pic_chain")} disabled={busy}>
-                    PIC Chain
-                  </button>
-                  <button className="ptBtn ptBtnGhost" onClick={() => loadTemplate("pic_mzi")} disabled={busy}>
-                    PIC MZI
-                  </button>
-                </div>
-              </div>
-
-              <div className="ptSidebarSection">
-                <div className="ptSidebarTitle">Palette <span className="ptPaletteHint">drag or click</span></div>
-                {[
-                  { label: "QKD", prefix: "qkd." },
-                  { label: "PIC", prefix: "pic." },
-                ].map(({ label, prefix }) => {
-                  const group = kindOptions.filter((k) => k.startsWith(prefix));
-                  if (!group.length) return null;
-                  return (
-                    <div key={label} className="ptPaletteGroup">
-                      <div className={`ptPaletteGroupLabel ptPaletteGroupLabel--${label.toLowerCase()}`}>{label}</div>
-                      <div className="ptPaletteGrid">
-                        {group.map((k) => {
-                          const meta = kindRegistry?.byKind?.[k];
-                          const def = kindDef(k);
-                          const apiEnabled = meta?.availability?.api_enabled;
-                          return (
-                            <div
-                              key={k}
-                              className={`ptPaletteItem ptPaletteItem--${label.toLowerCase()}`}
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData("application/reactflow-kind", k);
-                                e.dataTransfer.effectAllowed = "move";
-                              }}
-                              onClick={() => addKind(k)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => e.key === "Enter" && addKind(k)}
-                            >
-                              <div className="ptPaletteTitle">{meta?.title || def?.title || k}</div>
-                              <div className="ptPaletteKind">{k}</div>
-                              {apiEnabled === false ? <div className="ptPaletteKind">CLI-only</div> : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="ptSidebarSection">
-                <div className="ptSidebarTitle">Export / Import</div>
-                <div className="ptBtnRow">
-                  <button className="ptBtn ptBtnGhost" onClick={() => setExportOpen(true)}>
-                    Export JSON
-                  </button>
-                  <button className="ptBtn ptBtnGhost" onClick={() => setImportOpen(true)}>
-                    Import JSON
-                  </button>
-                </div>
-
-                <label className="ptCheck">
-                  <input type="checkbox" checked={requireSchema} onChange={(e) => setRequireSchema(Boolean(e.target.checked))} />
-                  <span>Require JSON Schema on compile</span>
-                </label>
-              </div>
-            </>
-          ) : mode === "orbit" ? (
-            <>
-              <div className="ptSidebarSection">
-                <div className="ptSidebarTitle">Templates</div>
-                <div className="ptBtnRow">
-                  <button
-                    className="ptBtn ptBtnGhost"
-                    onClick={() => {
-                      setOrbitConfig(_cloneJson(DEFAULT_ORBIT_PASS_CONFIG));
-                      setRunResult(null);
-                      setCompileResult(null);
-                      setOrbitValidateResult(null);
-                      setActiveRightTab("orbit");
-                      _setStatus("Loaded template: Orbit pass envelope.");
-                    }}
-                    disabled={busy}
-                  >
-                    Pass Envelope
-                  </button>
-                </div>
-                <div className="ptHint">OrbitVerify v0.1 uses explicit samples over time (not orbit propagation).</div>
-
-                <label className="ptCheck">
-                  <input type="checkbox" checked={orbitRequireSchema} onChange={(e) => setOrbitRequireSchema(Boolean(e.target.checked))} />
-                  <span>Require JSON Schema on validate/run</span>
-                </label>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="ptSidebarSection">
-                <div className="ptSidebarTitle">Run Registry</div>
-                <div className="ptHint">Browse and diff run manifests served by the API.</div>
-                {runsIndex?.runsRoot ? (
-                  <div className="ptHint">
-                    runs_root: <span className="ptMono">{String(runsIndex.runsRoot)}</span>
-                  </div>
-                ) : null}
-
-                <label className="ptField">
-                  <span>Project</span>
-                  <select
-                    value={selectedProjectId}
-                    onChange={(e) => {
-                      const pid = String(e.target.value);
-                      setSelectedProjectId(pid);
-                      setSelectedRunId(null);
-                      setSelectedRunManifest(null);
-                      setDiffLhsRunId("");
-                      setDiffRhsRunId("");
-                      setRunsDiffResult(null);
-                      setApprovalResult(null);
-                      setApprovalNote("");
-                      setProjectApprovals({ status: "idle", error: null, projectId: null, approvals: [] });
-                      refreshRuns(pid || null);
-                    }}
-                    disabled={busy || projectsIndex?.status === "checking"}
-                  >
-                    <option value="">(all)</option>
-                    {(projectsIndex?.projects || []).map((p) => {
-                      const pid = String(p?.project_id || "");
-                      if (!pid) return null;
-                      const count = Number(p?.run_count ?? 0);
-                      const label = Number.isFinite(count) && count > 0 ? `${pid} (${count})` : pid;
-                      return (
-                        <option key={`proj:${pid}`} value={pid}>
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-
-                {projectsIndex?.status === "error" ? <div className="ptError">{String(projectsIndex.error || "Failed to load projects.")}</div> : null}
-                {runsIndex?.status === "error" ? <div className="ptError">{String(runsIndex.error || "Failed to load runs.")}</div> : null}
-                <div className="ptBtnRow">
-                  <button
-                    className="ptBtn ptBtnGhost"
-                    onClick={() => {
-                      refreshProjects();
-                      refreshRuns();
-                    }}
-                    disabled={busy}
-                  >
-                    Refresh
-                  </button>
-                </div>
-              </div>
-
-              <div className="ptSidebarSection">
-                <div className="ptSidebarTitle">Diff</div>
-                <label className="ptField">
-                  <span>LHS run</span>
-                  <select value={diffLhsRunId} onChange={(e) => setDiffLhsRunId(String(e.target.value))}>
-                    <option value="">(select)</option>
-                    {(runsIndex?.runs || []).map((r) => {
-                      const rid = String(r?.run_id || "");
-                      if (!rid) return null;
-                      const pid = String(r?.project_id || "");
-                      const label = `${String(r?.run_type || "run")} | ${rid}`;
-                      return (
-                        <option key={`lhs:${rid}`} value={rid}>
-                          {pid ? `${String(r?.run_type || "run")} | ${pid} | ${rid}` : label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-
-                <label className="ptField">
-                  <span>RHS run</span>
-                  <select value={diffRhsRunId} onChange={(e) => setDiffRhsRunId(String(e.target.value))}>
-                    <option value="">(select)</option>
-                    {(runsIndex?.runs || []).map((r) => {
-                      const rid = String(r?.run_id || "");
-                      if (!rid) return null;
-                      const pid = String(r?.project_id || "");
-                      const label = `${String(r?.run_type || "run")} | ${rid}`;
-                      return (
-                        <option key={`rhs:${rid}`} value={rid}>
-                          {pid ? `${String(r?.run_type || "run")} | ${pid} | ${rid}` : label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-
-                <label className="ptField">
-                  <span>Scope</span>
-                  <select value={diffScope} onChange={(e) => setDiffScope(String(e.target.value))}>
-                    <option value="input">input</option>
-                    <option value="outputs_summary">outputs_summary</option>
-                    <option value="all">all</option>
-                  </select>
-                </label>
-
-                <div className="ptBtnRow">
-                  <button className="ptBtn ptBtnPrimary" onClick={diffRuns} disabled={busy || !diffLhsRunId || !diffRhsRunId}>
-                    Diff
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+                  onClearCandidates={() => {
+                    setCollectionCandidates([]);
+                    setDiffRhsRunId("");
+                  }}
+                  createDisabled={busy}
+                  tagDisabled={busy}
+                  selectionDisabled={busy}
+                />
+              ),
+            }}
+          />
         </aside>
 
-        {mode === "graph" ? (
-          <section
-            className={`ptCanvas${isDragOver ? " ptCanvas--dragover" : ""}`}
-            aria-label="Graph editor canvas"
-            onDrop={onCanvasDrop}
-            onDragOver={onCanvasDragOver}
-            onDragLeave={onCanvasDragLeave}
-          >
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              nodeTypes={nodeTypes}
-              fitView
-              onSelectionChange={(sel) => {
-                const picked = sel?.nodes?.[0]?.id;
-                setSelectedNodeId(picked ? String(picked) : null);
-              }}
-            >
-              <Background variant="dots" gap={18} size={1} />
-              <Controls />
-              <MiniMap pannable zoomable />
-            </ReactFlow>
-          </section>
-        ) : mode === "orbit" ? (
-          <section className="ptCanvas" aria-label="Orbit pass configuration editor">
-            <div style={{ padding: 14 }}>
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Orbit Pass Config</div>
-                <div className="ptHint">
-                  Edit the config and click <span className="ptMono">Run</span> to generate <span className="ptMono">orbit_pass_results.json</span>{" "}
-                  and <span className="ptMono">orbit_pass_report.html</span>.
-                </div>
-                <JsonBox
-                  key={`orbit:${JSON.stringify(orbitConfig || {})}`}
-                  title="config (JSON)"
-                  value={orbitConfig}
-                  onApply={applyOrbitConfigText}
-                  textareaClassName="ptTextarea"
-                />
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="ptCanvas" aria-label="Run registry browser">
-            <div style={{ padding: 14 }}>
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Runs</div>
-                <div className="ptHint">Select a run to load its manifest. Use Diff to compare the manifest inputs.</div>
-
-                {runsIndex?.status === "idle" ? <div className="ptHint">Click Refresh to load runs from the API.</div> : null}
-                {runsIndex?.status === "checking" ? <div className="ptHint">Loading...</div> : null}
-                {runsIndex?.status === "error" ? <div className="ptError">{String(runsIndex?.error || "Failed to load runs.")}</div> : null}
-
-                {runsIndex?.status === "ok" && Array.isArray(runsIndex?.runs) && runsIndex.runs.length ? (
-                  <div className="ptPaletteGrid">
-                    {runsIndex.runs.map((r) => {
-                      const rid = String(r?.run_id || "");
-                      if (!rid) return null;
-                      const typ = String(r?.run_type || "run");
-                      const pid = String(r?.project_id || "default");
-                      const ts = r?.generated_at ? String(r.generated_at) : "";
-                      const h = r?.input_hash ? String(r.input_hash) : "";
-                      const hShort = h && h.length > 14 ? `${h.slice(0, 12)}...` : h;
-                      const protocolSelected = String(r?.protocol_selected || "").trim();
-                      const multifidelityPresent = Boolean(r?.multifidelity_present);
-                      const selected = String(selectedRunId || "") === rid;
-
-                      return (
-                        <button
-                          key={rid}
-                          className="ptPaletteItem"
-                          style={selected ? { borderColor: "rgba(46, 230, 214, 0.55)" } : null}
-                          onClick={() => {
-                            loadRunManifest(rid);
-                            setActiveRightTab("manifest");
-                            if (!diffLhsRunId) setDiffLhsRunId(rid);
-                            else if (!diffRhsRunId && String(diffLhsRunId) !== rid) setDiffRhsRunId(rid);
-                          }}
-                        >
-                          <div className="ptPaletteTitle">{typ}</div>
-                          <div className="ptPaletteKind">{rid}</div>
-                          {pid ? <div className="ptPaletteKind">{pid}</div> : null}
-                          {ts ? <div className="ptPaletteKind">{ts}</div> : null}
-                          {protocolSelected ? <div className="ptPaletteKind">protocol: {protocolSelected}</div> : null}
-                          {hShort ? <div className="ptPaletteKind">input: {hShort}</div> : null}
-                          {multifidelityPresent ? <div className="ptPaletteKind">multifidelity: present</div> : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                {runsIndex?.status === "ok" && (!Array.isArray(runsIndex?.runs) || !runsIndex.runs.length) ? <div className="ptHint">No runs found.</div> : null}
-              </div>
-            </div>
-          </section>
-        )}
+        <CenterWorkspacePane
+          mode={mode}
+          isDragOver={isDragOver}
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          onSelectionChange={(sel) => {
+            const picked = sel?.nodes?.[0]?.id;
+            setSelectedNodeId(picked ? String(picked) : null);
+          }}
+          onCanvasDrop={onCanvasDrop}
+          onCanvasDragOver={onCanvasDragOver}
+          onCanvasDragLeave={onCanvasDragLeave}
+          orbitConfig={orbitConfig}
+          onApplyOrbitConfigText={applyOrbitConfigText}
+          runsIndex={runsIndex}
+          selectedRunId={selectedRunId}
+          diffLhsRunId={diffLhsRunId}
+          diffRhsRunId={diffRhsRunId}
+          onLoadRunManifest={loadRunManifest}
+          onSetActiveRightTab={setActiveRightTab}
+          onSetDiffLhsRunId={setDiffLhsRunId}
+          onSetDiffRhsRunId={setDiffRhsRunId}
+        />
 
         <aside className="ptSidebar ptSidebarRight">
-          <div className="ptTabs">
-            {mode === "graph" ? (
-              <>
-                <button className={`ptTab ${activeRightTab === "inspect" ? "active" : ""}`} onClick={() => setActiveRightTab("inspect")}>
-                  Inspect
-                </button>
-                <button className={`ptTab ${activeRightTab === "compile" ? "active" : ""}`} onClick={() => setActiveRightTab("compile")}>
-                  Compile
-                </button>
-                <button className={`ptTab ${activeRightTab === "run" ? "active" : ""}`} onClick={() => setActiveRightTab("run")}>
-                  Run
-                </button>
-                {profile === "pic_circuit" ? (
-                  <button className={`ptTab ${activeRightTab === "drc" ? "active" : ""}`} onClick={() => setActiveRightTab("drc")}>
-                    DRC
-                  </button>
-                ) : null}
-                {profile === "pic_circuit" ? (
-                  <button className={`ptTab ${activeRightTab === "invdesign" ? "active" : ""}`} onClick={() => setActiveRightTab("invdesign")}>
-                    InvDesign
-                  </button>
-                ) : null}
-                {profile === "pic_circuit" ? (
-                  <button className={`ptTab ${activeRightTab === "layout" ? "active" : ""}`} onClick={() => setActiveRightTab("layout")}>
-                    Layout
-                  </button>
-                ) : null}
-                {profile === "pic_circuit" ? (
-                  <button className={`ptTab ${activeRightTab === "lvs" ? "active" : ""}`} onClick={() => setActiveRightTab("lvs")}>
-                    LVS-lite
-                  </button>
-                ) : null}
-                {profile === "pic_circuit" ? (
-                  <button className={`ptTab ${activeRightTab === "klayout" ? "active" : ""}`} onClick={() => setActiveRightTab("klayout")}>
-                    KLayout
-                  </button>
-                ) : null}
-                {profile === "pic_circuit" ? (
-                  <button className={`ptTab ${activeRightTab === "spice" ? "active" : ""}`} onClick={() => setActiveRightTab("spice")}>
-                    SPICE
-                  </button>
-                ) : null}
-                <button className={`ptTab ${activeRightTab === "graph" ? "active" : ""}`} onClick={() => setActiveRightTab("graph")}>
-                  Graph JSON
-                </button>
-              </>
-            ) : mode === "orbit" ? (
-              <>
-                <button className={`ptTab ${activeRightTab === "orbit" ? "active" : ""}`} onClick={() => setActiveRightTab("orbit")}>
-                  Config
-                </button>
-                <button className={`ptTab ${activeRightTab === "validate" ? "active" : ""}`} onClick={() => setActiveRightTab("validate")}>
-                  Validate
-                </button>
-                <button className={`ptTab ${activeRightTab === "run" ? "active" : ""}`} onClick={() => setActiveRightTab("run")}>
-                  Run
-                </button>
-              </>
-            ) : (
-              <>
-                <button className={`ptTab ${activeRightTab === "manifest" ? "active" : ""}`} onClick={() => setActiveRightTab("manifest")}>
-                  Manifest
-                </button>
-                <button className={`ptTab ${activeRightTab === "diff" ? "active" : ""}`} onClick={() => setActiveRightTab("diff")}>
-                  Diff
-                </button>
-              </>
-            )}
-          </div>
+          <RightSidebarTabs mode={mode} profile={profile} activeRightTab={activeRightTab} onChangeTab={setActiveRightTab} />
 
-          {mode === "graph" && activeRightTab === "inspect" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Selection</div>
-                {selectedNode ? (
-                  <>
-                    <div className="ptKeyVal">
-                      <div>id</div>
-                      <div>{String(selectedNode.id)}</div>
-                    </div>
-                    <div className="ptKeyVal">
-                      <div>kind</div>
-                      <div>{String(selectedNode?.data?.kind)}</div>
-                    </div>
-                    <div className="ptKeyVal">
-                      <div>label</div>
-                      <div>{String(selectedNode?.data?.label || "")}</div>
-                    </div>
-                    <KindTrustPanel
-                      kind={String(selectedNode?.data?.kind || "")}
-                      kindMeta={kindRegistry?.byKind?.[String(selectedNode?.data?.kind || "")]}
-                      params={selectedNode?.data?.params}
-                      registryStatus={kindRegistry?.status}
-                      onSetParam={setSelectedParamValue}
-                    />
-                    <div className="ptBtnRow">
-                      <button className="ptBtn ptBtnGhost" onClick={deleteSelected}>
-                        Delete node
-                      </button>
-                    </div>
-                    <JsonBox
-                      key={`params:${String(selectedNode.id)}:${JSON.stringify(selectedNode?.data?.params || {})}`}
-                      title="params"
-                      value={selectedNode?.data?.params}
-                      onApply={applySelectedParams}
-                    />
-                  </>
-                ) : (
-                  <div className="ptHint">Click a node to edit its parameters.</div>
-                )}
-              </div>
-
-              {profile === "qkd_link" ? (
-                <div className="ptRightSection">
-                  <div className="ptRightTitle">Scenario</div>
-                  <label className="ptField">
-                    <span>Band</span>
-                    <select
-                      value={String(scenario?.band || "c_1550")}
-                      onChange={(e) => {
-                        const b = String(e.target.value);
-                        const opt = BAND_OPTIONS.find((x) => x.id === b);
-                        const wl = b === "nir_795" ? 795 : b === "nir_850" ? 850 : b === "o_1310" ? 1310 : 1550;
-                        setScenario((s) => ({ ...(s || {}), band: b, wavelength_nm: wl, id: s?.id || "ui_qkd_link" }));
-                        _setStatus(`Scenario band: ${opt?.label || b}.`);
-                      }}
-                    >
-                      {BAND_OPTIONS.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="ptField">
-                    <span>Distance (km)</span>
-                    <input
-                      value={String(scenario?.distance_km ?? 10)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        setScenario((s) => ({ ...(s || {}), distance_km: Number.isFinite(v) ? v : 10, id: s?.id || "ui_qkd_link" }));
-                      }}
-                    />
-                  </label>
-
-                  <label className="ptField">
-                    <span>Execution mode</span>
-                    <select value={qkdExecutionMode} onChange={(e) => setQkdExecutionMode(String(e.target.value))}>
-                      <option value="preview">preview</option>
-                      <option value="certification">certification</option>
-                    </select>
-                  </label>
-
-                  <JsonBox
-                    key={`scenario:${JSON.stringify(scenario || {})}`}
-                    title="scenario (advanced)"
-                    value={scenario}
-                    onApply={applyScenarioText}
-                  />
-
-                  <JsonBox
-                    key={`uncertainty:${JSON.stringify(uncertainty || {})}`}
-                    title="uncertainty (advanced)"
-                    value={uncertainty}
-                    onApply={applyUncertaintyText}
-                  />
-
-                  <JsonBox
-                    key={`finite_key:${JSON.stringify(finiteKey || {})}`}
-                    title="finite_key (advanced)"
-                    value={finiteKey}
-                    onApply={applyFiniteKeyText}
-                  />
-                </div>
-              ) : (
-                <div className="ptRightSection">
-                  <div className="ptRightTitle">Circuit</div>
-                  <label className="ptField">
-                    <span>Wavelength (nm)</span>
-                    <input
-                      value={String(circuit?.wavelength_nm ?? 1550)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        setCircuit((c) => ({ ...(c || {}), wavelength_nm: Number.isFinite(v) ? v : 1550, id: c?.id || "ui_pic_circuit" }));
-                      }}
-                    />
-                  </label>
-
-                  <label className="ptField ptFieldWide">
-                    <span>Sweep nm (comma)</span>
-                    <input value={picSweepNmText} onChange={(e) => setPicSweepNmText(String(e.target.value))} placeholder="1540, 1550, 1560" />
-                  </label>
-
-                  <JsonBox
-                    key={`circuit:${JSON.stringify(circuit || {})}`}
-                    title="circuit (advanced)"
-                    value={circuit}
-                    onApply={applyCircuitText}
-                  />
-                </div>
-              )}
-
-              {profile === "pic_circuit" ? (
-                <div className="ptRightSection">
-                  <div className="ptRightTitle">Performance DRC (Crosstalk)</div>
-
-                  <label className="ptField ptFieldWide">
-                    <span>Gap (um)</span>
-                    <input
-                      type="range"
-                      min="0.2"
-                      max="2.0"
-                      step="0.01"
-                      value={Number(xtGapUm)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        const next = Number.isFinite(v) ? v : 0.6;
-                        setXtGapUm(next);
-                        if (xtLive && xtHasRunOnce.current) {
-                          if (xtDebounceTimer.current) clearTimeout(xtDebounceTimer.current);
-                          xtDebounceTimer.current = setTimeout(() => runCrosstalkDrc({ reason: "live" }), 140);
-                        }
-                      }}
-                    />
-                    <input
-                      value={String(xtGapUm)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        setXtGapUm(Number.isFinite(v) ? v : 0.6);
-                      }}
-                    />
-                  </label>
-
-                  <label className="ptField">
-                    <span>Parallel length (um)</span>
-                    <input
-                      value={String(xtLengthUm)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        setXtLengthUm(Number.isFinite(v) ? v : 1000.0);
-                      }}
-                    />
-                  </label>
-
-                  <label className="ptField">
-                    <span>Target XT (dB)</span>
-                    <input
-                      value={String(xtTargetDb)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        setXtTargetDb(Number.isFinite(v) ? v : -40.0);
-                      }}
-                    />
-                  </label>
-
-                  <label className="ptCheck">
-                    <input type="checkbox" checked={xtLive} onChange={(e) => setXtLive(Boolean(e.target.checked))} />
-                    <span>Live update (after first run)</span>
-                  </label>
-
-                  <div className="ptBtnRow">
-                    <button className="ptBtn ptBtnPrimary" onClick={() => runCrosstalkDrc({ reason: "manual" })} disabled={busy}>
-                      Run Crosstalk DRC
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {profile === "pic_circuit" ? (
-                <div className="ptRightSection">
-                  <div className="ptRightTitle">Inverse Design</div>
-
-                  <label className="ptField">
-                    <span>Kind</span>
-                    <select value={String(invKind || "mzi_phase")} onChange={(e) => setInvKind(String(e.target.value))}>
-                      <option value="mzi_phase">MZI Phase (tune phase_rad)</option>
-                      <option value="coupler_ratio">Coupler Ratio (tune coupling_ratio)</option>
-                    </select>
-                  </label>
-
-                  {invKind === "mzi_phase" ? (
-                    phaseNodeIds.length ? (
-                      <label className="ptField">
-                        <span>Phase node</span>
-                        <select value={String(invPhaseNodeId || "")} onChange={(e) => setInvPhaseNodeId(String(e.target.value))}>
-                          {phaseNodeIds.map((nid) => (
-                            <option key={nid} value={nid}>
-                              {nid}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : (
-                      <div className="ptHint">
-                        Add a <span className="ptMono">pic.phase_shifter</span> node to enable inverse design.
-                      </div>
-                    )
-                  ) : couplerNodeIds.length ? (
-                    <label className="ptField">
-                      <span>Coupler node</span>
-                      <select value={String(invCouplerNodeId || "")} onChange={(e) => setInvCouplerNodeId(String(e.target.value))}>
-                        {couplerNodeIds.map((nid) => (
-                          <option key={nid} value={nid}>
-                            {nid}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : (
-                    <div className="ptHint">
-                      Add a <span className="ptMono">pic.coupler</span> node to enable inverse design.
-                    </div>
-                  )}
-
-                  <label className="ptField">
-                    <span>Target output node</span>
-                    <input value={String(invOutputNode || "")} onChange={(e) => setInvOutputNode(String(e.target.value))} placeholder="cpl_out" />
-                  </label>
-
-                  <label className="ptField">
-                    <span>Target output port</span>
-                    <input value={String(invOutputPort || "")} onChange={(e) => setInvOutputPort(String(e.target.value))} placeholder="out1" />
-                  </label>
-
-                  <label className="ptField ptFieldWide">
-                    <span>Target power fraction</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={Number(invTargetFraction)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        setInvTargetFraction(Number.isFinite(v) ? v : 0.9);
-                      }}
-                    />
-                    <input
-                      value={String(invTargetFraction)}
-                      onChange={(e) => {
-                        const v = Number(String(e.target.value));
-                        setInvTargetFraction(Number.isFinite(v) ? v : 0.9);
-                      }}
-                    />
-                  </label>
-
-                  <label className="ptField">
-                    <span>Wavelength objective</span>
-                    <select value={String(invWavelengthObjectiveAgg || "mean")} onChange={(e) => setInvWavelengthObjectiveAgg(String(e.target.value))}>
-                      <option value="mean">mean</option>
-                      <option value="max">max (worst-case)</option>
-                    </select>
-                  </label>
-
-                  <label className="ptField">
-                    <span>Case objective</span>
-                    <select value={String(invCaseObjectiveAgg || "mean")} onChange={(e) => setInvCaseObjectiveAgg(String(e.target.value))}>
-                      <option value="mean">mean</option>
-                      <option value="max">max (worst-case)</option>
-                    </select>
-                  </label>
-
-                  <JsonBox
-                    key={`inv_robust_cases:${JSON.stringify(invRobustnessCases || [])}`}
-                    title="robustness cases (advanced)"
-                    value={invRobustnessCases}
-                    onApply={(text) => {
-                      const parsed = _safeParseJson(text);
-                      if (!parsed.ok) return parsed;
-                      if (!Array.isArray(parsed.value)) return { ok: false, error: "Robustness cases must be a JSON array." };
-                      setInvRobustnessCases(parsed.value);
-                      return { ok: true };
-                    }}
-                  />
-
-                  <div className="ptBtnRow">
-                    <button
-                      className="ptBtn ptBtnPrimary"
-                      onClick={runInvdesign}
-                      disabled={busy || (invKind === "coupler_ratio" ? !couplerNodeIds.length : !phaseNodeIds.length)}
-                    >
-                      Run Inverse Design
-                    </button>
-                    <button
-                      className="ptBtn"
-                      onClick={runInvdesignWorkflow}
-                      disabled={busy || (invKind === "coupler_ratio" ? !couplerNodeIds.length : !phaseNodeIds.length)}
-                      title="Runs: invdesign -> layout build -> LVS-lite -> (optional) KLayout pack -> SPICE export"
-                    >
-                      Run Full Workflow
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Metadata</div>
-                <label className="ptField">
-                  <span>Title</span>
-                  <input value={String(metadata?.title || "")} onChange={(e) => setMetadata((m) => ({ ...(m || {}), title: String(e.target.value) }))} />
-                </label>
-                <label className="ptField">
-                  <span>Description</span>
-                  <input value={String(metadata?.description || "")} onChange={(e) => setMetadata((m) => ({ ...(m || {}), description: String(e.target.value) }))} />
-                </label>
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "compile" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Compile Result</div>
-                {compileResult?.assumptions_md ? (
-                  <pre className="ptPre">{String(compileResult.assumptions_md)}</pre>
-                ) : (
-                  <div className="ptHint">Compile to see assumptions, compiled artifacts, and provenance.</div>
-                )}
-                {compileResult?.diagnostics?.errors?.length ? (
-                  <div className="ptError">
-                    <div className="ptCalloutTitle">Diagnostics (errors)</div>
-                    <ul className="ptList">
-                      {compileResult.diagnostics.errors.map((d, idx) => (
-                        <li key={idx}>
-                          <span className="ptMono">{String(d.code || "error")}</span>: {String(d.message || "")}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {compileResult?.diagnostics?.warnings?.length ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Diagnostics (warnings)</div>
-                    <ul className="ptList">
-                      {compileResult.diagnostics.warnings.map((d, idx) => (
-                        <li key={idx}>
-                          <span className="ptMono">{String(d.code || "warn")}</span>: {String(d.message || "")}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {compileResult?.warnings?.length ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Warnings</div>
-                    <ul className="ptList">
-                      {compileResult.warnings.map((w, idx) => (
-                        <li key={idx}>{String(w)}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {compileResult ? <pre className="ptPre">{_pretty(compileResult)}</pre> : null}
-              </div>
-            </div>
-          )}
+          {mode === "graph" ? (
+            <GraphRightSidebarContent
+              activeRightTab={activeRightTab}
+              inspect={{
+                selectedNode,
+                kindRegistryByKind: kindRegistry?.byKind,
+                kindRegistryStatus: kindRegistry?.status,
+                onSetParam: setSelectedParamValue,
+                prettyJson: _pretty,
+                onDeleteSelected: deleteSelected,
+                onApplySelectedParams: applySelectedParams,
+                profile,
+                scenario,
+                bandOptions: BAND_OPTIONS,
+                onSetScenario: setScenario,
+                onSetStatus: _setStatus,
+                qkdExecutionMode,
+                onSetQkdExecutionMode: setQkdExecutionMode,
+                onApplyScenarioText: applyScenarioText,
+                uncertainty,
+                onApplyUncertaintyText: applyUncertaintyText,
+                finiteKey,
+                onApplyFiniteKeyText: applyFiniteKeyText,
+                circuit,
+                onSetCircuit: setCircuit,
+                picSweepNmText,
+                onSetPicSweepNmText: setPicSweepNmText,
+                onApplyCircuitText: applyCircuitText,
+                xtGapUm,
+                xtLengthUm,
+                xtTargetDb,
+                xtLive,
+                onSetXtGapUm: setXtGapUm,
+                onSetXtLengthUm: setXtLengthUm,
+                onSetXtTargetDb: setXtTargetDb,
+                onSetXtLive: setXtLive,
+                xtHasRunOnceRef: xtHasRunOnce,
+                onScheduleLiveDrc: scheduleLiveCrosstalkDrc,
+                onRunCrosstalkDrc: runCrosstalkDrc,
+                busy,
+                invKind,
+                onSetInvKind: setInvKind,
+                phaseNodeIds,
+                invPhaseNodeId,
+                onSetInvPhaseNodeId: setInvPhaseNodeId,
+                couplerNodeIds,
+                invCouplerNodeId,
+                onSetInvCouplerNodeId: setInvCouplerNodeId,
+                invOutputNode,
+                onSetInvOutputNode: setInvOutputNode,
+                invOutputPort,
+                onSetInvOutputPort: setInvOutputPort,
+                invTargetFraction,
+                onSetInvTargetFraction: setInvTargetFraction,
+                invWavelengthObjectiveAgg,
+                onSetInvWavelengthObjectiveAgg: setInvWavelengthObjectiveAgg,
+                invCaseObjectiveAgg,
+                onSetInvCaseObjectiveAgg: setInvCaseObjectiveAgg,
+                invRobustnessCases,
+                safeParseJson: _safeParseJson,
+                onSetInvRobustnessCases: setInvRobustnessCases,
+                onRunInvdesign: runInvdesign,
+                onRunInvdesignWorkflow: runInvdesignWorkflow,
+                metadata,
+                onSetMetadata: setMetadata,
+              }}
+              compile={{
+                compileResult,
+                prettyJson: _pretty,
+              }}
+              drc={{
+                xtResult,
+                apiBase,
+                buildRunArtifactUrl: _runArtifactUrl,
+                buildRunManifestUrl: _runManifestUrl,
+                prettyJson: _pretty,
+              }}
+              invdesign={{
+                invResult,
+                workflowResult,
+                apiBase,
+                buildRunArtifactUrl: _runArtifactUrl,
+                buildRunManifestUrl: _runManifestUrl,
+                buildRunBundleUrl: _runBundleUrl,
+                prettyJson: _pretty,
+              }}
+              layout={{
+                layoutPdk,
+                onSetLayoutPdk: setLayoutPdk,
+                layoutSettings,
+                onSetLayoutSettings: setLayoutSettings,
+                safeParseJson: _safeParseJson,
+                onRunLayoutBuild: runLayoutBuild,
+                busy,
+                layoutBuildResult,
+                apiBase,
+                buildRunArtifactUrl: _runArtifactUrl,
+                buildRunManifestUrl: _runManifestUrl,
+                prettyJson: _pretty,
+              }}
+              lvs={{
+                lvsSettings,
+                onSetLvsSettings: setLvsSettings,
+                safeParseJson: _safeParseJson,
+                onRunLvsLite: runLvsLite,
+                busy,
+                layoutBuildResult,
+                lvsResult,
+                apiBase,
+                buildRunArtifactUrl: _runArtifactUrl,
+                buildRunManifestUrl: _runManifestUrl,
+                prettyJson: _pretty,
+              }}
+              klayout={{
+                klayoutPackSettings,
+                onSetKlayoutPackSettings: setKlayoutPackSettings,
+                safeParseJson: _safeParseJson,
+                onRunKlayoutPack: runKlayoutPack,
+                busy,
+                layoutBuildResult,
+                klayoutPackResult,
+                apiBase,
+                buildRunArtifactUrl: _runArtifactUrl,
+                buildRunManifestUrl: _runManifestUrl,
+                prettyJson: _pretty,
+              }}
+              spice={{
+                spiceSettings,
+                onSetSpiceSettings: setSpiceSettings,
+                safeParseJson: _safeParseJson,
+                onRunSpiceExport: runSpiceExport,
+                busy,
+                spiceResult,
+                apiBase,
+                buildRunArtifactUrl: _runArtifactUrl,
+                buildRunManifestUrl: _runManifestUrl,
+                prettyJson: _pretty,
+              }}
+              graphJson={{
+                exportText,
+                onCopied: () => _setStatus("Copied graph payload JSON to clipboard."),
+                onCopyFailed: (err) => _setStatus(`Copy failed: ${String(err?.message || err)}`),
+              }}
+            />
+          ) : null}
 
           {mode !== "runs" && activeRightTab === "run" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Run Result</div>
-                {mode === "orbit" && runResult?.results_path ? (
-                  <div className="ptHint">
-                    results: <span className="ptMono">{String(runResult.results_path)}</span>
-                    <br />
-                    report: <span className="ptMono">{String(runResult.report_html_path || "")}</span>
-                  </div>
-                ) : null}
-                {mode === "orbit" && runResult?.run_id ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {runResult?.artifact_relpaths?.orbit_pass_report_html ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, runResult.run_id, runResult.artifact_relpaths.orbit_pass_report_html)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open report (HTML)
-                          </a>{" "}
-                          <span className="ptMono">[{String(runResult.artifact_relpaths.orbit_pass_report_html)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {runResult?.artifact_relpaths?.orbit_pass_results_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, runResult.run_id, runResult.artifact_relpaths.orbit_pass_results_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open results (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(runResult.artifact_relpaths.orbit_pass_results_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      <a href={_runManifestUrl(apiBase, runResult.run_id)} target="_blank" rel="noreferrer">
-                        Open run manifest (JSON)
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {mode === "orbit" && runResult?.diagnostics?.errors?.length ? (
-                  <div className="ptError">
-                    <div className="ptCalloutTitle">Diagnostics (errors)</div>
-                    <ul className="ptList">
-                      {runResult.diagnostics.errors.map((d, idx) => (
-                        <li key={idx}>
-                          <span className="ptMono">{String(d.code || "error")}</span>: {String(d.message || "")}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {mode === "orbit" && runResult?.diagnostics?.warnings?.length ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Diagnostics (warnings)</div>
-                    <ul className="ptList">
-                      {runResult.diagnostics.warnings.map((d, idx) => (
-                        <li key={idx}>
-                          <span className="ptMono">{String(d.code || "warn")}</span>: {String(d.message || "")}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {runResult ? <pre className="ptPre">{_pretty(runResult)}</pre> : <div className="ptHint">Run to see outputs.</div>}
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "drc" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Performance DRC Result</div>
-                {xtResult?.run_id && xtResult?.artifact_relpaths ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {xtResult?.artifact_relpaths?.performance_drc_report_html ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, xtResult.run_id, xtResult.artifact_relpaths.performance_drc_report_html)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open report (HTML)
-                          </a>{" "}
-                          <span className="ptMono">[{String(xtResult.artifact_relpaths.performance_drc_report_html)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {xtResult?.artifact_relpaths?.performance_drc_report_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, xtResult.run_id, xtResult.artifact_relpaths.performance_drc_report_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open report (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(xtResult.artifact_relpaths.performance_drc_report_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      <a href={_runManifestUrl(apiBase, xtResult.run_id)} target="_blank" rel="noreferrer">
-                        Open run manifest (JSON)
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {xtResult ? <pre className="ptPre">{_pretty(xtResult)}</pre> : <div className="ptHint">Run DRC to see outputs.</div>}
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "invdesign" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Inverse Design Result</div>
-                {invResult?.run_id && invResult?.artifact_relpaths ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {invResult?.artifact_relpaths?.invdesign_report_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, invResult.run_id, invResult.artifact_relpaths.invdesign_report_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open report (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(invResult.artifact_relpaths.invdesign_report_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {invResult?.artifact_relpaths?.optimized_graph_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, invResult.run_id, invResult.artifact_relpaths.optimized_graph_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open optimized graph (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(invResult.artifact_relpaths.optimized_graph_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      <a href={_runManifestUrl(apiBase, invResult.run_id)} target="_blank" rel="noreferrer">
-                        Open run manifest (JSON)
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {invResult ? <pre className="ptPre">{_pretty(invResult)}</pre> : <div className="ptHint">Run inverse design to see outputs.</div>}
-              </div>
-
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Workflow Chain Result</div>
-                {workflowResult?.run_id && workflowResult?.artifact_relpaths ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {workflowResult?.artifact_relpaths?.workflow_report_json ? (
-                        <>
-                      <a
-                        href={_runArtifactUrl(apiBase, workflowResult.run_id, workflowResult.artifact_relpaths.workflow_report_json)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Open workflow report (JSON)
-                      </a>{" "}
-                      <span className="ptMono">[{String(workflowResult.artifact_relpaths.workflow_report_json)}]</span>
-                      <br />
-                    </>
-                  ) : null}
-                  {workflowResult?.run_id ? (
-                    <>
-                      <a href={_runBundleUrl(apiBase, workflowResult.run_id)} target="_blank" rel="noreferrer">
-                        Download evidence bundle (zip)
-                      </a>
-                      <br />
-                    </>
-                  ) : null}
-                  <a href={_runManifestUrl(apiBase, workflowResult.run_id)} target="_blank" rel="noreferrer">
-                    Open workflow run manifest (JSON)
-                  </a>
-                  <br />
-                      {workflowResult?.steps?.invdesign?.run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, workflowResult.steps.invdesign.run_id)} target="_blank" rel="noreferrer">
-                            Open invdesign child run manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {workflowResult?.steps?.layout_build?.run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, workflowResult.steps.layout_build.run_id)} target="_blank" rel="noreferrer">
-                            Open layout build child run manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {workflowResult?.steps?.lvs_lite?.run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, workflowResult.steps.lvs_lite.run_id)} target="_blank" rel="noreferrer">
-                            Open LVS-lite child run manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {workflowResult?.steps?.klayout_pack?.run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, workflowResult.steps.klayout_pack.run_id)} target="_blank" rel="noreferrer">
-                            Open KLayout child run manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {workflowResult?.steps?.spice_export?.run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, workflowResult.steps.spice_export.run_id)} target="_blank" rel="noreferrer">
-                            Open SPICE export child run manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-                {workflowResult ? <pre className="ptPre">{_pretty(workflowResult)}</pre> : <div className="ptHint">Run full workflow to see chained evidence.</div>}
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "layout" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Layout Build</div>
-
-                <JsonBox
-                  key={`layout_pdk:${JSON.stringify(layoutPdk || {})}`}
-                  title="pdk (advanced)"
-                  value={layoutPdk}
-                  onApply={(text) => {
-                    const parsed = _safeParseJson(text);
-                    if (!parsed.ok) return parsed;
-                    if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "PDK must be a JSON object." };
-                    setLayoutPdk(parsed.value);
-                    return { ok: true };
-                  }}
-                />
-
-                <JsonBox
-                  key={`layout_settings:${JSON.stringify(layoutSettings || {})}`}
-                  title="layout settings (advanced)"
-                  value={layoutSettings}
-                  onApply={(text) => {
-                    const parsed = _safeParseJson(text);
-                    if (!parsed.ok) return parsed;
-                    if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-                    setLayoutSettings(parsed.value);
-                    return { ok: true };
-                  }}
-                />
-
-                <div className="ptBtnRow">
-                  <button className="ptBtn ptBtnPrimary" onClick={runLayoutBuild} disabled={busy}>
-                    Build Layout Artifacts
-                  </button>
-                </div>
-                <div className="ptHint">
-                  Emits <span className="ptMono">ports.json</span> + <span className="ptMono">routes.json</span> always.{" "}
-                  <span className="ptMono">layout.gds</span> is emitted only when <span className="ptMono">gdstk</span> is installed.
-                </div>
-              </div>
-
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Layout Build Result</div>
-                {layoutBuildResult?.run_id && layoutBuildResult?.artifact_relpaths ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {layoutBuildResult?.artifact_relpaths?.layout_build_report_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, layoutBuildResult.run_id, layoutBuildResult.artifact_relpaths.layout_build_report_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open layout report (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(layoutBuildResult.artifact_relpaths.layout_build_report_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {layoutBuildResult?.artifact_relpaths?.ports_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, layoutBuildResult.run_id, layoutBuildResult.artifact_relpaths.ports_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open ports (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(layoutBuildResult.artifact_relpaths.ports_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {layoutBuildResult?.artifact_relpaths?.routes_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, layoutBuildResult.run_id, layoutBuildResult.artifact_relpaths.routes_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open routes (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(layoutBuildResult.artifact_relpaths.routes_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {layoutBuildResult?.artifact_relpaths?.layout_provenance_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, layoutBuildResult.run_id, layoutBuildResult.artifact_relpaths.layout_provenance_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open provenance (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(layoutBuildResult.artifact_relpaths.layout_provenance_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {layoutBuildResult?.artifact_relpaths?.layout_gds ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, layoutBuildResult.run_id, layoutBuildResult.artifact_relpaths.layout_gds)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open layout (GDS)
-                          </a>{" "}
-                          <span className="ptMono">[{String(layoutBuildResult.artifact_relpaths.layout_gds)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      <a href={_runManifestUrl(apiBase, layoutBuildResult.run_id)} target="_blank" rel="noreferrer">
-                        Open run manifest (JSON)
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {layoutBuildResult ? <pre className="ptPre">{_pretty(layoutBuildResult)}</pre> : <div className="ptHint">Build to see outputs.</div>}
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "lvs" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">LVS-lite</div>
-
-                <JsonBox
-                  key={`lvs_settings:${JSON.stringify(lvsSettings || {})}`}
-                  title="lvs settings (advanced)"
-                  value={lvsSettings}
-                  onApply={(text) => {
-                    const parsed = _safeParseJson(text);
-                    if (!parsed.ok) return parsed;
-                    if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-                    setLvsSettings(parsed.value);
-                    return { ok: true };
-                  }}
-                />
-
-                <div className="ptBtnRow">
-                  <button className="ptBtn ptBtnPrimary" onClick={runLvsLite} disabled={busy || !layoutBuildResult?.run_id}>
-                    Run LVS-lite (uses last Layout run)
-                  </button>
-                </div>
-                {!layoutBuildResult?.run_id ? <div className="ptHint">Run <span className="ptMono">Layout</span> build first to generate ports/routes.</div> : null}
-              </div>
-
-              <div className="ptRightSection">
-                <div className="ptRightTitle">LVS-lite Result</div>
-                {lvsResult?.run_id && lvsResult?.artifact_relpaths ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {lvsResult?.artifact_relpaths?.lvs_lite_report_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, lvsResult.run_id, lvsResult.artifact_relpaths.lvs_lite_report_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open LVS-lite report (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(lvsResult.artifact_relpaths.lvs_lite_report_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      <a href={_runManifestUrl(apiBase, lvsResult.run_id)} target="_blank" rel="noreferrer">
-                        Open run manifest (JSON)
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {lvsResult ? <pre className="ptPre">{_pretty(lvsResult)}</pre> : <div className="ptHint">Run LVS-lite to see mismatches.</div>}
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "klayout" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">KLayout Artifact Pack (DRC-lite)</div>
-
-                <JsonBox
-                  key={`klayout_pack_settings:${JSON.stringify(klayoutPackSettings || {})}`}
-                  title="klayout pack settings (advanced)"
-                  value={klayoutPackSettings}
-                  onApply={(text) => {
-                    const parsed = _safeParseJson(text);
-                    if (!parsed.ok) return parsed;
-                    if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-                    setKlayoutPackSettings(parsed.value);
-                    return { ok: true };
-                  }}
-                />
-
-                <div className="ptBtnRow">
-                  <button
-                    className="ptBtn ptBtnPrimary"
-                    onClick={runKlayoutPack}
-                    disabled={busy || !layoutBuildResult?.run_id || !layoutBuildResult?.artifact_relpaths?.layout_gds}
-                  >
-                    Run KLayout Pack (uses last Layout run)
-                  </button>
-                </div>
-                {!layoutBuildResult?.run_id ? (
-                  <div className="ptHint">
-                    Run <span className="ptMono">Layout</span> build first to create a layout run.
-                  </div>
-                ) : null}
-                {layoutBuildResult?.run_id && !layoutBuildResult?.artifact_relpaths?.layout_gds ? (
-                  <div className="ptHint">
-                    This environment did not emit <span className="ptMono">layout.gds</span>. Install <span className="ptMono">gdstk</span> (e.g.{" "}
-                    <span className="ptMono">pip install 'photonstrust[layout]'</span>) and rebuild layout.
-                  </div>
-                ) : null}
-                <div className="ptHint">
-                  Runs the repo-owned KLayout macro template in batch mode and captures stdout/stderr + output hashes as a reviewable artifact pack.
-                </div>
-              </div>
-
-              <div className="ptRightSection">
-                <div className="ptRightTitle">KLayout Pack Result</div>
-                {klayoutPackResult?.run_id && klayoutPackResult?.artifact_relpaths ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {klayoutPackResult?.artifact_relpaths?.klayout_run_artifact_pack_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, klayoutPackResult.run_id, klayoutPackResult.artifact_relpaths.klayout_run_artifact_pack_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open artifact pack (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(klayoutPackResult.artifact_relpaths.klayout_run_artifact_pack_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {klayoutPackResult?.artifact_relpaths?.drc_lite_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, klayoutPackResult.run_id, klayoutPackResult.artifact_relpaths.drc_lite_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open DRC-lite report (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(klayoutPackResult.artifact_relpaths.drc_lite_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {klayoutPackResult?.artifact_relpaths?.ports_extracted_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, klayoutPackResult.run_id, klayoutPackResult.artifact_relpaths.ports_extracted_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open extracted ports (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(klayoutPackResult.artifact_relpaths.ports_extracted_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {klayoutPackResult?.artifact_relpaths?.routes_extracted_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, klayoutPackResult.run_id, klayoutPackResult.artifact_relpaths.routes_extracted_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open extracted routes (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(klayoutPackResult.artifact_relpaths.routes_extracted_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {klayoutPackResult?.artifact_relpaths?.macro_provenance_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, klayoutPackResult.run_id, klayoutPackResult.artifact_relpaths.macro_provenance_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open macro provenance (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(klayoutPackResult.artifact_relpaths.macro_provenance_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {klayoutPackResult?.artifact_relpaths?.klayout_stdout_txt ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, klayoutPackResult.run_id, klayoutPackResult.artifact_relpaths.klayout_stdout_txt)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open stdout (txt)
-                          </a>{" "}
-                          <span className="ptMono">[{String(klayoutPackResult.artifact_relpaths.klayout_stdout_txt)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {klayoutPackResult?.artifact_relpaths?.klayout_stderr_txt ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, klayoutPackResult.run_id, klayoutPackResult.artifact_relpaths.klayout_stderr_txt)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open stderr (txt)
-                          </a>{" "}
-                          <span className="ptMono">[{String(klayoutPackResult.artifact_relpaths.klayout_stderr_txt)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      <a href={_runManifestUrl(apiBase, klayoutPackResult.run_id)} target="_blank" rel="noreferrer">
-                        Open run manifest (JSON)
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {klayoutPackResult ? <pre className="ptPre">{_pretty(klayoutPackResult)}</pre> : <div className="ptHint">Run KLayout pack to see outputs.</div>}
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "spice" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">SPICE Export</div>
-
-                <JsonBox
-                  key={`spice_settings:${JSON.stringify(spiceSettings || {})}`}
-                  title="spice settings (advanced)"
-                  value={spiceSettings}
-                  onApply={(text) => {
-                    const parsed = _safeParseJson(text);
-                    if (!parsed.ok) return parsed;
-                    if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-                    setSpiceSettings(parsed.value);
-                    return { ok: true };
-                  }}
-                />
-
-                <div className="ptBtnRow">
-                  <button className="ptBtn ptBtnPrimary" onClick={runSpiceExport} disabled={busy}>
-                    Export SPICE Netlist
-                  </button>
-                </div>
-                <div className="ptHint">This is a deterministic connectivity export and mapping seam (not optical-physics signoff).</div>
-              </div>
-
-              <div className="ptRightSection">
-                <div className="ptRightTitle">SPICE Export Result</div>
-                {spiceResult?.run_id && spiceResult?.artifact_relpaths ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      {spiceResult?.artifact_relpaths?.spice_export_report_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, spiceResult.run_id, spiceResult.artifact_relpaths.spice_export_report_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open export report (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(spiceResult.artifact_relpaths.spice_export_report_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {spiceResult?.artifact_relpaths?.netlist_sp ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, spiceResult.run_id, spiceResult.artifact_relpaths.netlist_sp)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open netlist (SPICE)
-                          </a>{" "}
-                          <span className="ptMono">[{String(spiceResult.artifact_relpaths.netlist_sp)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {spiceResult?.artifact_relpaths?.spice_map_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, spiceResult.run_id, spiceResult.artifact_relpaths.spice_map_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open mapping (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(spiceResult.artifact_relpaths.spice_map_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      {spiceResult?.artifact_relpaths?.spice_provenance_json ? (
-                        <>
-                          <a
-                            href={_runArtifactUrl(apiBase, spiceResult.run_id, spiceResult.artifact_relpaths.spice_provenance_json)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open provenance (JSON)
-                          </a>{" "}
-                          <span className="ptMono">[{String(spiceResult.artifact_relpaths.spice_provenance_json)}]</span>
-                          <br />
-                        </>
-                      ) : null}
-                      <a href={_runManifestUrl(apiBase, spiceResult.run_id)} target="_blank" rel="noreferrer">
-                        Open run manifest (JSON)
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-                {spiceResult ? <pre className="ptPre">{_pretty(spiceResult)}</pre> : <div className="ptHint">Export to see netlist + mapping.</div>}
-              </div>
-            </div>
-          )}
-
-          {mode === "graph" && activeRightTab === "graph" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Graph Payload</div>
-                <pre className="ptPre">{exportText}</pre>
-                <div className="ptBtnRow">
-                  <button
-                    className="ptBtn ptBtnGhost"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(exportText);
-                        _setStatus("Copied graph JSON to clipboard.");
-                      } catch (err) {
-                        _setStatus(`Copy failed: ${String(err?.message || err)}`);
-                      }
-                    }}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </div>
+            <RunModePanel
+              mode={mode}
+              decision={decisionContext}
+              compileResult={compileResult}
+              runResult={runResult}
+              apiBase={apiBase}
+              onOpenProgramStage={openProgramStage}
+              onSetActiveRightTab={setActiveRightTab}
+              onExportDecisionPacket={exportDecisionPacket}
+              onSaveCurrentViewPreset={saveCurrentViewPreset}
+              onSetUserMode={setUserMode}
+              onSetStatus={_setStatus}
+              buildRunArtifactUrl={_runArtifactUrl}
+              buildRunManifestUrl={_runManifestUrl}
+              prettyJson={_pretty}
+            />
           )}
 
           {mode === "orbit" && activeRightTab === "validate" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Orbit Config Validation</div>
-                {orbitValidateResult?.diagnostics?.errors?.length ? (
-                  <div className="ptError">
-                    <div className="ptCalloutTitle">Diagnostics (errors)</div>
-                    <ul className="ptList">
-                      {orbitValidateResult.diagnostics.errors.map((d, idx) => (
-                        <li key={idx}>
-                          <span className="ptMono">{String(d.code || "error")}</span>: {String(d.message || "")}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {orbitValidateResult?.diagnostics?.warnings?.length ? (
-                  <div className="ptCallout">
-                    <div className="ptCalloutTitle">Diagnostics (warnings)</div>
-                    <ul className="ptList">
-                      {orbitValidateResult.diagnostics.warnings.map((d, idx) => (
-                        <li key={idx}>
-                          <span className="ptMono">{String(d.code || "warn")}</span>: {String(d.message || "")}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {orbitValidateResult ? (
-                  <pre className="ptPre">{_pretty(orbitValidateResult)}</pre>
-                ) : (
-                  <div className="ptHint">Click Validate to run schema and semantic checks.</div>
-                )}
-              </div>
-            </div>
+            <OrbitValidatePanel orbitValidateResult={orbitValidateResult} prettyJson={_pretty} />
           )}
 
           {mode === "orbit" && activeRightTab === "orbit" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Orbit Config (JSON)</div>
-                <pre className="ptPre">{_pretty(orbitConfig)}</pre>
-                <div className="ptBtnRow">
-                  <button
-                    className="ptBtn ptBtnGhost"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(_pretty(orbitConfig));
-                        _setStatus("Copied orbit config JSON to clipboard.");
-                      } catch (err) {
-                        _setStatus(`Copy failed: ${String(err?.message || err)}`);
-                      }
-                    }}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </div>
+            <OrbitConfigPanel
+              orbitConfig={orbitConfig}
+              prettyJson={_pretty}
+              onCopied={() => _setStatus("Copied orbit config JSON to clipboard.")}
+              onCopyFailed={(err) => _setStatus(`Copy failed: ${String(err?.message || err)}`)}
+              panelId="pt-panel-orbit-orbit"
+              labelledBy="pt-tab-orbit-orbit"
+            />
           )}
 
           {mode === "runs" && activeRightTab === "manifest" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Run Manifest</div>
-                {selectedRunManifest?.run_id ? (
-                  <div className="ptHint">
-                    run_id: <span className="ptMono">{String(selectedRunManifest.run_id)}</span>
-                    <br />
-                    run_type: <span className="ptMono">{String(selectedRunManifest.run_type || "")}</span>
-                    <br />
-                    generated_at: <span className="ptMono">{String(selectedRunManifest.generated_at || "")}</span>
-                    <br />
-                    project_id: <span className="ptMono">{String(selectedRunManifest?.input?.project_id || "default")}</span>
-                    <br />
-                    protocol: <span className="ptMono">{String(selectedRunManifest?.input?.protocol_selected || selectedRunManifest?.outputs_summary?.qkd?.protocol_selected || "")}</span>
-                    <br />
-                    multifidelity: <span className="ptMono">{String(selectedRunManifest?.outputs_summary?.qkd?.multifidelity?.present ? "present" : "absent")}</span>
-                  </div>
-                ) : (
-                  <div className="ptHint">Select a run from the Runs list to load its manifest.</div>
-                )}
+            <div id="pt-panel-runs-manifest" role="tabpanel" aria-labelledby="pt-tab-runs-manifest" className="ptRightBody">
+              <ProvenanceTimeline
+                apiBase={apiBase}
+                selectedRunManifest={selectedRunManifest}
+                compileResult={compileResult}
+                projectApprovals={projectApprovals}
+                buildRunManifestUrl={_runManifestUrl}
+                buildRunArtifactUrl={_runArtifactUrl}
+                buildRunBundleUrl={_runBundleUrl}
+              />
 
-                {selectedRunManifest?.run_id ? (
-                  <div className="ptCallout" style={{ marginTop: 10 }}>
-                    <div className="ptCalloutTitle">Approvals</div>
-                    <div className="ptHint">Append-only approval events are stored per project.</div>
+              <CertificationWorkspace
+                selectedRunManifest={selectedRunManifest}
+                compileResult={compileResult}
+                projectApprovals={projectApprovals}
+                packetExportHref={
+                  selectedRunManifest?.run_id ? _runBundleUrl(apiBase, selectedRunManifest.run_id) : ""
+                }
+                onPacketExport={exportDecisionPacket}
+                approvalControls={approvalControlsNode}
+                issues={decisionContext.blockers.map((message) => ({ level: "block", message }))}
+              />
 
-                    <label className="ptField" style={{ marginTop: 10 }}>
-                      <span>actor</span>
-                      <input value={approvalActor} onChange={(e) => setApprovalActor(String(e.target.value))} placeholder="ui" />
-                    </label>
-
-                    <label className="ptField" style={{ marginTop: 10 }}>
-                      <span>note</span>
-                      <input value={approvalNote} onChange={(e) => setApprovalNote(String(e.target.value))} placeholder="Why is this run approved?" />
-                    </label>
-
-                    <div className="ptBtnRow" style={{ marginTop: 10 }}>
-                      <button className="ptBtn ptBtnPrimary" onClick={approveSelectedRun} disabled={busy}>
-                        Approve Selected Run
-                      </button>
-                    </div>
-
-                    {approvalResult ? <pre className="ptPre">{_pretty(approvalResult)}</pre> : null}
-
-                    {projectApprovals?.status === "error" ? <div className="ptError">{String(projectApprovals.error || "Failed to load approvals.")}</div> : null}
-                    {projectApprovals?.status === "ok" ? (
-                      projectApprovals.approvals?.length ? (
-                        <pre className="ptPre">{_pretty(projectApprovals.approvals)}</pre>
-                      ) : (
-                        <div className="ptHint">No approvals recorded for this project yet.</div>
-                      )
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {selectedRunManifest?.run_id &&
-                (String(selectedRunManifest?.run_type || "") === "pic_workflow_invdesign_chain" || selectedRunManifest?.outputs_summary?.pic_workflow) ? (
-                  <div className="ptCallout" style={{ marginTop: 10 }}>
-                    <div className="ptCalloutTitle">Workflow Chain</div>
-                    <div className="ptHint">
-                      <a href={_runBundleUrl(apiBase, selectedRunManifest.run_id)} target="_blank" rel="noreferrer">
-                        Download evidence bundle (zip)
-                      </a>
-                    </div>
-
-                    <div className="ptHint" style={{ marginTop: 8 }}>
-                      {selectedRunManifest?.outputs_summary?.pic_workflow?.invdesign_run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, selectedRunManifest.outputs_summary.pic_workflow.invdesign_run_id)} target="_blank" rel="noreferrer">
-                            Open invdesign child manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {selectedRunManifest?.outputs_summary?.pic_workflow?.layout_run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, selectedRunManifest.outputs_summary.pic_workflow.layout_run_id)} target="_blank" rel="noreferrer">
-                            Open layout build child manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {selectedRunManifest?.outputs_summary?.pic_workflow?.lvs_lite_run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, selectedRunManifest.outputs_summary.pic_workflow.lvs_lite_run_id)} target="_blank" rel="noreferrer">
-                            Open LVS-lite child manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {selectedRunManifest?.outputs_summary?.pic_workflow?.klayout_pack_run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, selectedRunManifest.outputs_summary.pic_workflow.klayout_pack_run_id)} target="_blank" rel="noreferrer">
-                            Open KLayout child manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                      {selectedRunManifest?.outputs_summary?.pic_workflow?.spice_export_run_id ? (
-                        <>
-                          <a href={_runManifestUrl(apiBase, selectedRunManifest.outputs_summary.pic_workflow.spice_export_run_id)} target="_blank" rel="noreferrer">
-                            Open SPICE export child manifest (JSON)
-                          </a>
-                          <br />
-                        </>
-                      ) : null}
-                    </div>
-
-                    <div className="ptBtnRow" style={{ marginTop: 10 }}>
-                      <button className="ptBtn ptBtnPrimary" onClick={replaySelectedWorkflowRun} disabled={busy}>
-                        Replay Workflow
-                      </button>
-                    </div>
-
-                    {runsWorkflowReplayResult ? <pre className="ptPre">{_pretty(runsWorkflowReplayResult)}</pre> : null}
-                  </div>
-                ) : null}
-
-                {selectedRunManifest?.run_id && selectedRunGdsArtifacts?.length ? (
-                  <div className="ptCallout" style={{ marginTop: 10 }}>
-                    <div className="ptCalloutTitle">KLayout Artifact Pack (DRC-lite)</div>
-                    <div className="ptHint">
-                      Runs the repo-owned KLayout macro template in batch mode on a selected <span className="ptMono">.gds</span> artifact from this run.
-                    </div>
-
-                    <label className="ptField" style={{ marginTop: 10 }}>
-                      <span>gds_artifact_path</span>
-                      <select
-                        value={runsKlayoutGdsArtifactPath || String(selectedRunGdsArtifacts?.[0]?.path || "")}
-                        onChange={(e) => setRunsKlayoutGdsArtifactPath(String(e.target.value))}
-                      >
-                        {selectedRunGdsArtifacts.map((a) => {
-                          const p = String(a?.path || "").trim();
-                          if (!p) return null;
-                          const k = String(a?.key || "").trim();
-                          const label = k ? `${k}: ${p}` : p;
-                          return (
-                            <option key={`runs_gds:${p}`} value={p}>
-                              {label}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </label>
-
-                    <JsonBox
-                      key={`runs_klayout_pack_settings:${JSON.stringify(klayoutPackSettings || {})}`}
-                      title="klayout pack settings (advanced)"
-                      value={klayoutPackSettings}
-                      onApply={(text) => {
-                        const parsed = _safeParseJson(text);
-                        if (!parsed.ok) return parsed;
-                        if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-                        setKlayoutPackSettings(parsed.value);
-                        return { ok: true };
-                      }}
-                    />
-
-                    <div className="ptBtnRow" style={{ marginTop: 10 }}>
-                      <button className="ptBtn ptBtnPrimary" onClick={runSelectedRunKlayoutPack} disabled={busy}>
-                        Run KLayout Pack on Selected GDS
-                      </button>
-                    </div>
-
-                    {runsKlayoutPackResult?.run_id && runsKlayoutPackResult?.artifact_relpaths ? (
-                      <div className="ptTrustBox" style={{ marginTop: 10 }}>
-                        <div className="ptJsonTitle">Artifacts (served)</div>
-                        <div className="ptHint">
-                          <a href={_runManifestUrl(apiBase, runsKlayoutPackResult.run_id)} target="_blank" rel="noreferrer">
-                            Open run manifest (JSON)
-                          </a>
-                        </div>
-                        <div className="ptHint" style={{ marginTop: 8 }}>
-                          {Object.entries(runsKlayoutPackResult.artifact_relpaths).map(([k, v]) => {
-                            if (typeof v !== "string" || !v) return null;
-                            return (
-                              <div key={`runs_klayout_pack:${k}`}>
-                                <a href={_runArtifactUrl(apiBase, runsKlayoutPackResult.run_id, v)} target="_blank" rel="noreferrer">
-                                  {String(k)}
-                                </a>{" "}
-                                <span className="ptMono">[{String(v)}]</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {runsKlayoutPackResult ? (
-                      <pre className="ptPre">{_pretty(runsKlayoutPackResult)}</pre>
-                    ) : (
-                      <div className="ptHint">Run KLayout pack to see outputs.</div>
-                    )}
-                  </div>
-                ) : null}
-
-                {selectedRunManifest?.run_id ? (
-                  <div className="ptTrustBox">
-                    <div className="ptJsonTitle">Artifacts (served)</div>
-                    <div className="ptHint">
-                      <a href={_runManifestUrl(apiBase, selectedRunManifest.run_id)} target="_blank" rel="noreferrer">
-                        Open manifest (JSON)
-                      </a>
-                    </div>
-                    {selectedRunManifest?.artifacts && typeof selectedRunManifest.artifacts === "object" ? (
-                      <div className="ptHint" style={{ marginTop: 8 }}>
-                        {Object.entries(selectedRunManifest.artifacts).map(([k, v]) => {
-                          if (typeof v !== "string" || !v) return null;
-                          return (
-                            <div key={`a:${k}`}>
-                              <a href={_runArtifactUrl(apiBase, selectedRunManifest.run_id, v)} target="_blank" rel="noreferrer">
-                                {String(k)}
-                              </a>{" "}
-                              <span className="ptMono">[{String(v)}]</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                    {Array.isArray(selectedRunManifest?.artifacts?.cards) ? (
-                      <div className="ptHint" style={{ marginTop: 10 }}>
-                        <div className="ptJsonTitle">cards</div>
-                        {selectedRunManifest.artifacts.cards.map((c, idx) => {
-                          if (!c || typeof c !== "object") return null;
-                          const sid = String(c.scenario_id || "");
-                          const band = String(c.band || "");
-                          const arts = c.artifacts && typeof c.artifacts === "object" ? c.artifacts : {};
-                          return (
-                            <div key={`c:${idx}`} style={{ marginTop: 6 }}>
-                              <div>
-                                <span className="ptMono">{sid}</span> <span className="ptMono">{band}</span>
-                              </div>
-                              {Object.entries(arts).map(([k, v]) => {
-                                if (typeof v !== "string" || !v) return null;
-                                return (
-                                  <div key={`c:${idx}:${k}`}>
-                                    <a href={_runArtifactUrl(apiBase, selectedRunManifest.run_id, v)} target="_blank" rel="noreferrer">
-                                      {String(k)}
-                                    </a>{" "}
-                                    <span className="ptMono">[{String(v)}]</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {selectedRunManifest ? <pre className="ptPre">{_pretty(selectedRunManifest)}</pre> : null}
-              </div>
+              <ManifestPanel
+                apiBase={apiBase}
+                selectedRunManifest={selectedRunManifest}
+                projectApprovals={projectApprovals}
+                approvalControls={approvalControlsNode}
+                approvalResult={approvalResult}
+                selectedRunGdsArtifacts={selectedRunGdsArtifacts}
+                runsKlayoutGdsArtifactPath={runsKlayoutGdsArtifactPath}
+                onRunsKlayoutGdsArtifactPathChange={setRunsKlayoutGdsArtifactPath}
+                klayoutPackSettings={klayoutPackSettings}
+                onApplyKlayoutPackSettings={(text) => {
+                  const parsed = _safeParseJson(text);
+                  if (!parsed.ok) return parsed;
+                  if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
+                  setKlayoutPackSettings(parsed.value);
+                  return { ok: true };
+                }}
+                onRunSelectedRunKlayoutPack={runSelectedRunKlayoutPack}
+                busy={busy}
+                runsKlayoutPackResult={runsKlayoutPackResult}
+                runsWorkflowReplayResult={runsWorkflowReplayResult}
+                onReplaySelectedWorkflowRun={replaySelectedWorkflowRun}
+                buildRunManifestUrl={_runManifestUrl}
+                buildRunArtifactUrl={_runArtifactUrl}
+                buildRunBundleUrl={_runBundleUrl}
+              />
             </div>
           )}
 
           {mode === "runs" && activeRightTab === "diff" && (
-            <div className="ptRightBody">
-              <div className="ptRightSection">
-                <div className="ptRightTitle">Run Diff</div>
-                <div className="ptHint">Diff compares selected manifest scopes (input by default).</div>
-
-                <label className="ptField" style={{ marginTop: 10 }}>
-                  <span>LHS run</span>
-                  <select value={diffLhsRunId} onChange={(e) => setDiffLhsRunId(String(e.target.value))}>
-                    <option value="">(select)</option>
-                    {(runsIndex?.runs || []).map((r) => {
-                      const rid = String(r?.run_id || "");
-                      if (!rid) return null;
-                      const pid = String(r?.project_id || "");
-                      const label = `${String(r?.run_type || "run")} | ${rid}`;
-                      return (
-                        <option key={`lhs2:${rid}`} value={rid}>
-                          {pid ? `${String(r?.run_type || "run")} | ${pid} | ${rid}` : label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-
-                <label className="ptField" style={{ marginTop: 10 }}>
-                  <span>RHS run</span>
-                  <select value={diffRhsRunId} onChange={(e) => setDiffRhsRunId(String(e.target.value))}>
-                    <option value="">(select)</option>
-                    {(runsIndex?.runs || []).map((r) => {
-                      const rid = String(r?.run_id || "");
-                      if (!rid) return null;
-                      const pid = String(r?.project_id || "");
-                      const label = `${String(r?.run_type || "run")} | ${rid}`;
-                      return (
-                        <option key={`rhs2:${rid}`} value={rid}>
-                          {pid ? `${String(r?.run_type || "run")} | ${pid} | ${rid}` : label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-
-                <label className="ptField" style={{ marginTop: 10 }}>
-                  <span>Scope</span>
-                  <select value={diffScope} onChange={(e) => setDiffScope(String(e.target.value))}>
-                    <option value="input">input</option>
-                    <option value="outputs_summary">outputs_summary</option>
-                    <option value="all">all</option>
-                  </select>
-                </label>
-
-                <div className="ptBtnRow" style={{ marginTop: 10 }}>
-                  <button className="ptBtn ptBtnPrimary" onClick={diffRuns} disabled={busy || !diffLhsRunId || !diffRhsRunId}>
-                    Diff
-                  </button>
-                </div>
-
-                {runsDiffResult?.diff?.violation_diff ? (
-                  <div className="ptHint" style={{ marginTop: 10 }}>
-                    <div className="ptJsonTitle">Violation semantics</div>
-                    <div className="ptMono">
-                      new: {Number(runsDiffResult.diff.violation_diff?.summary?.new_count || 0)} | resolved: {Number(runsDiffResult.diff.violation_diff?.summary?.resolved_count || 0)} | applicability_changed: {Number(runsDiffResult.diff.violation_diff?.summary?.applicability_changed_count || 0)}
-                    </div>
-
-                    {_violationSamples(runsDiffResult.diff.violation_diff?.new, 2).map((v, idx) => (
-                      <div key={`vd:new:${idx}`}>+ {_violationSampleLabel(v)}</div>
-                    ))}
-                    {_violationSamples(runsDiffResult.diff.violation_diff?.resolved, 2).map((v, idx) => (
-                      <div key={`vd:resolved:${idx}`}>- {_violationSampleLabel(v)}</div>
-                    ))}
-                    {_violationSamples(runsDiffResult.diff.violation_diff?.applicability_changed, 2).map((v, idx) => {
-                      const lhsApp = String(v?.lhs_applicability || "unknown");
-                      const rhsApp = String(v?.rhs_applicability || "unknown");
-                      const row = v?.rhs && typeof v.rhs === "object" ? v.rhs : v?.lhs;
-                      return (
-                        <div key={`vd:app:${idx}`}>
-                          ~ {_violationSampleLabel(row)} ({lhsApp} {"->"} {rhsApp})
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                {runsDiffResult ? <pre className="ptPre">{_pretty(runsDiffResult)}</pre> : <div className="ptHint">Select two runs and click Diff.</div>}
-              </div>
+            <div id="pt-panel-runs-diff" role="tabpanel" aria-labelledby="pt-tab-runs-diff" className="ptRightBody">
+              <DiffPanel
+                runsDiffResult={runsDiffResult}
+                busy={busy}
+                diffHelpers={{
+                  pretty: _pretty,
+                }}
+                compareLabNode={
+                  <CompareLabPanel
+                    runsIndex={runsIndex}
+                    baselineRunId={diffLhsRunId}
+                    candidateRunId={diffRhsRunId}
+                    diffScope={diffScope}
+                    busy={busy}
+                    runsDiffResult={runsDiffResult}
+                    onBaselineRunChange={setDiffLhsRunId}
+                    onCandidateRunChange={setDiffRhsRunId}
+                    onDiffScopeChange={setDiffScope}
+                    onCompare={diffRuns}
+                  />
+                }
+              />
             </div>
           )}
         </aside>
       </div>
 
-      <footer className="ptStatusbar">
-        <div className="ptStatusLeft">
-          <span className="ptDot" data-state={busy ? "busy" : "idle"} />
-          <span>{statusText}</span>
-        </div>
-        <div className="ptStatusRight">
-          <span>nodes: {nodes.length}</span>
-          <span>edges: {edges.length}</span>
-          <span className="ptMono">hash: {compileResult?.graph_hash || runResult?.graph_hash || runResult?.config_hash || "n/a"}</span>
-        </div>
-      </footer>
+      <StatusFooter
+        busy={busy}
+        statusText={statusText}
+        stageText={stageLabel(programStage)}
+        userMode={userMode}
+        nodeCount={nodes.length}
+        edgeCount={edges.length}
+        hashText={compileResult?.graph_hash || runResult?.graph_hash || runResult?.config_hash || "n/a"}
+      />
 
-      {exportOpen && (
-        <Modal title="Export Graph JSON" onClose={() => setExportOpen(false)}>
-          <pre className="ptPre">{exportText}</pre>
-          <div className="ptBtnRow">
-            <button className="ptBtn ptBtnPrimary" onClick={() => setExportOpen(false)}>
-              Close
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {importOpen && (
-        <Modal title="Import Graph JSON" onClose={() => setImportOpen(false)}>
-          <textarea className="ptTextarea" value={importText} onChange={(e) => setImportText(String(e.target.value))} placeholder="Paste a graph JSON payload (schema v0.1)." />
-          <div className="ptBtnRow">
-            <button className="ptBtn ptBtnGhost" onClick={importGraph}>
-              Import
-            </button>
-            <button className="ptBtn ptBtnPrimary" onClick={() => setImportOpen(false)}>
-              Cancel
-            </button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-function JsonBox({ title, value, onApply, textareaClassName = "ptTextarea ptTextareaSmall" }) {
-  const [text, setText] = useState(() => _pretty(value));
-  const [err, setErr] = useState(null);
-
-  return (
-    <div className="ptJsonBox">
-      <div className="ptJsonTop">
-        <div className="ptJsonTitle">{String(title)}</div>
-        <button
-          className="ptBtn ptBtnTiny"
-          onClick={() => {
-            const r = onApply(text);
-            if (!r?.ok) {
-              setErr(String(r?.error || "Invalid JSON"));
-            } else {
-              setErr(null);
-            }
-          }}
-        >
-          Apply
-        </button>
-      </div>
-      <textarea className={textareaClassName} value={text} onChange={(e) => setText(String(e.target.value))} spellCheck={false} />
-      {err ? <div className="ptError">{err}</div> : null}
-    </div>
-  );
-}
-
-function KindTrustPanel({ kind, kindMeta, params, registryStatus, onSetParam }) {
-  const schema = Array.isArray(kindMeta?.params) ? kindMeta.params : [];
-  const paramObj = params && typeof params === "object" && !Array.isArray(params) ? params : {};
-
-  const known = new Set(schema.map((p) => String(p?.name || "")));
-  const unknownKeys = Object.keys(paramObj).filter((k) => !known.has(String(k)));
-
-  if (!kind) return null;
-
-  if (registryStatus !== "ok") {
-    return <div className="ptHint">Kind registry not loaded. Use Ping to refresh the trust panel.</div>;
-  }
-
-  if (!kindMeta) {
-    return <div className="ptHint">No registry entry for kind: {String(kind)}</div>;
-  }
-
-  const apiEnabled = kindMeta?.availability?.api_enabled;
-
-  return (
-    <div className="ptTrustBox">
-      <div className="ptJsonTitle">Kind schema</div>
-      {apiEnabled === false ? (
-        <div className="ptError">
-          API execution is disabled for <span className="ptMono">{String(kind)}</span>. This kind is CLI-only by default.
-        </div>
-      ) : null}
-      {Array.isArray(kindMeta?.notes) && kindMeta.notes.length ? (
-        <div className="ptHint">{kindMeta.notes.map((n, idx) => <div key={idx}>{String(n)}</div>)}</div>
-      ) : null}
-
-      {schema.length ? (
-        <div className="ptParamGrid" role="group" aria-label="Parameter schema and quick editor">
-          {schema.map((p) => {
-            const name = String(p?.name || "");
-            if (!name) return null;
-            const typ = String(p?.type || "");
-            const unit = p?.unit ? String(p.unit) : "";
-            const required = Boolean(p?.required);
-            const hasDefault = Object.prototype.hasOwnProperty.call(p || {}, "default");
-            const defVal = hasDefault ? p.default : undefined;
-            const min = Object.prototype.hasOwnProperty.call(p || {}, "min") ? p.min : undefined;
-            const max = Object.prototype.hasOwnProperty.call(p || {}, "max") ? p.max : undefined;
-            const enumList = Array.isArray(p?.enum) ? p.enum : null;
-
-            const cur = Object.prototype.hasOwnProperty.call(paramObj, name) ? paramObj[name] : undefined;
-            const isUnset = cur === null || cur === undefined;
-
-            const rangeBits = [
-              min != null ? `min ${min}` : null,
-              max != null ? `max ${max}` : null,
-              hasDefault ? `default ${defVal === null ? "null" : String(defVal)}` : null,
-            ].filter(Boolean);
-
-            const applies = p?.applies_when ? _pretty(p.applies_when) : "";
-
-            const numericViolation =
-              typeof cur === "number" && Number.isFinite(cur) && ((min != null && cur < Number(min)) || (max != null && cur > Number(max)));
-
-            function setValueFromText(raw) {
-              const s = String(raw ?? "");
-              if (!s) {
-                onSetParam(name, required ? "" : null);
-                return;
-              }
-              onSetParam(name, s);
-            }
-
-            function setValueFromNumber(raw) {
-              const s = String(raw ?? "");
-              if (!s) {
-                onSetParam(name, null);
-                return;
-              }
-              const n = Number(s);
-              if (!Number.isFinite(n)) return;
-              if (typ === "integer") onSetParam(name, Math.trunc(n));
-              else onSetParam(name, n);
-            }
-
-            function setValueFromBoolToken(tok) {
-              const t = String(tok);
-              if (t === "__unset__") {
-                onSetParam(name, null);
-              } else if (t === "true") {
-                onSetParam(name, true);
-              } else if (t === "false") {
-                onSetParam(name, false);
-              }
-            }
-
-            let control = null;
-            if (enumList && enumList.length) {
-              const current = isUnset ? "__unset__" : String(cur);
-              control = (
-                <select
-                  className={`ptParamControl ${numericViolation ? "isBad" : ""}`}
-                  value={current}
-                  onChange={(e) => {
-                    const v = String(e.target.value);
-                    if (v === "__unset__") {
-                      onSetParam(name, null);
-                      return;
-                    }
-                    if (typ === "number" || typ === "integer") {
-                      const n = Number(v);
-                      if (!Number.isFinite(n)) return;
-                      onSetParam(name, typ === "integer" ? Math.trunc(n) : n);
-                    } else {
-                      onSetParam(name, v);
-                    }
-                  }}
-                >
-                  {required ? null : <option value="__unset__">(unset)</option>}
-                  {enumList.map((x) => (
-                    <option key={String(x)} value={String(x)}>
-                      {String(x)}
-                    </option>
-                  ))}
-                </select>
-              );
-            } else if (typ === "boolean") {
-              const current = cur === true ? "true" : cur === false ? "false" : "__unset__";
-              control = (
-                <select className="ptParamControl" value={current} onChange={(e) => setValueFromBoolToken(e.target.value)}>
-                  {required ? null : <option value="__unset__">(unset)</option>}
-                  <option value="true">true</option>
-                  <option value="false">false</option>
-                </select>
-              );
-            } else if (typ === "number" || typ === "integer") {
-              control = (
-                <input
-                  className={`ptParamControl ${numericViolation ? "isBad" : ""}`}
-                  type="number"
-                  value={isUnset ? "" : String(cur)}
-                  placeholder={hasDefault && defVal != null ? String(defVal) : ""}
-                  onChange={(e) => setValueFromNumber(e.target.value)}
-                />
-              );
-            } else {
-              control = (
-                <input
-                  className="ptParamControl"
-                  type="text"
-                  value={isUnset ? "" : String(cur)}
-                  placeholder={hasDefault && defVal != null ? String(defVal) : ""}
-                  onChange={(e) => setValueFromText(e.target.value)}
-                />
-              );
-            }
-
-            return (
-              <div className="ptParamRow" key={name}>
-                <div className="ptParamMeta">
-                  <div className="ptParamName">
-                    {name}
-                    {required ? <span className="ptParamReq">REQ</span> : null}
-                    {unit ? <span className="ptParamUnit">{unit}</span> : null}
-                    <span className="ptParamType">{typ}</span>
-                  </div>
-                  {p?.description ? <div className="ptParamDesc">{String(p.description)}</div> : null}
-                  {rangeBits.length ? <div className="ptParamHint">{rangeBits.join(" | ")}</div> : null}
-                  {applies ? <div className="ptParamHint">applies_when: {applies}</div> : null}
-                </div>
-                <div className="ptParamCtrl">{control}</div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="ptHint">No parameter schema published for this kind yet.</div>
-      )}
-
-      {unknownKeys.length ? (
-        <div className="ptCallout">
-          <div className="ptCalloutTitle">Unknown params (not in registry)</div>
-          <div className="ptHint">{unknownKeys.map((k) => <div key={k}>{String(k)}</div>)}</div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function Modal({ title, children, onClose }) {
-  const outerRef = useRef(null);
-
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  return (
-    <div
-      className="ptModalBackdrop"
-      ref={outerRef}
-      onMouseDown={(e) => {
-        if (e.target === outerRef.current) onClose();
-      }}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="ptModal">
-        <div className="ptModalTop">
-          <div className="ptModalTitle">{String(title || "Modal")}</div>
-          <button className="ptBtn ptBtnTiny" onClick={onClose}>
-            Close
-          </button>
-        </div>
-        <div className="ptModalBody">{children}</div>
-      </div>
+      <GraphJsonModals
+        exportOpen={exportOpen}
+        importOpen={importOpen}
+        exportText={exportText}
+        importText={importText}
+        onCloseExport={() => setExportOpen(false)}
+        onCloseImport={() => setImportOpen(false)}
+        onImportTextChange={(value) => setImportText(String(value))}
+        onImport={importGraph}
+      />
     </div>
   );
 }
