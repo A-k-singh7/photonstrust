@@ -9,11 +9,15 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
-test("keyboard tab order starts with top controls", async ({ page }) => {
+test("keyboard tab order starts with skip link and top controls", async ({ page }) => {
+  const skipLink = page.getByRole("link", { name: "Skip to workspace" }).first();
   const modeSelect = page.locator("header.ptTopbar label").filter({ hasText: "Mode" }).first().locator("select");
   const userModeSelect = page.locator("header.ptTopbar label").filter({ hasText: "User mode" }).first().locator("select");
   const viewPresetSelect = page.locator("header.ptTopbar label").filter({ hasText: "View preset" }).first().locator("select");
   const saveViewButton = page.locator("header.ptTopbar button", { hasText: "Save View" }).first();
+
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
 
   await page.keyboard.press("Tab");
   await expect(modeSelect).toBeFocused();
@@ -36,10 +40,22 @@ test("keyboard reverse tab returns to previous control", async ({ page }) => {
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
   await expect(saveViewButton).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
   await expect(viewPresetSelect).toBeFocused();
+});
+
+test("skip link moves focus to main workspace", async ({ page }) => {
+  const skipLink = page.getByRole("link", { name: "Skip to workspace" }).first();
+  const workspaceMain = page.locator("#pt-main-workspace");
+
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+
+  await page.keyboard.press("Enter");
+  await expect(workspaceMain).toBeFocused();
 });
 
 test("right sidebar tabs expose tab semantics", async ({ page }) => {
@@ -62,5 +78,14 @@ test("right sidebar tabs expose tab semantics", async ({ page }) => {
     await secondTab.click();
     await expect(secondTab).toHaveAttribute("aria-selected", "true");
     await expect(firstTab).toHaveAttribute("aria-selected", "false");
+
+    await secondTab.focus();
+    await page.keyboard.press("Home");
+    await expect(firstTab).toBeFocused();
+    await expect(firstTab).toHaveAttribute("aria-selected", "true");
+
+    await page.keyboard.press("ArrowRight");
+    await expect(secondTab).toBeFocused();
+    await expect(secondTab).toHaveAttribute("aria-selected", "true");
   }
 });

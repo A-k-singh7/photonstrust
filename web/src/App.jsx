@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge,
   useEdgesState,
@@ -7,28 +7,13 @@ import {
 } from "@xyflow/react";
 
 import "./App.css";
-import CertificationWorkspace from "./features/certify/CertificationWorkspace";
-import CompareLabPanel from "./features/compare/CompareLabPanel";
-import DemoModeOrchestrator from "./features/demo/DemoModeOrchestrator";
-import DemoProofSnapshot from "./features/demo/DemoProofSnapshot";
-import GraphRightSidebarContent from "./features/graph/GraphRightSidebarContent";
-import OrbitValidatePanel from "./features/orbit/OrbitValidatePanel";
-import OrbitConfigPanel from "./features/orbit/OrbitConfigPanel";
 import ApprovalControls from "./features/runs/ApprovalControls";
-import DiffPanel from "./features/runs/DiffPanel";
-import ManifestPanel from "./features/runs/ManifestPanel";
 import AppTopBar from "./features/shell/AppTopBar";
-import CenterWorkspacePane from "./features/shell/CenterWorkspacePane";
 import GraphJsonModals from "./features/shell/GraphJsonModals";
-import LandingWorkspace from "./features/shell/LandingWorkspace";
 import LeftSidebarByMode from "./features/shell/LeftSidebarByMode";
 import RightSidebarTabs from "./features/shell/RightSidebarTabs";
 import StatusFooter from "./features/shell/StatusFooter";
-import GuidedFlowWizard from "./features/guided-flow/GuidedFlowWizard";
-import RunModePanel from "./features/results/RunModePanel";
 import { PRODUCT_STAGE_ITEMS, PRODUCT_STAGE_ROUTES, stageLabel, stageSubtitle } from "./features/shell/copy";
-import ProvenanceTimeline from "./features/trust/ProvenanceTimeline";
-import RunCollectionsPanel from "./features/workspace/RunCollectionsPanel";
 import WorkspaceContextBar from "./features/workspace/WorkspaceContextBar";
 import { createUiSessionId, createUiTelemetrySink } from "./state/uiTelemetry";
 import {
@@ -70,6 +55,22 @@ import {
   apiSimulatePic,
   apiValidateOrbitPass,
 } from "./photontrust/api";
+
+const CertificationWorkspace = lazy(() => import("./features/certify/CertificationWorkspace"));
+const CompareLabPanel = lazy(() => import("./features/compare/CompareLabPanel"));
+const DemoModeOrchestrator = lazy(() => import("./features/demo/DemoModeOrchestrator"));
+const DemoProofSnapshot = lazy(() => import("./features/demo/DemoProofSnapshot"));
+const GuidedFlowWizard = lazy(() => import("./features/guided-flow/GuidedFlowWizard"));
+const GraphRightSidebarContent = lazy(() => import("./features/graph/GraphRightSidebarContent"));
+const OrbitConfigPanel = lazy(() => import("./features/orbit/OrbitConfigPanel"));
+const OrbitValidatePanel = lazy(() => import("./features/orbit/OrbitValidatePanel"));
+const DiffPanel = lazy(() => import("./features/runs/DiffPanel"));
+const ManifestPanel = lazy(() => import("./features/runs/ManifestPanel"));
+const RunModePanel = lazy(() => import("./features/results/RunModePanel"));
+const CenterWorkspacePane = lazy(() => import("./features/shell/CenterWorkspacePane"));
+const LandingWorkspace = lazy(() => import("./features/shell/LandingWorkspace"));
+const ProvenanceTimeline = lazy(() => import("./features/trust/ProvenanceTimeline"));
+const RunCollectionsPanel = lazy(() => import("./features/workspace/RunCollectionsPanel"));
 
 const DEFAULT_QKD_SCENARIO = {
   id: "ui_qkd_link",
@@ -412,6 +413,14 @@ function _rolePresetBehavior(roleId) {
   if (role === "reviewer") return { stage: "compare", mode: "runs", tab: "diff" };
   if (role === "exec") return { stage: "export", mode: "runs", tab: "manifest" };
   return { stage: "build", mode: "graph", tab: "inspect" };
+}
+
+function PanelLoading({ message }) {
+  return (
+    <div className="ptRightSection ptPanelLoading" role="status" aria-live="polite" aria-busy="true">
+      <div className="ptHint">{String(message || "Loading panel...")}</div>
+    </div>
+  );
 }
 
 export default function App() {
@@ -2365,6 +2374,10 @@ export default function App() {
 
   return (
     <div className="ptApp">
+      <a className="ptSkipLink" href="#pt-main-workspace">
+        Skip to workspace
+      </a>
+
       <AppTopBar
         programStageSubtitle={stageSubtitle(programStage)}
         mode={mode}
@@ -2430,6 +2443,8 @@ export default function App() {
               onClick={() => openProgramStage(stage.id)}
               type="button"
               disabled={demoModeOpen}
+              aria-current={active ? "step" : undefined}
+              aria-label={`${stage.label}: ${stageSubtitle(stage.id)}`}
             >
               {stage.label}
             </button>
@@ -2464,56 +2479,71 @@ export default function App() {
       />
 
       {showLanding ? (
-        <LandingWorkspace
-          currentStage={programStage}
-          onOpenStage={openProgramStage}
-          onStartGuidedFlow={startGuidedFlow}
-          onInvestorDemoCheckpoint={investorDemoCheckpoint}
-          onDismiss={() => setShowLanding(false)}
-        />
+        <Suspense fallback={<PanelLoading message="Loading start workspace..." />}>
+          <LandingWorkspace
+            currentStage={programStage}
+            onOpenStage={openProgramStage}
+            onStartGuidedFlow={startGuidedFlow}
+            onInvestorDemoCheckpoint={investorDemoCheckpoint}
+            onDismiss={() => setShowLanding(false)}
+          />
+        </Suspense>
       ) : null}
 
-      <GuidedFlowWizard
-        open={guidedFlowWizardOpen}
-        busy={busy}
-        profile={profile}
-        apiHealthStatus={apiHealth.status}
-        scenario={scenario}
-        circuit={circuit}
-        initialGoal={guidedFlowInitialGoal}
-        onClose={closeGuidedFlowWizard}
-        onGoalChange={(goalId) => setGuidedFlowInitialGoal(String(goalId || "qkd"))}
-        onTemplateApply={applyGuidedTemplate}
-        onRunPreflight={runGuidedPreflight}
-        onRun={runGuidedFlowNow}
-        onOpenStage={openProgramStage}
-      />
+      {guidedFlowWizardOpen ? (
+        <Suspense fallback={<PanelLoading message="Loading guided flow..." />}>
+          <GuidedFlowWizard
+            open={guidedFlowWizardOpen}
+            busy={busy}
+            profile={profile}
+            apiHealthStatus={apiHealth.status}
+            scenario={scenario}
+            circuit={circuit}
+            initialGoal={guidedFlowInitialGoal}
+            onClose={closeGuidedFlowWizard}
+            onGoalChange={(goalId) => setGuidedFlowInitialGoal(String(goalId || "qkd"))}
+            onTemplateApply={applyGuidedTemplate}
+            onRunPreflight={runGuidedPreflight}
+            onRun={runGuidedFlowNow}
+            onOpenStage={openProgramStage}
+          />
+        </Suspense>
+      ) : null}
 
       {demoModeOpen ? (
-        <section className="ptDemoWrap">
-          <DemoModeOrchestrator
-            initialScene={demoInitialScene}
-            degraded={demoDegraded}
-            degradedReason={apiHealth.status === "ok" ? "" : String(apiHealth.error || "API not healthy")}
-            onSceneChange={handleDemoSceneChange}
-            onExit={closeDemoMode}
-          />
-          <DemoProofSnapshot
-            scene={demoScene}
-            degraded={demoDegraded}
-            decision={decisionContext.decision}
-            confidence={decisionContext.confidenceScore}
-            riskLevel={decisionContext.riskLevel}
-            diffSummary={demoDiffSummary}
-            approvalCount={demoApprovalCount}
-            runId={demoRunId}
-            packetHref={demoPacketHref}
-          />
+        <section className="ptDemoWrap" aria-label="Demo storyline">
+          <Suspense fallback={<PanelLoading message="Loading demo storyline..." />}>
+            <DemoModeOrchestrator
+              initialScene={demoInitialScene}
+              degraded={demoDegraded}
+              degradedReason={apiHealth.status === "ok" ? "" : String(apiHealth.error || "API not healthy")}
+              onSceneChange={handleDemoSceneChange}
+              onExit={closeDemoMode}
+            />
+            <DemoProofSnapshot
+              scene={demoScene}
+              degraded={demoDegraded}
+              decision={decisionContext.decision}
+              confidence={decisionContext.confidenceScore}
+              riskLevel={decisionContext.riskLevel}
+              diffSummary={demoDiffSummary}
+              approvalCount={demoApprovalCount}
+              runId={demoRunId}
+              packetHref={demoPacketHref}
+            />
+          </Suspense>
         </section>
       ) : null}
 
-      <div className="ptMain" style={demoModeOpen ? { pointerEvents: "none" } : undefined}>
-        <aside className="ptSidebar ptSidebarLeft">
+      <div
+        id="pt-main-workspace"
+        className="ptMain"
+        style={demoModeOpen ? { pointerEvents: "none" } : undefined}
+        role="main"
+        tabIndex={-1}
+        aria-label="Workspace main area"
+      >
+        <aside className="ptSidebar ptSidebarLeft" aria-label="Control sidebar">
           <LeftSidebarByMode
             mode={mode}
             graphProps={{
@@ -2567,355 +2597,379 @@ export default function App() {
               onDiffScopeChange: setDiffScope,
               onDiffRuns: diffRuns,
               collectionsNode: (
-                <RunCollectionsPanel
-                  collections={collectionOptions}
-                  selectedCollectionId={selectedCollectionId}
-                  onCollectionChange={(value) => {
-                    setSelectedCollectionId(String(value || ""));
-                    setCollectionTagInput("");
-                  }}
-                  newCollectionName={newCollectionName}
-                  onNewCollectionNameChange={setNewCollectionName}
-                  onCreateCollection={createRunCollection}
-                  selectedRunId={selectedRunForCollection}
-                  runOptions={runOptionsForCollections}
-                  runTags={selectedRunTags}
-                  tagInput={collectionTagInput}
-                  onTagInputChange={setCollectionTagInput}
-                  onAddTag={addCollectionTag}
-                  onRemoveTag={removeCollectionTag}
-                  baselineRunId={String(selectedCollection?.baselineRunId || diffLhsRunId || "")}
-                  candidateRunIds={selectedCollection?.candidateRunIds || []}
-                  onBaselineRunChange={(runId) => {
-                    setCollectionBaseline(runId);
-                    setDiffLhsRunId(String(runId || ""));
-                  }}
-                  onCandidateRunIdsChange={(runIds) => {
-                    const rows = Array.isArray(runIds) ? runIds : [];
-                    setCollectionCandidates(rows);
-                    if (rows.length) setDiffRhsRunId(String(rows[0] || ""));
-                  }}
-                  onUseSelectedAsBaseline={(runId) => {
-                    setCollectionBaseline(runId);
-                    if (runId) setDiffLhsRunId(String(runId));
-                  }}
-                  onAddSelectedAsCandidate={(runId) => {
-                    const rid = String(runId || "").trim();
-                    if (!rid) return;
-                    const existing = Array.isArray(selectedCollection?.candidateRunIds) ? selectedCollection.candidateRunIds : [];
-                    const merged = Array.from(new Set([...existing, rid]));
-                    setCollectionCandidates(merged);
-                    setDiffRhsRunId(rid);
-                  }}
-                  onRemoveSelectedFromCandidates={(runId) => {
-                    const rid = String(runId || "").trim();
-                    const existing = Array.isArray(selectedCollection?.candidateRunIds) ? selectedCollection.candidateRunIds : [];
-                    const filtered = existing.filter((item) => String(item) !== rid);
-                    setCollectionCandidates(filtered);
-                    if (String(diffRhsRunId || "") === rid) {
-                      setDiffRhsRunId(String(filtered[0] || ""));
-                    }
-                  }}
-                  onClearCandidates={() => {
-                    setCollectionCandidates([]);
-                    setDiffRhsRunId("");
-                  }}
-                  createDisabled={busy}
-                  tagDisabled={busy}
-                  selectionDisabled={busy}
-                />
+                <Suspense fallback={<PanelLoading message="Loading run collections..." />}>
+                  <RunCollectionsPanel
+                    collections={collectionOptions}
+                    selectedCollectionId={selectedCollectionId}
+                    onCollectionChange={(value) => {
+                      setSelectedCollectionId(String(value || ""));
+                      setCollectionTagInput("");
+                    }}
+                    newCollectionName={newCollectionName}
+                    onNewCollectionNameChange={setNewCollectionName}
+                    onCreateCollection={createRunCollection}
+                    selectedRunId={selectedRunForCollection}
+                    runOptions={runOptionsForCollections}
+                    runTags={selectedRunTags}
+                    tagInput={collectionTagInput}
+                    onTagInputChange={setCollectionTagInput}
+                    onAddTag={addCollectionTag}
+                    onRemoveTag={removeCollectionTag}
+                    baselineRunId={String(selectedCollection?.baselineRunId || diffLhsRunId || "")}
+                    candidateRunIds={selectedCollection?.candidateRunIds || []}
+                    onBaselineRunChange={(runId) => {
+                      setCollectionBaseline(runId);
+                      setDiffLhsRunId(String(runId || ""));
+                    }}
+                    onCandidateRunIdsChange={(runIds) => {
+                      const rows = Array.isArray(runIds) ? runIds : [];
+                      setCollectionCandidates(rows);
+                      if (rows.length) setDiffRhsRunId(String(rows[0] || ""));
+                    }}
+                    onUseSelectedAsBaseline={(runId) => {
+                      setCollectionBaseline(runId);
+                      if (runId) setDiffLhsRunId(String(runId));
+                    }}
+                    onAddSelectedAsCandidate={(runId) => {
+                      const rid = String(runId || "").trim();
+                      if (!rid) return;
+                      const existing = Array.isArray(selectedCollection?.candidateRunIds) ? selectedCollection.candidateRunIds : [];
+                      const merged = Array.from(new Set([...existing, rid]));
+                      setCollectionCandidates(merged);
+                      setDiffRhsRunId(rid);
+                    }}
+                    onRemoveSelectedFromCandidates={(runId) => {
+                      const rid = String(runId || "").trim();
+                      const existing = Array.isArray(selectedCollection?.candidateRunIds) ? selectedCollection.candidateRunIds : [];
+                      const filtered = existing.filter((item) => String(item) !== rid);
+                      setCollectionCandidates(filtered);
+                      if (String(diffRhsRunId || "") === rid) {
+                        setDiffRhsRunId(String(filtered[0] || ""));
+                      }
+                    }}
+                    onClearCandidates={() => {
+                      setCollectionCandidates([]);
+                      setDiffRhsRunId("");
+                    }}
+                    createDisabled={busy}
+                    tagDisabled={busy}
+                    selectionDisabled={busy}
+                  />
+                </Suspense>
               ),
             }}
           />
         </aside>
 
-        <CenterWorkspacePane
-          mode={mode}
-          isDragOver={isDragOver}
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          onSelectionChange={(sel) => {
-            const picked = sel?.nodes?.[0]?.id;
-            setSelectedNodeId(picked ? String(picked) : null);
-          }}
-          onCanvasDrop={onCanvasDrop}
-          onCanvasDragOver={onCanvasDragOver}
-          onCanvasDragLeave={onCanvasDragLeave}
-          orbitConfig={orbitConfig}
-          onApplyOrbitConfigText={applyOrbitConfigText}
-          runsIndex={runsIndex}
-          selectedRunId={selectedRunId}
-          diffLhsRunId={diffLhsRunId}
-          diffRhsRunId={diffRhsRunId}
-          onLoadRunManifest={loadRunManifest}
-          onSetActiveRightTab={setActiveRightTab}
-          onSetDiffLhsRunId={setDiffLhsRunId}
-          onSetDiffRhsRunId={setDiffRhsRunId}
-        />
+        <Suspense
+          fallback={
+            <section className="ptCanvas" aria-label="Workspace loading">
+              <div style={{ padding: 14 }}>
+                <PanelLoading message="Loading workspace canvas..." />
+              </div>
+            </section>
+          }
+        >
+          <CenterWorkspacePane
+            mode={mode}
+            isDragOver={isDragOver}
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            onSelectionChange={(sel) => {
+              const picked = sel?.nodes?.[0]?.id;
+              setSelectedNodeId(picked ? String(picked) : null);
+            }}
+            onCanvasDrop={onCanvasDrop}
+            onCanvasDragOver={onCanvasDragOver}
+            onCanvasDragLeave={onCanvasDragLeave}
+            orbitConfig={orbitConfig}
+            onApplyOrbitConfigText={applyOrbitConfigText}
+            runsIndex={runsIndex}
+            selectedRunId={selectedRunId}
+            diffLhsRunId={diffLhsRunId}
+            diffRhsRunId={diffRhsRunId}
+            onLoadRunManifest={loadRunManifest}
+            onSetActiveRightTab={setActiveRightTab}
+            onSetDiffLhsRunId={setDiffLhsRunId}
+            onSetDiffRhsRunId={setDiffRhsRunId}
+          />
+        </Suspense>
 
-        <aside className="ptSidebar ptSidebarRight">
+        <aside className="ptSidebar ptSidebarRight" aria-label="Details sidebar">
           <RightSidebarTabs mode={mode} profile={profile} activeRightTab={activeRightTab} onChangeTab={setActiveRightTab} />
 
           {mode === "graph" ? (
-            <GraphRightSidebarContent
-              activeRightTab={activeRightTab}
-              inspect={{
-                selectedNode,
-                kindRegistryByKind: kindRegistry?.byKind,
-                kindRegistryStatus: kindRegistry?.status,
-                onSetParam: setSelectedParamValue,
-                prettyJson: _pretty,
-                onDeleteSelected: deleteSelected,
-                onApplySelectedParams: applySelectedParams,
-                profile,
-                scenario,
-                bandOptions: BAND_OPTIONS,
-                onSetScenario: setScenario,
-                onSetStatus: _setStatus,
-                qkdExecutionMode,
-                onSetQkdExecutionMode: setQkdExecutionMode,
-                onApplyScenarioText: applyScenarioText,
-                uncertainty,
-                onApplyUncertaintyText: applyUncertaintyText,
-                finiteKey,
-                onApplyFiniteKeyText: applyFiniteKeyText,
-                circuit,
-                onSetCircuit: setCircuit,
-                picSweepNmText,
-                onSetPicSweepNmText: setPicSweepNmText,
-                onApplyCircuitText: applyCircuitText,
-                xtGapUm,
-                xtLengthUm,
-                xtTargetDb,
-                xtLive,
-                onSetXtGapUm: setXtGapUm,
-                onSetXtLengthUm: setXtLengthUm,
-                onSetXtTargetDb: setXtTargetDb,
-                onSetXtLive: setXtLive,
-                xtHasRunOnceRef: xtHasRunOnce,
-                onScheduleLiveDrc: scheduleLiveCrosstalkDrc,
-                onRunCrosstalkDrc: runCrosstalkDrc,
-                busy,
-                invKind,
-                onSetInvKind: setInvKind,
-                phaseNodeIds,
-                invPhaseNodeId,
-                onSetInvPhaseNodeId: setInvPhaseNodeId,
-                couplerNodeIds,
-                invCouplerNodeId,
-                onSetInvCouplerNodeId: setInvCouplerNodeId,
-                invOutputNode,
-                onSetInvOutputNode: setInvOutputNode,
-                invOutputPort,
-                onSetInvOutputPort: setInvOutputPort,
-                invTargetFraction,
-                onSetInvTargetFraction: setInvTargetFraction,
-                invWavelengthObjectiveAgg,
-                onSetInvWavelengthObjectiveAgg: setInvWavelengthObjectiveAgg,
-                invCaseObjectiveAgg,
-                onSetInvCaseObjectiveAgg: setInvCaseObjectiveAgg,
-                invRobustnessCases,
-                safeParseJson: _safeParseJson,
-                onSetInvRobustnessCases: setInvRobustnessCases,
-                onRunInvdesign: runInvdesign,
-                onRunInvdesignWorkflow: runInvdesignWorkflow,
-                metadata,
-                onSetMetadata: setMetadata,
-              }}
-              compile={{
-                compileResult,
-                prettyJson: _pretty,
-              }}
-              drc={{
-                xtResult,
-                apiBase,
-                buildRunArtifactUrl: _runArtifactUrl,
-                buildRunManifestUrl: _runManifestUrl,
-                prettyJson: _pretty,
-              }}
-              invdesign={{
-                invResult,
-                workflowResult,
-                apiBase,
-                buildRunArtifactUrl: _runArtifactUrl,
-                buildRunManifestUrl: _runManifestUrl,
-                buildRunBundleUrl: _runBundleUrl,
-                prettyJson: _pretty,
-              }}
-              layout={{
-                layoutPdk,
-                onSetLayoutPdk: setLayoutPdk,
-                layoutSettings,
-                onSetLayoutSettings: setLayoutSettings,
-                safeParseJson: _safeParseJson,
-                onRunLayoutBuild: runLayoutBuild,
-                busy,
-                layoutBuildResult,
-                apiBase,
-                buildRunArtifactUrl: _runArtifactUrl,
-                buildRunManifestUrl: _runManifestUrl,
-                prettyJson: _pretty,
-              }}
-              lvs={{
-                lvsSettings,
-                onSetLvsSettings: setLvsSettings,
-                safeParseJson: _safeParseJson,
-                onRunLvsLite: runLvsLite,
-                busy,
-                layoutBuildResult,
-                lvsResult,
-                apiBase,
-                buildRunArtifactUrl: _runArtifactUrl,
-                buildRunManifestUrl: _runManifestUrl,
-                prettyJson: _pretty,
-              }}
-              klayout={{
-                klayoutPackSettings,
-                onSetKlayoutPackSettings: setKlayoutPackSettings,
-                safeParseJson: _safeParseJson,
-                onRunKlayoutPack: runKlayoutPack,
-                busy,
-                layoutBuildResult,
-                klayoutPackResult,
-                apiBase,
-                buildRunArtifactUrl: _runArtifactUrl,
-                buildRunManifestUrl: _runManifestUrl,
-                prettyJson: _pretty,
-              }}
-              spice={{
-                spiceSettings,
-                onSetSpiceSettings: setSpiceSettings,
-                safeParseJson: _safeParseJson,
-                onRunSpiceExport: runSpiceExport,
-                busy,
-                spiceResult,
-                apiBase,
-                buildRunArtifactUrl: _runArtifactUrl,
-                buildRunManifestUrl: _runManifestUrl,
-                prettyJson: _pretty,
-              }}
-              graphJson={{
-                exportText,
-                onCopied: () => _setStatus("Copied graph payload JSON to clipboard."),
-                onCopyFailed: (err) => _setStatus(`Copy failed: ${String(err?.message || err)}`),
-              }}
-            />
+            <Suspense fallback={<PanelLoading message="Loading graph sidebar..." />}>
+              <GraphRightSidebarContent
+                activeRightTab={activeRightTab}
+                inspect={{
+                  selectedNode,
+                  kindRegistryByKind: kindRegistry?.byKind,
+                  kindRegistryStatus: kindRegistry?.status,
+                  onSetParam: setSelectedParamValue,
+                  prettyJson: _pretty,
+                  onDeleteSelected: deleteSelected,
+                  onApplySelectedParams: applySelectedParams,
+                  profile,
+                  scenario,
+                  bandOptions: BAND_OPTIONS,
+                  onSetScenario: setScenario,
+                  onSetStatus: _setStatus,
+                  qkdExecutionMode,
+                  onSetQkdExecutionMode: setQkdExecutionMode,
+                  onApplyScenarioText: applyScenarioText,
+                  uncertainty,
+                  onApplyUncertaintyText: applyUncertaintyText,
+                  finiteKey,
+                  onApplyFiniteKeyText: applyFiniteKeyText,
+                  circuit,
+                  onSetCircuit: setCircuit,
+                  picSweepNmText,
+                  onSetPicSweepNmText: setPicSweepNmText,
+                  onApplyCircuitText: applyCircuitText,
+                  xtGapUm,
+                  xtLengthUm,
+                  xtTargetDb,
+                  xtLive,
+                  onSetXtGapUm: setXtGapUm,
+                  onSetXtLengthUm: setXtLengthUm,
+                  onSetXtTargetDb: setXtTargetDb,
+                  onSetXtLive: setXtLive,
+                  xtHasRunOnceRef: xtHasRunOnce,
+                  onScheduleLiveDrc: scheduleLiveCrosstalkDrc,
+                  onRunCrosstalkDrc: runCrosstalkDrc,
+                  busy,
+                  invKind,
+                  onSetInvKind: setInvKind,
+                  phaseNodeIds,
+                  invPhaseNodeId,
+                  onSetInvPhaseNodeId: setInvPhaseNodeId,
+                  couplerNodeIds,
+                  invCouplerNodeId,
+                  onSetInvCouplerNodeId: setInvCouplerNodeId,
+                  invOutputNode,
+                  onSetInvOutputNode: setInvOutputNode,
+                  invOutputPort,
+                  onSetInvOutputPort: setInvOutputPort,
+                  invTargetFraction,
+                  onSetInvTargetFraction: setInvTargetFraction,
+                  invWavelengthObjectiveAgg,
+                  onSetInvWavelengthObjectiveAgg: setInvWavelengthObjectiveAgg,
+                  invCaseObjectiveAgg,
+                  onSetInvCaseObjectiveAgg: setInvCaseObjectiveAgg,
+                  invRobustnessCases,
+                  safeParseJson: _safeParseJson,
+                  onSetInvRobustnessCases: setInvRobustnessCases,
+                  onRunInvdesign: runInvdesign,
+                  onRunInvdesignWorkflow: runInvdesignWorkflow,
+                  metadata,
+                  onSetMetadata: setMetadata,
+                }}
+                compile={{
+                  compileResult,
+                  prettyJson: _pretty,
+                }}
+                drc={{
+                  xtResult,
+                  apiBase,
+                  buildRunArtifactUrl: _runArtifactUrl,
+                  buildRunManifestUrl: _runManifestUrl,
+                  prettyJson: _pretty,
+                }}
+                invdesign={{
+                  invResult,
+                  workflowResult,
+                  apiBase,
+                  buildRunArtifactUrl: _runArtifactUrl,
+                  buildRunManifestUrl: _runManifestUrl,
+                  buildRunBundleUrl: _runBundleUrl,
+                  prettyJson: _pretty,
+                }}
+                layout={{
+                  layoutPdk,
+                  onSetLayoutPdk: setLayoutPdk,
+                  layoutSettings,
+                  onSetLayoutSettings: setLayoutSettings,
+                  safeParseJson: _safeParseJson,
+                  onRunLayoutBuild: runLayoutBuild,
+                  busy,
+                  layoutBuildResult,
+                  apiBase,
+                  buildRunArtifactUrl: _runArtifactUrl,
+                  buildRunManifestUrl: _runManifestUrl,
+                  prettyJson: _pretty,
+                }}
+                lvs={{
+                  lvsSettings,
+                  onSetLvsSettings: setLvsSettings,
+                  safeParseJson: _safeParseJson,
+                  onRunLvsLite: runLvsLite,
+                  busy,
+                  layoutBuildResult,
+                  lvsResult,
+                  apiBase,
+                  buildRunArtifactUrl: _runArtifactUrl,
+                  buildRunManifestUrl: _runManifestUrl,
+                  prettyJson: _pretty,
+                }}
+                klayout={{
+                  klayoutPackSettings,
+                  onSetKlayoutPackSettings: setKlayoutPackSettings,
+                  safeParseJson: _safeParseJson,
+                  onRunKlayoutPack: runKlayoutPack,
+                  busy,
+                  layoutBuildResult,
+                  klayoutPackResult,
+                  apiBase,
+                  buildRunArtifactUrl: _runArtifactUrl,
+                  buildRunManifestUrl: _runManifestUrl,
+                  prettyJson: _pretty,
+                }}
+                spice={{
+                  spiceSettings,
+                  onSetSpiceSettings: setSpiceSettings,
+                  safeParseJson: _safeParseJson,
+                  onRunSpiceExport: runSpiceExport,
+                  busy,
+                  spiceResult,
+                  apiBase,
+                  buildRunArtifactUrl: _runArtifactUrl,
+                  buildRunManifestUrl: _runManifestUrl,
+                  prettyJson: _pretty,
+                }}
+                graphJson={{
+                  exportText,
+                  onCopied: () => _setStatus("Copied graph payload JSON to clipboard."),
+                  onCopyFailed: (err) => _setStatus(`Copy failed: ${String(err?.message || err)}`),
+                }}
+              />
+            </Suspense>
           ) : null}
 
           {mode !== "runs" && activeRightTab === "run" && (
-            <RunModePanel
-              mode={mode}
-              decision={decisionContext}
-              compileResult={compileResult}
-              runResult={runResult}
-              apiBase={apiBase}
-              onOpenProgramStage={openProgramStage}
-              onSetActiveRightTab={setActiveRightTab}
-              onExportDecisionPacket={exportDecisionPacket}
-              onSaveCurrentViewPreset={saveCurrentViewPreset}
-              onSetUserMode={setUserMode}
-              onSetStatus={_setStatus}
-              buildRunArtifactUrl={_runArtifactUrl}
-              buildRunManifestUrl={_runManifestUrl}
-              prettyJson={_pretty}
-            />
+            <Suspense fallback={<PanelLoading message="Loading run guidance..." />}>
+              <RunModePanel
+                mode={mode}
+                decision={decisionContext}
+                compileResult={compileResult}
+                runResult={runResult}
+                apiBase={apiBase}
+                onOpenProgramStage={openProgramStage}
+                onSetActiveRightTab={setActiveRightTab}
+                onExportDecisionPacket={exportDecisionPacket}
+                onSaveCurrentViewPreset={saveCurrentViewPreset}
+                onSetUserMode={setUserMode}
+                onSetStatus={_setStatus}
+                buildRunArtifactUrl={_runArtifactUrl}
+                buildRunManifestUrl={_runManifestUrl}
+                prettyJson={_pretty}
+              />
+            </Suspense>
           )}
 
           {mode === "orbit" && activeRightTab === "validate" && (
-            <OrbitValidatePanel orbitValidateResult={orbitValidateResult} prettyJson={_pretty} />
+            <Suspense fallback={<PanelLoading message="Loading orbit validation panel..." />}>
+              <OrbitValidatePanel orbitValidateResult={orbitValidateResult} prettyJson={_pretty} />
+            </Suspense>
           )}
 
           {mode === "orbit" && activeRightTab === "orbit" && (
-            <OrbitConfigPanel
-              orbitConfig={orbitConfig}
-              prettyJson={_pretty}
-              onCopied={() => _setStatus("Copied orbit config JSON to clipboard.")}
-              onCopyFailed={(err) => _setStatus(`Copy failed: ${String(err?.message || err)}`)}
-              panelId="pt-panel-orbit-orbit"
-              labelledBy="pt-tab-orbit-orbit"
-            />
+            <Suspense fallback={<PanelLoading message="Loading orbit config panel..." />}>
+              <OrbitConfigPanel
+                orbitConfig={orbitConfig}
+                prettyJson={_pretty}
+                onCopied={() => _setStatus("Copied orbit config JSON to clipboard.")}
+                onCopyFailed={(err) => _setStatus(`Copy failed: ${String(err?.message || err)}`)}
+                panelId="pt-panel-orbit-orbit"
+                labelledBy="pt-tab-orbit-orbit"
+              />
+            </Suspense>
           )}
 
           {mode === "runs" && activeRightTab === "manifest" && (
             <div id="pt-panel-runs-manifest" role="tabpanel" aria-labelledby="pt-tab-runs-manifest" className="ptRightBody">
-              <ProvenanceTimeline
-                apiBase={apiBase}
-                selectedRunManifest={selectedRunManifest}
-                compileResult={compileResult}
-                projectApprovals={projectApprovals}
-                buildRunManifestUrl={_runManifestUrl}
-                buildRunArtifactUrl={_runArtifactUrl}
-                buildRunBundleUrl={_runBundleUrl}
-              />
+              <Suspense fallback={<PanelLoading message="Loading manifest and certification tools..." />}>
+                <ProvenanceTimeline
+                  apiBase={apiBase}
+                  selectedRunManifest={selectedRunManifest}
+                  compileResult={compileResult}
+                  projectApprovals={projectApprovals}
+                  buildRunManifestUrl={_runManifestUrl}
+                  buildRunArtifactUrl={_runArtifactUrl}
+                  buildRunBundleUrl={_runBundleUrl}
+                />
 
-              <CertificationWorkspace
-                selectedRunManifest={selectedRunManifest}
-                compileResult={compileResult}
-                projectApprovals={projectApprovals}
-                packetExportHref={
-                  selectedRunManifest?.run_id ? _runBundleUrl(apiBase, selectedRunManifest.run_id) : ""
-                }
-                onPacketExport={exportDecisionPacket}
-                approvalControls={approvalControlsNode}
-                issues={decisionContext.blockers.map((message) => ({ level: "block", message }))}
-              />
+                <CertificationWorkspace
+                  selectedRunManifest={selectedRunManifest}
+                  compileResult={compileResult}
+                  projectApprovals={projectApprovals}
+                  packetExportHref={
+                    selectedRunManifest?.run_id ? _runBundleUrl(apiBase, selectedRunManifest.run_id) : ""
+                  }
+                  onPacketExport={exportDecisionPacket}
+                  approvalControls={approvalControlsNode}
+                  issues={decisionContext.blockers.map((message) => ({ level: "block", message }))}
+                />
 
-              <ManifestPanel
-                apiBase={apiBase}
-                selectedRunManifest={selectedRunManifest}
-                projectApprovals={projectApprovals}
-                approvalControls={approvalControlsNode}
-                approvalResult={approvalResult}
-                selectedRunGdsArtifacts={selectedRunGdsArtifacts}
-                runsKlayoutGdsArtifactPath={runsKlayoutGdsArtifactPath}
-                onRunsKlayoutGdsArtifactPathChange={setRunsKlayoutGdsArtifactPath}
-                klayoutPackSettings={klayoutPackSettings}
-                onApplyKlayoutPackSettings={(text) => {
-                  const parsed = _safeParseJson(text);
-                  if (!parsed.ok) return parsed;
-                  if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-                  setKlayoutPackSettings(parsed.value);
-                  return { ok: true };
-                }}
-                onRunSelectedRunKlayoutPack={runSelectedRunKlayoutPack}
-                busy={busy}
-                runsKlayoutPackResult={runsKlayoutPackResult}
-                runsWorkflowReplayResult={runsWorkflowReplayResult}
-                onReplaySelectedWorkflowRun={replaySelectedWorkflowRun}
-                buildRunManifestUrl={_runManifestUrl}
-                buildRunArtifactUrl={_runArtifactUrl}
-                buildRunBundleUrl={_runBundleUrl}
-              />
+                <ManifestPanel
+                  apiBase={apiBase}
+                  selectedRunManifest={selectedRunManifest}
+                  projectApprovals={projectApprovals}
+                  approvalControls={approvalControlsNode}
+                  approvalResult={approvalResult}
+                  selectedRunGdsArtifacts={selectedRunGdsArtifacts}
+                  runsKlayoutGdsArtifactPath={runsKlayoutGdsArtifactPath}
+                  onRunsKlayoutGdsArtifactPathChange={setRunsKlayoutGdsArtifactPath}
+                  klayoutPackSettings={klayoutPackSettings}
+                  onApplyKlayoutPackSettings={(text) => {
+                    const parsed = _safeParseJson(text);
+                    if (!parsed.ok) return parsed;
+                    if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
+                    setKlayoutPackSettings(parsed.value);
+                    return { ok: true };
+                  }}
+                  onRunSelectedRunKlayoutPack={runSelectedRunKlayoutPack}
+                  busy={busy}
+                  runsKlayoutPackResult={runsKlayoutPackResult}
+                  runsWorkflowReplayResult={runsWorkflowReplayResult}
+                  onReplaySelectedWorkflowRun={replaySelectedWorkflowRun}
+                  buildRunManifestUrl={_runManifestUrl}
+                  buildRunArtifactUrl={_runArtifactUrl}
+                  buildRunBundleUrl={_runBundleUrl}
+                />
+              </Suspense>
             </div>
           )}
 
           {mode === "runs" && activeRightTab === "diff" && (
             <div id="pt-panel-runs-diff" role="tabpanel" aria-labelledby="pt-tab-runs-diff" className="ptRightBody">
-              <DiffPanel
-                runsDiffResult={runsDiffResult}
-                busy={busy}
-                diffHelpers={{
-                  pretty: _pretty,
-                }}
-                compareLabNode={
-                  <CompareLabPanel
-                    runsIndex={runsIndex}
-                    baselineRunId={diffLhsRunId}
-                    candidateRunId={diffRhsRunId}
-                    diffScope={diffScope}
-                    busy={busy}
-                    runsDiffResult={runsDiffResult}
-                    onBaselineRunChange={setDiffLhsRunId}
-                    onCandidateRunChange={setDiffRhsRunId}
-                    onDiffScopeChange={setDiffScope}
-                    onCompare={diffRuns}
-                  />
-                }
-              />
+              <Suspense fallback={<PanelLoading message="Loading diff workspace..." />}>
+                <DiffPanel
+                  runsDiffResult={runsDiffResult}
+                  busy={busy}
+                  diffHelpers={{
+                    pretty: _pretty,
+                  }}
+                  compareLabNode={
+                    <CompareLabPanel
+                      runsIndex={runsIndex}
+                      baselineRunId={diffLhsRunId}
+                      candidateRunId={diffRhsRunId}
+                      diffScope={diffScope}
+                      busy={busy}
+                      runsDiffResult={runsDiffResult}
+                      onBaselineRunChange={setDiffLhsRunId}
+                      onCandidateRunChange={setDiffRhsRunId}
+                      onDiffScopeChange={setDiffScope}
+                      onCompare={diffRuns}
+                    />
+                  }
+                />
+              </Suspense>
             </div>
           )}
         </aside>
