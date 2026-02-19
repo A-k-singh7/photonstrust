@@ -451,6 +451,7 @@ export default function App() {
   const runRecoveryRef = useRef({ hadFailure: false, failedAtMs: 0 });
   const demoResumeRef = useRef({ mode: "graph", stage: "build", tab: "inspect", userMode: "builder" });
   const telemetrySessionStartedRef = useRef(false);
+  const startupPingStartedRef = useRef(false);
   const [guidedFlowWizardOpen, setGuidedFlowWizardOpen] = useState(false);
   const [guidedFlowInitialGoal, setGuidedFlowInitialGoal] = useState("qkd");
 
@@ -824,6 +825,13 @@ export default function App() {
   }, [nodes, profile]);
 
   useEffect(() => {
+    return () => {
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+      if (xtDebounceTimer.current) clearTimeout(xtDebounceTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (profile !== "pic_circuit") return;
     if (invPhaseNodeId) return;
     if (phaseNodeIds.length) setInvPhaseNodeId(phaseNodeIds[0]);
@@ -1066,11 +1074,12 @@ export default function App() {
   }, [userMode]);
 
   useEffect(() => {
+    if (showLanding && !demoModeOpen) return;
     if (telemetrySessionStartedRef.current) return;
     telemetrySessionStartedRef.current = true;
     emitUiEvent("ui_session_started", { outcome: "success" });
     recordActivity("session", "UI session started.", { user_mode: userMode, profile });
-  }, [emitUiEvent, profile, recordActivity, userMode]);
+  }, [emitUiEvent, profile, recordActivity, userMode, showLanding, demoModeOpen]);
 
   useEffect(() => {
     localStorage.setItem("pt_project_id", String(selectedProjectId));
@@ -1109,9 +1118,12 @@ export default function App() {
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    // Best-effort API ping on load.
+    if (showLanding && !demoModeOpen) return;
+    if (startupPingStartedRef.current) return;
+    startupPingStartedRef.current = true;
+    // Best-effort API ping on first workspace load.
     pingApi();
-  }, [pingApi]);
+  }, [pingApi, showLanding, demoModeOpen]);
 
   useEffect(() => {
     if (mode !== "runs") return;
@@ -1714,11 +1726,11 @@ export default function App() {
   const onCanvasDragOver = useCallback((e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    setIsDragOver(true);
+    setIsDragOver((current) => (current ? current : true));
   }, []);
 
   const onCanvasDragLeave = useCallback(() => {
-    setIsDragOver(false);
+    setIsDragOver((current) => (current ? false : current));
   }, []);
 
   const compileGraph = useCallback(async () => {
@@ -2305,7 +2317,10 @@ export default function App() {
     [setOrbitConfig],
   );
 
-  const exportText = useMemo(() => _pretty(graphPayload), [graphPayload]);
+  const exportText = useMemo(() => {
+    if (!exportOpen && activeRightTab !== "graph") return "";
+    return _pretty(graphPayload);
+  }, [graphPayload, exportOpen, activeRightTab]);
 
   const importGraph = useCallback(() => {
     const parsed = _safeParseJson(importText);
@@ -2371,6 +2386,7 @@ export default function App() {
         : null;
   const demoApprovalCount = Array.isArray(projectApprovals?.approvals) ? projectApprovals.approvals.length : 0;
   const demoPacketActionEnabled = !demoModeOpen || demoScene === "packet";
+  const workspaceReady = !showLanding || demoModeOpen;
 
   return (
     <div className="ptApp">
@@ -2543,6 +2559,8 @@ export default function App() {
         tabIndex={-1}
         aria-label="Workspace main area"
       >
+        {workspaceReady ? (
+          <>
         <aside className="ptSidebar ptSidebarLeft" aria-label="Control sidebar">
           <LeftSidebarByMode
             mode={mode}
@@ -2973,17 +2991,29 @@ export default function App() {
             </div>
           )}
         </aside>
+          </>
+        ) : (
+          <section className="ptCard ptWorkspaceDeferred" aria-label="Workspace deferred until start stage">
+            <div className="ptRightTitle">Workspace ready when you start</div>
+            <div className="ptHint">
+              Landing mode keeps heavy graph and run surfaces deferred for a faster first paint. Select a stage above or click
+              <span className="ptMono"> Start Here </span>to enter the full workspace.
+            </div>
+          </section>
+        )}
       </div>
 
-      <StatusFooter
-        busy={busy}
-        statusText={statusText}
-        stageText={stageLabel(programStage)}
-        userMode={userMode}
-        nodeCount={nodes.length}
-        edgeCount={edges.length}
-        hashText={compileResult?.graph_hash || runResult?.graph_hash || runResult?.config_hash || "n/a"}
-      />
+      {workspaceReady ? (
+        <StatusFooter
+          busy={busy}
+          statusText={statusText}
+          stageText={stageLabel(programStage)}
+          userMode={userMode}
+          nodeCount={nodes.length}
+          edgeCount={edges.length}
+          hashText={compileResult?.graph_hash || runResult?.graph_hash || runResult?.config_hash || "n/a"}
+        />
+      ) : null}
 
       <GraphJsonModals
         exportOpen={exportOpen}
