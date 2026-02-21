@@ -65,6 +65,18 @@ __all__ = [
     "export_pcell_library",
     "pcell_instance",
     "register_klayout_pcells",
+    # Thermo-optic
+    "thermo_optic_phase",
+    "heater_drive_curve",
+    "apply_heater_voltages",
+    # WDM
+    "analyze_wdm",
+    "wdm_channel_grid",
+    # Reliability card
+    "generate_reliability_card",
+    "write_reliability_card",
+    # REST server
+    "start_server",
 ]
 
 
@@ -877,3 +889,238 @@ def register_klayout_pcells(layout: Any = None) -> bool:
     """
     from photonstrust.layout.pic.pcell import register_all_pcells
     return register_all_pcells(layout)
+
+
+# ---------------------------------------------------------------------------
+# Thermo-optic co-simulation
+# ---------------------------------------------------------------------------
+
+def thermo_optic_phase(
+    *,
+    voltage_v: float,
+    heater_resistance_ohm: float = 500.0,
+    thermal_resistance_k_per_w: float = 5e4,
+    waveguide_length_um: float = 50.0,
+    wavelength_nm: float = 1550.0,
+    material: str = "silicon",
+) -> dict[str, Any]:
+    """Compute phase shift from heater voltage via thermo-optic effect.
+
+    Physics chain: V → P_ohm → ΔT → Δn_eff → Δφ
+
+    Parameters
+    ----------
+    voltage_v:
+        Applied heater voltage (V).
+    heater_resistance_ohm:
+        Heater resistance (Ω). Typical TiN: 200–1000 Ω.
+    thermal_resistance_k_per_w:
+        Lumped thermal resistance (K/W).
+    material:
+        ``"silicon"``, ``"silicon_nitride"``, or ``"lithium_niobate"``.
+
+    Returns
+    -------
+    dict
+        ``{"phase_rad", "delta_T_K", "power_mw", "v_pi_v", ...}``
+
+    Example
+    -------
+    >>> r = pt.thermo_optic_phase(voltage_v=3.0, waveguide_length_um=50)
+    >>> r["phase_rad"]
+    0.73...
+    """
+    from photonstrust.physics.thermo_optic import compute_thermo_optic_phase
+    return compute_thermo_optic_phase(
+        voltage_v=voltage_v,
+        heater_resistance_ohm=heater_resistance_ohm,
+        thermal_resistance_k_per_w=thermal_resistance_k_per_w,
+        waveguide_length_um=waveguide_length_um,
+        wavelength_nm=wavelength_nm,
+        material=material,
+    )
+
+
+def heater_drive_curve(
+    *,
+    v_max: float = 5.0,
+    n_points: int = 50,
+    heater_resistance_ohm: float = 500.0,
+    thermal_resistance_k_per_w: float = 5e4,
+    waveguide_length_um: float = 50.0,
+    wavelength_nm: float = 1550.0,
+    material: str = "silicon",
+) -> dict[str, Any]:
+    """Compute V → Δφ drive curve for a heater.
+
+    Example
+    -------
+    >>> curve = pt.heater_drive_curve(v_max=5.0)
+    >>> import matplotlib.pyplot as plt
+    >>> plt.plot(curve["voltages_v"], curve["phases_rad"])
+    """
+    from photonstrust.physics.thermo_optic import heater_drive_curve as _fn
+    return _fn(
+        v_max=v_max, n_points=n_points,
+        heater_resistance_ohm=heater_resistance_ohm,
+        thermal_resistance_k_per_w=thermal_resistance_k_per_w,
+        waveguide_length_um=waveguide_length_um,
+        wavelength_nm=wavelength_nm,
+        material=material,
+    )
+
+
+def apply_heater_voltages(
+    netlist: dict[str, Any],
+    heater_voltages: dict[str, float],
+    *,
+    heater_resistance_ohm: float = 500.0,
+    thermal_resistance_k_per_w: float = 5e4,
+    material: str = "silicon",
+) -> dict[str, Any]:
+    """Inject heater voltages into a netlist as thermal phase shifts.
+
+    Maps each ``node_id → voltage`` through the thermo-optic model and
+    updates ``phase_rad`` parameters in-place.
+
+    Example
+    -------
+    >>> updated = pt.apply_heater_voltages(netlist, {"ps1": 3.0, "ps2": 1.5})
+    >>> pt.simulate_netlist(updated)["outputs"][0]["power_dB"]
+    -3.2
+    """
+    from photonstrust.physics.thermo_optic import update_netlist_with_thermal
+    return update_netlist_with_thermal(
+        netlist, heater_voltages,
+        heater_resistance_ohm=heater_resistance_ohm,
+        thermal_resistance_k_per_w=thermal_resistance_k_per_w,
+        material=material,
+    )
+
+
+# ---------------------------------------------------------------------------
+# WDM analysis
+# ---------------------------------------------------------------------------
+
+def wdm_channel_grid(
+    center_wl_nm: float = 1550.0,
+    channel_spacing_ghz: float = 100.0,
+    n_channels: int = 8,
+) -> list[dict[str, Any]]:
+    """Generate an ITU-T G.694.1 WDM channel grid.
+
+    Example
+    -------
+    >>> grid = pt.wdm_channel_grid(n_channels=4)
+    >>> [ch["wavelength_nm"] for ch in grid]
+    [1546.92, 1548.51, 1550.12, 1551.72]
+    """
+    from photonstrust.wdm.analysis import itu_channel_grid
+    return itu_channel_grid(center_wl_nm, channel_spacing_ghz, n_channels)
+
+
+def analyze_wdm(
+    netlist: dict[str, Any],
+    *,
+    channel_spacing_ghz: float = 100.0,
+    n_channels: int = 8,
+    center_wl_nm: float = 1550.0,
+    points_per_channel: int = 20,
+) -> dict[str, Any]:
+    """Run WDM multi-channel analysis on a PIC netlist.
+
+    Sweeps ITU-T C-band channels and extracts per-channel peak transmission,
+    3-dB passband, in-band ripple, N×N isolation matrix, and OSNR estimate.
+
+    Example
+    -------
+    >>> result = pt.analyze_wdm(netlist, channel_spacing_ghz=50, n_channels=16)
+    >>> result["worst_adjacent_crosstalk_db"]
+    -24.3
+    """
+    from photonstrust.wdm.analysis import analyze_wdm_channels
+    return analyze_wdm_channels(
+        netlist,
+        channel_spacing_ghz=channel_spacing_ghz,
+        n_channels=n_channels,
+        center_wl_nm=center_wl_nm,
+        points_per_channel=points_per_channel,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Reliability card
+# ---------------------------------------------------------------------------
+
+def generate_reliability_card(
+    *,
+    netlist: Optional[dict[str, Any]] = None,
+    drc_params: Optional[dict[str, Any]] = None,
+    yield_metrics: Optional[list[dict[str, Any]]] = None,
+    title: str = "PhotonTrust Reliability Card",
+    wavelength_nm: float = 1550.0,
+) -> str:
+    """Generate a self-contained HTML reliability card.
+
+    Combines simulation results, DRC/LVS, yield bars, SPICE model summary,
+    WDM table, and provenance into a single printable HTML document.
+
+    Example
+    -------
+    >>> html = pt.generate_reliability_card(netlist=netlist)
+    >>> open("report.html", "w").write(html)
+    """
+    from photonstrust.reports.reliability_card import generate_reliability_card_html
+    return generate_reliability_card_html(
+        netlist=netlist,
+        drc_params=drc_params,
+        yield_metrics=yield_metrics,
+        title=title,
+        wavelength_nm=wavelength_nm,
+    )
+
+
+def write_reliability_card(
+    output_path: str,
+    *,
+    netlist: Optional[dict[str, Any]] = None,
+    drc_params: Optional[dict[str, Any]] = None,
+    yield_metrics: Optional[list[dict[str, Any]]] = None,
+    title: str = "PhotonTrust Reliability Card",
+) -> str:
+    """Write the HTML reliability card to a file and return its absolute path.
+
+    Example
+    -------
+    >>> pt.write_reliability_card("results/card.html", netlist=netlist)
+    'C:/Users/.../results/card.html'
+    """
+    from photonstrust.reports.reliability_card import write_reliability_card as _fn
+    return _fn(output_path, netlist=netlist, drc_params=drc_params,
+               yield_metrics=yield_metrics, title=title)
+
+
+# ---------------------------------------------------------------------------
+# REST server
+# ---------------------------------------------------------------------------
+
+def start_server(
+    host: str = "0.0.0.0",
+    port: int = 8080,
+    reload: bool = False,
+) -> None:
+    """Start the PhotonTrust FastAPI REST server.
+
+    Exposes all SDK functions as JSON endpoints. Auto-generates OpenAPI
+    documentation at ``http://localhost:<port>/docs``.
+
+    Requires: ``pip install fastapi uvicorn``
+
+    Example
+    -------
+    >>> pt.start_server(port=8080)
+    # Then: curl http://localhost:8080/health
+    """
+    from photonstrust.api_server import start_server as _fn
+    _fn(host=host, port=port, reload=reload)
+
