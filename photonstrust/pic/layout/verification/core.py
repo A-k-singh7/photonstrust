@@ -1149,50 +1149,68 @@ def estimate_process_yield(
     mc_yield = None
     mc_mode = "independent"
     if samples > 0:
-        rng = random.Random(int(seed))
-        pass_count = 0
-
-        if use_correlation:
-            mc_mode = "correlated"
+        mc_mode = "correlated" if use_correlation else "independent"
+        
+        try:
+            import photonstrust_rs
+            
             nominals = [float(row["nominal"]) for row in parsed]
-            limits = [row["limits"] for row in parsed]
-            active = corr_active_idx
+            sigmas = [float(row["sigma_effective"]) for row in parsed]
+            mins = [float(row["limits"]["min_allowed"]) for row in parsed]
+            maxes = [float(row["limits"]["max_allowed"]) for row in parsed]
+            
+            active_idx = corr_active_idx if use_correlation else None
+            cov_c = cov_cholesky if use_correlation else None
+            
+            mc_yield = photonstrust_rs.estimate_process_yield_rs(
+                nominals, sigmas, mins, maxes, samples, int(seed), cov_c, active_idx
+            )
+        except ImportError:
+            rng = random.Random(int(seed))
+            pass_count = 0
 
-            for _ in range(samples):
-                x = list(nominals)
-                if active and cov_cholesky is not None:
-                    z = [rng.gauss(0.0, 1.0) for _ in active]
-                    for i_sub, idx in enumerate(active):
-                        delta = 0.0
-                        for k in range(i_sub + 1):
-                            delta += cov_cholesky[i_sub][k] * z[k]
-                        x[idx] = nominals[idx] + delta
+            if use_correlation:
+                mc_mode = "correlated"
+                nominals = [float(row["nominal"]) for row in parsed]
+                limits = [row["limits"] for row in parsed]
+                active = corr_active_idx
 
-                sample_pass = True
-                for i, xv in enumerate(x):
-                    lo = float(limits[i]["min_allowed"])
-                    hi = float(limits[i]["max_allowed"])
-                    if xv < lo or xv > hi:
-                        sample_pass = False
-                        break
-                if sample_pass:
-                    pass_count += 1
-        else:
-            for _ in range(samples):
-                sample_pass = True
-                for row in parsed:
-                    sigma_eff = float(row["sigma_effective"])
-                    x = float(row["nominal"])
-                    if sigma_eff > 0.0:
-                        x = rng.gauss(float(row["nominal"]), sigma_eff)
-                    limits = row["limits"]
-                    if x < float(limits["min_allowed"]) or x > float(limits["max_allowed"]):
-                        sample_pass = False
-                        break
-                if sample_pass:
-                    pass_count += 1
+                for _ in range(samples):
+                    x = list(nominals)
+                    if active and cov_cholesky is not None:
+                        z = [rng.gauss(0.0, 1.0) for _ in active]
+                        for i_sub, idx in enumerate(active):
+                            delta = 0.0
+                            for k in range(i_sub + 1):
+                                delta += cov_cholesky[i_sub][k] * z[k]
+                            x[idx] = nominals[idx] + delta
 
-        mc_yield = float(pass_count / max(1, samples))
+                    sample_pass = True
+                    for i, xv in enumerate(x):
+                        lo = float(limits[i]["min_allowed"])
+                        hi = float(limits[i]["max_allowed"])
+                        if xv < lo or xv > hi:
+                            sample_pass = False
+                            break
+                    if sample_pass:
+                        pass_count += 1
+            else:
+                for _ in range(samples):
+                    sample_pass = True
+                    for row in parsed:
+                        sigma_eff = float(row["sigma_effective"])
+                        x = float(row["nominal"])
+                        if sigma_eff > 0.0:
+                            x = rng.gauss(float(row["nominal"]), sigma_eff)
+                        limits = row["limits"]
+                        if x < float(limits["min_allowed"]) or x > float(limits["max_allowed"]):
+                            sample_pass = False
+                            break
+                    if sample_pass:
+                        pass_count += 1
+
+            if mc_yield is None:
+                mc_yield = float(pass_count / max(1, samples))
 
     estimated_yield = mc_yield if mc_yield is not None else analytic_yield
     if estimated_yield < min_required:

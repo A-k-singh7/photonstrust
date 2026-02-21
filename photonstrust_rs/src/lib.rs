@@ -6,6 +6,7 @@ use rand::RngExt;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand_distr::{Normal, Distribution};
+use rayon::prelude::*;
 
 #[derive(PartialEq)]
 enum Origin {
@@ -99,8 +100,76 @@ fn process_events_heap_rs(
     Ok((clicks, false_clicks, processed))
 }
 
+#[pyfunction]
+fn estimate_process_yield_rs(
+    nominals: Vec<f64>,
+    sigmas: Vec<f64>,
+    mins: Vec<f64>,
+    maxes: Vec<f64>,
+    samples: usize,
+    seed: u64,
+    cov_cholesky: Option<Vec<Vec<f64>>>,
+    active_idx: Option<Vec<usize>>,
+) -> PyResult<f64> {
+    let is_correlated = cov_cholesky.is_some() && active_idx.is_some();
+    let num_metrics = nominals.len();
+
+    let pass_count: usize = (0..samples)
+        .into_par_iter()
+        .map(|i| {
+            // Seed uniquely per sample
+            let mut rng = StdRng::seed_from_u64(seed.wrapping_add(i as u64));
+            let mut sample_pass = true;
+
+            if is_correlated {
+                let cov = cov_cholesky.as_ref().unwrap();
+                let active = active_idx.as_ref().unwrap();
+                let normal = Normal::new(0.0, 1.0).unwrap();
+
+                let mut z = Vec::with_capacity(active.len());
+                for _ in 0..active.len() {
+                    z.push(normal.sample(&mut rng));
+                }
+
+                let mut x = nominals.clone();
+                for (i_sub, &idx) in active.iter().enumerate() {
+                    let mut delta = 0.0;
+                    for k in 0..=i_sub {
+                        delta += cov[i_sub][k] * z[k];
+                    }
+                    x[idx] += delta;
+                }
+
+                for j in 0..num_metrics {
+                    if x[j] < mins[j] || x[j] > maxes[j] {
+                        sample_pass = false;
+                        break;
+                    }
+                }
+            } else {
+                for j in 0..num_metrics {
+                    let mut x_val = nominals[j];
+                    if sigmas[j] > 0.0 {
+                        let normal = Normal::new(nominals[j], sigmas[j]).unwrap();
+                        x_val = normal.sample(&mut rng);
+                    }
+                    if x_val < mins[j] || x_val > maxes[j] {
+                        sample_pass = false;
+                        break;
+                    }
+                }
+            }
+            if sample_pass { 1 } else { 0 }
+        })
+        .sum();
+
+    let yield_mc = (pass_count as f64) / f64::max(1.0, samples as f64);
+    Ok(yield_mc)
+}
+
 #[pymodule]
 fn photonstrust_rs(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(process_events_heap_rs, m)?)?;
+    m.add_function(wrap_pyfunction!(estimate_process_yield_rs, m)?)?;
     Ok(())
 }
