@@ -1,0 +1,14 @@
+[package]
+name = "photonstrust_rs"
+version = "0.1.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "photonstrust_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.27.0"
+rand = "0.10.0"
+rand_distr = "0.6.0"

@@ -13,6 +13,8 @@ import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 
 from photonstrust.components.pic.library import (
@@ -164,7 +166,7 @@ def simulate_scattering(
     n = len(port_list)
 
     # Assemble global block-diagonal scattering matrix S.
-    S = np.zeros((n, n), dtype=np.complex128)
+    S = jnp.zeros((n, n), dtype=jnp.complex128)
     for node_id in sorted(node_by_id.keys(), key=lambda x: x.lower()):
         node = node_by_id[node_id]
         kind = str(node.get("kind", "")).strip().lower()
@@ -179,7 +181,7 @@ def simulate_scattering(
             gi = idx_of[(node_id, str(p_i))]
             for j_local, p_j in enumerate(ports):
                 gj = idx_of[(node_id, str(p_j))]
-                S[gi, gj] = complex(s_local[i_local, j_local])
+                S = S.at[gi, gj].set(complex(s_local[i_local, j_local]))
 
     # Build ideal connection matrix C such that a = C @ b + a_ext
     # Each port can connect to at most one other port.
@@ -207,9 +209,9 @@ def simulate_scattering(
         edge_g[(ia, ib)] = complex(g)
         edge_g[(ib, ia)] = complex(g)
 
-    C = np.zeros((n, n), dtype=np.complex128)
+    C = jnp.zeros((n, n), dtype=jnp.complex128)
     for i, j in partner.items():
-        C[i, j] = edge_g.get((i, j), 1.0 + 0.0j)
+        C = C.at[i, j].set(edge_g.get((i, j), 1.0 + 0.0j))
 
     # External IO: reuse the v1 input/output resolution based on directed edges.
     incoming_by_port: dict[tuple[str, str], list[dict]] = {}
@@ -223,19 +225,23 @@ def simulate_scattering(
     external_inputs = _resolve_external_inputs(node_by_id, incoming_by_port, io_inputs)
     external_outputs = _resolve_external_outputs(node_by_id, outgoing_by_port, io_outputs)
 
-    a_ext = np.zeros((n,), dtype=np.complex128)
+    a_ext = jnp.zeros((n,), dtype=jnp.complex128)
     for ref, amp in external_inputs.items():
         key = (ref.node, ref.port)
         if key not in idx_of:
             raise ValueError(f"external input refers to missing port: {ref.node}.{ref.port}")
-        a_ext[idx_of[key]] += complex(float(amp))
+        a_ext = a_ext.at[idx_of[key]].add(complex(float(amp)))
 
-    # Solve: (I - S C) b = S a_ext
-    A = np.eye(n, dtype=np.complex128) - (S @ C)
+    A = jnp.eye(n, dtype=jnp.complex128) - (S @ C)
     rhs = S @ a_ext
+
+    @jax.jit
+    def _jax_solve(A_mat, rhs_vec):
+        return jnp.linalg.solve(A_mat, rhs_vec)
+
     try:
-        b = np.linalg.solve(A, rhs)
-    except np.linalg.LinAlgError as exc:
+        b = _jax_solve(A, rhs)
+    except Exception as exc:
         return {"applicable": False, "reason": f"scattering solve failed: {exc}"}
 
     # Report requested outputs using outgoing wave b at those ports.

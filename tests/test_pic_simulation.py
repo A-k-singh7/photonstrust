@@ -3,6 +3,9 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+import jax
+jax.config.update("jax_enable_x64", True)
+
 from photonstrust.pic.simulate import simulate_pic_netlist
 
 

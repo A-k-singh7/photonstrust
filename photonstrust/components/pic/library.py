@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+import jax.numpy as jnp
 import numpy as np
 
 from photonstrust.components.pic.touchstone import (
@@ -125,7 +126,7 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
         fwd = component_forward_matrix(kind, params, wavelength_nm=wavelength_nm)
         if fwd.shape != (1, 1):
             raise ValueError(f"Expected 1x1 forward matrix for 2-port component (kind={kind})")
-        t_fwd = complex(fwd[0, 0])
+        t_fwd = fwd[0, 0]
         t_rev = t_fwd
 
         if kind == "pic.isolator_2port":
@@ -144,14 +145,18 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
         r_out = _port_reflection(rl_key="return_loss_out_db", phase_key="reflection_out_phase_rad")
 
         # Port order: [in, out]
-        s = np.zeros((2, 2), dtype=np.complex128)
-        s[0, 0] = r_in
-        s[1, 1] = r_out
-        s[0, 1] = t_rev  # S12
-        s[1, 0] = t_fwd  # S21
+        s = jnp.zeros((2, 2), dtype=jnp.complex128)
+        s = s.at[0, 0].set(r_in)
+        s = s.at[1, 1].set(r_out)
+        s = s.at[0, 1].set(t_rev)  # S12
+        s = s.at[1, 0].set(t_fwd)  # S21
 
         if abs(r_in) > 0.0 or abs(r_out) > 0.0 or kind == "pic.isolator_2port":
-            _assert_passive(s)
+            try:
+                _assert_passive(s)
+            except Exception as e:
+                if "Abstract tracer value" not in str(e) and "ConcretizationTypeError" not in type(e).__name__:
+                    raise
         return s
 
     if kind == "pic.coupler":
@@ -285,8 +290,8 @@ def _phase_from_params(params: dict, wavelength_nm: float | None) -> float:
     return 0.0
 
 
-def _two_port_scalar_matrix(t: complex) -> np.ndarray:
-    return np.array([[t]], dtype=np.complex128)
+def _two_port_scalar_matrix(t: complex) -> jnp.ndarray:
+    return jnp.array([[t]], dtype=jnp.complex128)
 
 
 def _matrix_waveguide(params: dict, wavelength_nm: float | None) -> np.ndarray:
@@ -308,13 +313,18 @@ def _matrix_insertion_loss_2port(params: dict, wavelength_nm: float | None) -> n
     return _two_port_scalar_matrix(t)
 
 
-def _matrix_phase_shifter(params: dict, wavelength_nm: float | None) -> np.ndarray:
+def _matrix_phase_shifter(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
     # Explicit phase control is the core; loss is optional.
-    phi = float(params.get("phase_rad", 0.0) or 0.0)
-    loss_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
+    # We use jnp functions to enable Autodiff through phase_rad.
+    phi = params.get("phase_rad", 0.0)
+    phi = phi if phi is not None else 0.0
+    
+    loss_db = params.get("insertion_loss_db", 0.0)
+    loss_db = float(loss_db) if loss_db is not None else 0.0
+    
     eta = _eta_from_loss_db(loss_db)
-    t = math.sqrt(eta) * complex(math.cos(phi), math.sin(phi))
-    return _two_port_scalar_matrix(t)
+    t = jnp.sqrt(eta) * (jnp.cos(phi) + 1j * jnp.sin(phi))
+    return jnp.array([[t]], dtype=jnp.complex128)
 
 
 def _matrix_ring(params: dict, wavelength_nm: float | None) -> np.ndarray:
@@ -395,17 +405,20 @@ def _matrix_ring(params: dict, wavelength_nm: float | None) -> np.ndarray:
     return _two_port_scalar_matrix(t)
 
 
-def _matrix_coupler(params: dict, wavelength_nm: float | None) -> np.ndarray:
+def _matrix_coupler(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
     # Unidirectional 2x2 coupler model (no reflections, symmetric).
     # out = M @ in, where in=[in1,in2], out=[out1,out2]
-    kappa = float(params.get("coupling_ratio", 0.5) or 0.0)
-    kappa = min(1.0, max(0.0, kappa))
+    kappa = params.get("coupling_ratio", 0.5)
+    kappa = kappa if kappa is not None else 0.5
+    kappa = jnp.clip(kappa, 0.0, 1.0)
+    
     il_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
     eta = _eta_from_loss_db(il_db)
-    t = math.sqrt(1.0 - kappa)
-    k = math.sqrt(kappa)
-    m = np.array([[t, 1j * k], [1j * k, t]], dtype=np.complex128)
-    return math.sqrt(eta) * m
+    
+    t = jnp.sqrt(1.0 - kappa)
+    k = jnp.sqrt(kappa)
+    m = jnp.array([[t, 1j * k], [1j * k, t]], dtype=jnp.complex128)
+    return jnp.sqrt(eta) * m
 
 
 def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.ndarray:

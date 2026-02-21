@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Callable
 
 import yaml
+import jax
+
+jax.config.update("jax_enable_x64", True)
 
 from photonstrust.presets import BAND_PRESETS, get_band_preset, get_detector_preset
 
