@@ -41,6 +41,15 @@ __all__ = [
     "simulate_netlist",
     "simulate_netlist_sweep",
     "run_drc_report",
+    # SPICE
+    "export_spice",
+    "export_component_library",
+    "spice_model_for_kind",
+    "all_spice_models",
+    # KLayout / GDS
+    "export_gds",
+    "component_gds_cell",
+    "netlist_to_gdl",
 ]
 
 
@@ -291,3 +300,253 @@ def run_drc_report(
         report.get("yield", {}).get("pass", True)
     )
     return report
+
+
+# ---------------------------------------------------------------------------
+# SPICE Integration
+# ---------------------------------------------------------------------------
+
+def spice_model_for_kind(
+    kind: str,
+    params: Optional[dict[str, Any]] = None,
+    *,
+    subckt_name: Optional[str] = None,
+) -> str:
+    """Generate a SPICE .subckt compact model for a single component kind.
+
+    Parameters
+    ----------
+    kind:
+        PhotonTrust component kind, e.g. ``"pic.waveguide"``.
+    params:
+        Component parameter overrides (e.g. ``{"length_um": 150}``),
+        applied on top of physics defaults.
+    subckt_name:
+        Optional override for the ``.subckt`` name.
+
+    Returns
+    -------
+    str
+        Complete SPICE ``.subckt ... .ends`` block ready for simulation.
+
+    Example
+    -------
+    >>> print(pt.spice_model_for_kind("pic.phase_shifter", {"phase_rad": 1.57}))
+    * ===== PhaseShifter phiphi=90.0deg ...
+    .subckt PT_pic_phase_shifter in_re in_im out_re out_im gnd
+    ...
+    """
+    from photonstrust.spice.compact_models import spice_model_for_kind as _fn
+    return _fn(kind, params, subckt_name=subckt_name)
+
+
+def all_spice_models(
+    params_by_kind: Optional[dict[str, dict[str, Any]]] = None,
+) -> str:
+    """Generate a full SPICE `.lib` file for all PIC component kinds.
+
+    Parameters
+    ----------
+    params_by_kind:
+        Optional per-kind parameter overrides.
+
+    Returns
+    -------
+    str
+        Multi-subckt SPICE library text (ready for ``.include`` in a netlist).
+
+    Example
+    -------
+    >>> lib = pt.all_spice_models({"pic.waveguide": {"loss_db_per_cm": 1.5}})
+    >>> print(lib[:200])
+    * PhotonTrust Photonic Component SPICE Library ...
+    """
+    from photonstrust.spice.compact_models import all_spice_models as _fn
+    return _fn(params_by_kind)
+
+
+def export_spice(
+    graph: dict[str, Any],
+    output_dir: str,
+    *,
+    top_name: str = "PT_TOP",
+    include_compact_models: bool = True,
+    require_schema: bool = False,
+) -> dict[str, Any]:
+    """Export a PIC graph to a SPICE netlist with real compact models.
+
+    When ``include_compact_models=True`` (default), a companion
+    ``photontrust_components.lib`` is written alongside ``netlist.sp``,
+    containing physics-derived VCCS models for every component in the design.
+
+    Parameters
+    ----------
+    graph:
+        PhotonTrust graph dict (``profile=pic_circuit``).
+    output_dir:
+        Directory to write artifacts into.
+    top_name:
+        SPICE top-level subckt name.
+    include_compact_models:
+        Write the companion ``.lib`` file with compact model bodies.
+    require_schema:
+        Fail if jsonschema is unavailable.
+
+    Returns
+    -------
+    dict
+        Artifact paths + summary (matches ``photonstrust.pic_spice_export.v0`` schema).
+
+    Example
+    -------
+    >>> result = pt.export_spice(graph, "results/spice")
+    >>> print(result["artifacts"]["netlist_path"])
+    netlist.sp
+    """
+    import pathlib
+    from photonstrust.spice.export import export_pic_graph_to_spice_artifacts
+    from photonstrust.spice.compact_models import write_component_library
+
+    out = pathlib.Path(output_dir)
+    result = export_pic_graph_to_spice_artifacts(
+        {"graph": graph, "settings": {"top_name": top_name}},
+        out,
+        require_schema=require_schema,
+    )
+
+    if include_compact_models:
+        lib_path = out / "photontrust_components.lib"
+        write_component_library(str(lib_path))
+        result["artifacts"]["compact_models_lib"] = lib_path.name
+        # Prepend .include directive into the netlist
+        netlist_path = out / result["artifacts"]["netlist_path"]
+        existing = netlist_path.read_text(encoding="utf-8")
+        netlist_path.write_text(
+            f".include {lib_path.name}\n" + existing,
+            encoding="utf-8"
+        )
+
+    return result
+
+
+def export_component_library(
+    output_path: str,
+    params_by_kind: Optional[dict[str, dict[str, Any]]] = None,
+) -> str:
+    """Write a full SPICE component library ``.lib`` file.
+
+    Parameters
+    ----------
+    output_path:
+        Destination file path (e.g. ``"components.lib"`` or ``"pt_lib.sp"``).
+    params_by_kind:
+        Optional per-kind parameter overrides.
+
+    Returns
+    -------
+    str
+        Absolute path of the written file.
+
+    Example
+    -------
+    >>> pt.export_component_library("my_project/pt_components.lib")
+    'C:/Users/.../my_project/pt_components.lib'
+    """
+    from photonstrust.spice.compact_models import write_component_library
+    from pathlib import Path
+    write_component_library(output_path, params_by_kind)
+    return str(Path(output_path).resolve())
+
+
+# ---------------------------------------------------------------------------
+# KLayout / GDS Integration
+# ---------------------------------------------------------------------------
+
+def component_gds_cell(
+    kind: str,
+    params: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Generate a GDS cell geometry dict for a single PIC component.
+
+    Returns a JSON-serialisable dict with ``cell_name``, ``shapes``, and
+    ``ports`` – suitable for visualisation, downstream GDS-II export, or
+    manual inspection.
+
+    Parameters
+    ----------
+    kind:
+        PhotonTrust component kind, e.g. ``"pic.ring"``.
+    params:
+        Component parameter overrides.
+
+    Example
+    -------
+    >>> cell = pt.component_gds_cell("pic.ring", {"radius_um": 5, "n_eff": 2.4})
+    >>> cell["ports"]
+    [{'type': 'port', 'name': 'in', ...}, {'type': 'port', 'name': 'out', ...}]
+    """
+    from photonstrust.layout.pic.klayout_cell import component_gdl_cell
+    return component_gdl_cell(kind, params)
+
+
+def netlist_to_gdl(netlist: dict[str, Any]) -> dict[str, Any]:
+    """Convert a compiled PIC netlist into a GDL layout dict.
+
+    Auto-places every component node and generates wire annotations between
+    connected ports. Output is JSON-serialisable and can be passed to
+    ``write_gds_via_klayout()`` or rendered in the Streamlit topology viewer.
+
+    Example
+    -------
+    >>> gdl = pt.netlist_to_gdl(netlist)
+    >>> len(gdl["instances"])
+    5
+    """
+    from photonstrust.layout.pic.klayout_cell import netlist_to_gdl as _fn
+    return _fn(netlist)
+
+
+def export_gds(
+    netlist: dict[str, Any],
+    output_path: str,
+    *,
+    format: str = "gdl",
+    top_cell_name: str = "PT_TOP",
+) -> str:
+    """Export a PIC netlist to GDS layout.
+
+    Parameters
+    ----------
+    netlist:
+        Compiled PIC netlist dict.
+    output_path:
+        Destination file path.
+    format:
+        ``"gdl"`` (JSON, always available) or ``"gds"`` (binary GDS-II,
+        requires ``pip install klayout``).
+    top_cell_name:
+        Top-level GDS cell name (only used for ``format="gds"``).
+
+    Returns
+    -------
+    str
+        Absolute path of the written file.
+
+    Example
+    -------
+    >>> pt.export_gds(netlist, "results/chip.gdl.json", format="gdl")
+    'C:/Users/.../results/chip.gdl.json'
+    >>> pt.export_gds(netlist, "results/chip.gds", format="gds")
+    'C:/Users/.../results/chip.gds'
+    """
+    from photonstrust.layout.pic.klayout_cell import write_gdl, write_gds_via_klayout
+    from pathlib import Path
+
+    fmt = str(format).strip().lower()
+    if fmt == "gdl":
+        p = write_gdl(output_path, netlist)
+    elif fmt == "gds":
+        p = write_gds_via_klayout(output_path, netlist, top_cell_name=top_cell_name)
+    else:
+        raise ValueError(f"Unknown format: {format!r}. Use 'gdl' or 'gds'.")
+    return str(p)
