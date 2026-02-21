@@ -50,6 +50,21 @@ __all__ = [
     "export_gds",
     "component_gds_cell",
     "netlist_to_gdl",
+    # DRC + LVS
+    "run_layout_drc",
+    "run_layout_lvs",
+    "run_layout_drc_lvs",
+    # SPICE analysis
+    "ac_sweep_netlist",
+    "monte_carlo_netlist",
+    "transient_netlist",
+    "parametric_sweep_netlist",
+    "extract_heater_parasitics",
+    "cross_validate_spice_jax",
+    # PCell
+    "export_pcell_library",
+    "pcell_instance",
+    "register_klayout_pcells",
 ]
 
 
@@ -550,3 +565,315 @@ def export_gds(
     else:
         raise ValueError(f"Unknown format: {format!r}. Use 'gdl' or 'gds'.")
     return str(p)
+
+
+# ---------------------------------------------------------------------------
+# Layout DRC + LVS
+# ---------------------------------------------------------------------------
+
+def run_layout_drc(
+    netlist: dict[str, Any],
+    rules: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Run full DRC on a compiled netlist's auto-generated layout.
+
+    Generates the GDL layout internally and checks all DRC rules.
+
+    Parameters
+    ----------
+    netlist:
+        Compiled PIC netlist dict.
+    rules:
+        Dict of rule overrides, e.g.
+        ``{"wg_min_gap_um": 0.25, "wire_max_length_um": 2000}``.
+
+    Returns
+    -------
+    dict
+        DRC report with ``ok``, ``violations``, ``stats`` keys.
+
+    Example
+    -------
+    >>> rpt = pt.run_layout_drc(netlist, rules={"wg_min_gap_um": 0.2})
+    >>> rpt["ok"]
+    True
+    """
+    from photonstrust.layout.pic.drc_lvs import run_drc, DRCRuleSet
+    from photonstrust.layout.pic.klayout_cell import netlist_to_gdl
+    gdl = netlist_to_gdl(netlist)
+    ruleset = DRCRuleSet.from_dict(rules) if rules else DRCRuleSet()
+    return run_drc(gdl, ruleset).to_dict()
+
+
+def run_layout_lvs(
+    netlist: dict[str, Any],
+) -> dict[str, Any]:
+    """Run LVS (Layout vs. Schematic) on a compiled netlist.
+
+    Compares the GDL wire connectivity against the netlist edge list.
+
+    Parameters
+    ----------
+    netlist:
+        Compiled PIC netlist dict.
+
+    Returns
+    -------
+    dict
+        LVS result with ``ok``, ``matched_count``, ``extra_connections``,
+        ``missing_connections``.
+
+    Example
+    -------
+    >>> result = pt.run_layout_lvs(netlist)
+    >>> result["missing_connections"]
+    []
+    """
+    from photonstrust.layout.pic.drc_lvs import run_lvs
+    from photonstrust.layout.pic.klayout_cell import netlist_to_gdl
+    gdl = netlist_to_gdl(netlist)
+    return run_lvs(gdl, netlist).to_dict()
+
+
+def run_layout_drc_lvs(
+    netlist: dict[str, Any],
+    rules: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """One-shot DRC + LVS from a compiled netlist.
+
+    Returns
+    -------
+    dict
+        ``{"drc": ..., "lvs": ..., "overall_pass": bool}``
+    """
+    from photonstrust.layout.pic.drc_lvs import run_drc_lvs
+    return run_drc_lvs(netlist, rules)
+
+
+# ---------------------------------------------------------------------------
+# SPICE Analysis netlists
+# ---------------------------------------------------------------------------
+
+def ac_sweep_netlist(
+    graph: dict[str, Any],
+    *,
+    start_wl_nm: float = 1480.0,
+    stop_wl_nm: float = 1580.0,
+    points: int = 100,
+) -> str:
+    """Generate an ngspice AC sweep netlist for a PIC graph.
+
+    Maps wavelength range to frequency via c/λ and generates a
+    ``.ac lin`` SPICE analysis with VCCS compact models embedded.
+
+    Example
+    -------
+    >>> sp = pt.ac_sweep_netlist(graph, start_wl_nm=1510, stop_wl_nm=1590)
+    >>> sp.count(".subckt")
+    9
+    """
+    from photonstrust.spice.analysis import ac_sweep_netlist as _fn
+    return _fn(graph, start_wl_nm=start_wl_nm, stop_wl_nm=stop_wl_nm, points=points)
+
+
+def monte_carlo_netlist(
+    graph: dict[str, Any],
+    *,
+    n_runs: int = 200,
+    sigma_scale: float = 1.0,
+) -> str:
+    """Generate a SPICE Monte Carlo analysis netlist.
+
+    Wraps ``.step mc`` and ``.param gauss()`` variation across all
+    waveguide length parameters by default.
+
+    Example
+    -------
+    >>> sp = pt.monte_carlo_netlist(graph, n_runs=500, sigma_scale=1.5)
+    >>> ".step mc" in sp
+    True
+    """
+    from photonstrust.spice.analysis import monte_carlo_netlist as _fn
+    return _fn(graph, n_runs=n_runs, sigma_scale=sigma_scale)
+
+
+def transient_netlist(
+    graph: dict[str, Any],
+    *,
+    bit_rate_gbps: float = 25.0,
+    n_bits: int = 8,
+    v_pi: float = 5.0,
+) -> str:
+    """Generate a SPICE transient netlist for MZM eye-diagram simulation.
+
+    The phase-shifter node is driven by a PRBS PWL waveform at the
+    specified bit rate. Use ``.meas TRAN`` to extract eye height.
+
+    Example
+    -------
+    >>> sp = pt.transient_netlist(graph, bit_rate_gbps=50.0, v_pi=3.5)
+    >>> ".tran" in sp
+    True
+    """
+    from photonstrust.spice.analysis import transient_netlist as _fn
+    return _fn(graph, bit_rate_gbps=bit_rate_gbps, n_bits=n_bits, v_pi=v_pi)
+
+
+def parametric_sweep_netlist(
+    graph: dict[str, Any],
+    *,
+    node_id: str,
+    param_name: str,
+    start: float,
+    stop: float,
+    points: int = 50,
+) -> str:
+    """Generate a SPICE parametric sweep netlist.
+
+    Sweeps one component parameter using ``.step param`` + single-point
+    AC analysis.
+
+    Example
+    -------
+    >>> sp = pt.parametric_sweep_netlist(
+    ...     graph, node_id="c1", param_name="coupling_ratio",
+    ...     start=0.1, stop=0.9, points=20
+    ... )
+    >>> ".step param" in sp
+    True
+    """
+    from photonstrust.spice.analysis import parametric_sweep_netlist as _fn
+    return _fn(graph, node_id=node_id, param_name=param_name,
+               start=start, stop=stop, points=points)
+
+
+def extract_heater_parasitics(
+    netlist: dict[str, Any],
+    *,
+    sheet_resistance_ohm_sq: float = 100.0,
+) -> list[dict[str, Any]]:
+    """Extract metal heater parasitic R and C from the netlist layout.
+
+    Generates the GDL internally, then extracts METAL_LAYER shapes and
+    computes series resistance from sheet resistance and geometry.
+
+    Parameters
+    ----------
+    netlist:
+        Compiled PIC netlist dict.
+    sheet_resistance_ohm_sq:
+        Metal sheet resistance in Ω/□.
+
+    Returns
+    -------
+    list[dict]
+        Per-heater: ``length_um``, ``width_um``, ``resistance_ohm``,
+        ``capacitance_fF``, ``rc_ps``.
+
+    Example
+    -------
+    >>> parasitics = pt.extract_heater_parasitics(netlist)
+    >>> parasitics[0]["resistance_ohm"]
+    2500.0
+    """
+    from photonstrust.layout.pic.klayout_cell import netlist_to_gdl
+    from photonstrust.spice.analysis import extract_heater_parasitics as _fn
+    gdl = netlist_to_gdl(netlist)
+    return _fn(gdl, sheet_resistance_ohm_sq=sheet_resistance_ohm_sq)
+
+
+def cross_validate_spice_jax(
+    graph: dict[str, Any],
+    *,
+    wavelengths_nm: list[float],
+    tolerance_db: float = 1.0,
+) -> dict[str, Any]:
+    """Cross-validate SPICE compact model against JAX scattering solver.
+
+    Runs ngspice AC (if installed) and PhotonTrust JAX simulation at the
+    same wavelengths and reports per-wavelength agreement in dB.
+
+    When ngspice is not available, returns ``spice_available=False`` with
+    only JAX results populated.
+
+    Example
+    -------
+    >>> result = pt.cross_validate_spice_jax(graph, wavelengths_nm=[1530, 1550, 1570])
+    >>> result["spice_available"]  # False if ngspice not installed
+    False
+    """
+    from photonstrust.spice.analysis import cross_validate_with_jax
+    return cross_validate_with_jax(graph, wavelengths_nm=wavelengths_nm,
+                                   tolerance_db=tolerance_db)
+
+
+# ---------------------------------------------------------------------------
+# PCell API
+# ---------------------------------------------------------------------------
+
+def pcell_instance(
+    kind: str,
+    params: Optional[dict[str, Any]] = None,
+    *,
+    x: float = 0.0,
+    y: float = 0.0,
+    rotation_deg: float = 0.0,
+    instance_name: Optional[str] = None,
+) -> dict[str, Any]:
+    """Create a parametric PCell instance dict for any PIC component.
+
+    Returns a JSON-serialisable dict with placement, params, and
+    GDL geometry — suitable for KLayout import or Streamlit rendering.
+
+    Example
+    -------
+    >>> inst = pt.pcell_instance("pic.ring", {"radius_um": 5}, x=100, y=50)
+    >>> inst["placement"]
+    {'x': 100.0, 'y': 50.0, 'rotation_deg': 0.0}
+    """
+    from photonstrust.layout.pic.pcell import pcell_instance as _fn
+    return _fn(kind, params, x=x, y=y, rotation_deg=rotation_deg,
+               instance_name=instance_name)
+
+
+def export_pcell_library(
+    output_path: str,
+    *,
+    include_geometry: bool = True,
+) -> str:
+    """Export the full PCell library as a JSON file.
+
+    Contains parameter schemas, defaults, and GDL geometry previews for
+    all 9 PIC component kinds. Compatible with the KLayout macro loader.
+
+    Example
+    -------
+    >>> pt.export_pcell_library("results/pcell_library.json")
+    'C:/Users/.../results/pcell_library.json'
+    """
+    from photonstrust.layout.pic.pcell import export_pcell_library_json
+    p = export_pcell_library_json(output_path, include_geometry=include_geometry)
+    return str(p)
+
+
+def register_klayout_pcells(layout: Any = None) -> bool:
+    """Register all PhotonTrust PCells with KLayout.
+
+    Requires the ``klayout`` Python package (``pip install klayout``).
+    Returns ``False`` (no error) if klayout is not installed.
+
+    Parameters
+    ----------
+    layout:
+        Optional ``klayout.db.Layout`` instance. If ``None``, registers
+        globally via ``klayout.db.Library``.
+
+    Example
+    -------
+    >>> import klayout.db as db
+    >>> layout = db.Layout()
+    >>> pt.register_klayout_pcells(layout)
+    True
+    """
+    from photonstrust.layout.pic.pcell import register_all_pcells
+    return register_all_pcells(layout)
