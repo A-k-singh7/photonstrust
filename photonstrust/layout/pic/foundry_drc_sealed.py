@@ -28,6 +28,9 @@ _LOCAL_DRC_DEFAULTS_UM: dict[str, float] = {
     "DRC.WG.MIN_BEND_RADIUS": 5.0,
     "DRC.WG.MIN_ENCLOSURE": 1.0,
 }
+_GENERIC_CLI_EMPTY_CHECKS_ERROR_CODE = "generic_cli_empty_checks"
+_GENERIC_CLI_STATUS_CHECKS_CONFLICT_ERROR_CODE = "generic_cli_status_checks_conflict"
+_GENERIC_CLI_SUMMARY_JSON_REQUIRED_ERROR_CODE = "generic_cli_summary_json_required"
 
 
 def _utc_now_iso() -> str:
@@ -102,6 +105,23 @@ def _derived_status(checks: list[dict[str, str]]) -> str:
     if any(c["status"] == "fail" for c in checks):
         return "fail"
     return "pass"
+
+
+def _harden_generic_cli_outcome(
+    *,
+    status: str,
+    checks: list[dict[str, str]],
+    error_code: str | None,
+) -> tuple[str, str | None]:
+    normalized_status = _normalize_status(status, default="error")
+    normalized_error_code = _clean_text(error_code) or None
+    if normalized_status != "pass":
+        return normalized_status, normalized_error_code
+    if not checks:
+        return "error", normalized_error_code or _GENERIC_CLI_EMPTY_CHECKS_ERROR_CODE
+    if any(_clean_text(check.get("status")).lower() in {"fail", "error"} for check in checks):
+        return "error", normalized_error_code or _GENERIC_CLI_STATUS_CHECKS_CONFLICT_ERROR_CODE
+    return normalized_status, normalized_error_code
 
 
 def _deterministic_run_id(*, execution_backend: str, deck_fingerprint: str | None, checks: list[dict[str, str]]) -> str:
@@ -491,7 +511,7 @@ def _evaluate_local_min_width(routes: list[dict[str, Any]], required_um: float) 
     )
 
 
-def _evaluate_local_min_spacing(routes: list[dict[str, Any]], required_um: float, fallback_width_um: float) -> dict[str, Any]:
+def _evaluate_local_min_spacing(routes: list[dict[str, Any]], required_um: float) -> dict[str, Any]:
     if required_um < 0.0:
         return _rule_result(
             status="error",
@@ -503,6 +523,7 @@ def _evaluate_local_min_spacing(routes: list[dict[str, Any]], required_um: float
 
     pair_count = 0
     compared_pairs = 0
+    missing_pair_width = False
     observed_spacing_um: float | None = None
     violations: list[str] = []
 
@@ -517,12 +538,16 @@ def _evaluate_local_min_spacing(routes: list[dict[str, Any]], required_um: float
             center_dist_um = _route_centerline_distance_um(route_a, route_b)
             if center_dist_um is None:
                 continue
-            compared_pairs += 1
 
             width_a = route_a.get("width_um")
             width_b = route_b.get("width_um")
-            w_a = float(width_a) if isinstance(width_a, (float, int)) else float(fallback_width_um)
-            w_b = float(width_b) if isinstance(width_b, (float, int)) else float(fallback_width_um)
+            if not isinstance(width_a, (float, int)) or not isinstance(width_b, (float, int)):
+                missing_pair_width = True
+                continue
+            compared_pairs += 1
+
+            w_a = float(width_a)
+            w_b = float(width_b)
             edge_spacing_um = center_dist_um - 0.5 * (w_a + w_b)
 
             if observed_spacing_um is None or edge_spacing_um < observed_spacing_um:
@@ -532,6 +557,15 @@ def _evaluate_local_min_spacing(routes: list[dict[str, Any]], required_um: float
                 right = _clean_text(route_b.get("route_id")) or f"route_{j}"
                 pair_ref = ":".join(sorted([left, right], key=lambda t: (t.lower(), t)))
                 violations.append(f"routes:{pair_ref}")
+
+    if missing_pair_width:
+        return _rule_result(
+            status="error",
+            required_um=required_um,
+            observed_um=None,
+            violation_count=0,
+            entity_refs=[],
+        )
 
     if pair_count > 0 and compared_pairs == 0:
         return _rule_result(
@@ -562,6 +596,7 @@ def _evaluate_local_min_bend_radius(routes: list[dict[str, Any]], required_um: f
         )
 
     observed_radius_um: float | None = None
+    has_bend_evidence = False
     violations: list[str] = []
 
     for route in routes:
@@ -569,6 +604,7 @@ def _evaluate_local_min_bend_radius(routes: list[dict[str, Any]], required_um: f
         numeric_radii = [float(r) for r in radii if isinstance(r, (float, int))]
         if not numeric_radii:
             continue
+        has_bend_evidence = True
 
         route_min_radius = min(numeric_radii)
         if observed_radius_um is None or route_min_radius < observed_radius_um:
@@ -576,6 +612,15 @@ def _evaluate_local_min_bend_radius(routes: list[dict[str, Any]], required_um: f
         if route_min_radius < required_um:
             route_id = _clean_text(route.get("route_id")) or "route"
             violations.append(f"routes:{route_id}")
+
+    if not has_bend_evidence:
+        return _rule_result(
+            status="error",
+            required_um=required_um,
+            observed_um=None,
+            violation_count=0,
+            entity_refs=[],
+        )
 
     return _rule_result(
         status="fail" if violations else "pass",
@@ -624,14 +669,12 @@ def _evaluate_local_rule_results(req: dict[str, Any]) -> dict[str, dict[str, Any
         return _local_rule_error_results(required_by_rule)
 
     routes = _normalize_local_routes(raw_routes)
-    min_width_um = required_by_rule["DRC.WG.MIN_WIDTH"]
 
     return {
         "DRC.WG.MIN_WIDTH": _evaluate_local_min_width(routes, required_by_rule["DRC.WG.MIN_WIDTH"]),
         "DRC.WG.MIN_SPACING": _evaluate_local_min_spacing(
             routes,
             required_by_rule["DRC.WG.MIN_SPACING"],
-            fallback_width_um=min_width_um,
         ),
         "DRC.WG.MIN_BEND_RADIUS": _evaluate_local_min_bend_radius(
             routes,
@@ -769,7 +812,10 @@ def run_foundry_drc_sealed(
     req = dict(request or {})
     started_at = now_fn()
 
-    execution_backend = _clean_text(req.get("backend") or "mock") or "mock"
+    requested_backend = _clean_text(req.get("backend") or "mock") or "mock"
+    execution_backend = (
+        requested_backend if requested_backend in {"mock", "generic_cli", "local_rules", "local"} else "mock"
+    )
     deck_fingerprint_raw = req.get("deck_fingerprint")
     deck_fingerprint = _clean_text(deck_fingerprint_raw) if deck_fingerprint_raw is not None else None
 
@@ -778,11 +824,11 @@ def run_foundry_drc_sealed(
     rule_results: dict[str, dict[str, Any]] = {}
     status: str
 
-    if execution_backend == "mock":
+    if requested_backend == "mock":
         mock_result = req.get("mock_result") if isinstance(req.get("mock_result"), dict) else {}
         checks = _normalize_checks(mock_result.get("checks"))
         status = _normalize_status(mock_result.get("status"), default=_derived_status(checks))
-    elif execution_backend == "generic_cli":
+    elif requested_backend == "generic_cli":
         raw_cli_req = req.get("generic_cli")
         cli_req = raw_cli_req if isinstance(raw_cli_req, dict) else req
         raw_check_status_map = cli_req.get("check_status_map")
@@ -803,14 +849,21 @@ def run_foundry_drc_sealed(
             status = _normalize_status(runner_result.summary_json.get("status"), default=_derived_status(checks))
         else:
             checks = []
-            status = "pass" if runner_result.ok else "error"
+            status = "error"
 
         if not runner_result.ok and status == "pass":
             status = "error"
         backend_error_code = runner_result.error_code
+        if runner_result.ok and runner_result.summary_json is None and backend_error_code is None:
+            backend_error_code = _GENERIC_CLI_SUMMARY_JSON_REQUIRED_ERROR_CODE
         if not runner_result.ok and backend_error_code is None:
             backend_error_code = "backend_execution_error"
-    elif execution_backend in {"local_rules", "local"}:
+        status, backend_error_code = _harden_generic_cli_outcome(
+            status=status,
+            checks=checks,
+            error_code=backend_error_code,
+        )
+    elif requested_backend in {"local_rules", "local"}:
         rule_results = _evaluate_local_rule_results(req)
         checks = _checks_from_rule_results(rule_results)
         status = _derived_status(checks)
@@ -829,7 +882,7 @@ def run_foundry_drc_sealed(
     failed_check_names = [c["name"] for c in failed_checks]
 
     run_id = _clean_text(req.get("run_id")) or _deterministic_run_id(
-        execution_backend=execution_backend,
+        execution_backend=requested_backend,
         deck_fingerprint=deck_fingerprint,
         checks=checks,
     )

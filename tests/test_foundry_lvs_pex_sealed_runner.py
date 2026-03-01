@@ -132,6 +132,49 @@ def test_foundry_lvs_sealed_generic_cli_pass_schema() -> None:
     assert report["check_counts"] == {"total": 2, "passed": 2, "failed": 0, "errored": 0}
 
 
+def test_foundry_lvs_sealed_generic_cli_empty_checks_cannot_pass() -> None:
+    command = [sys.executable, "-c", "import json; print(json.dumps({'status':'pass','checks':[]}))"]
+    report = run_foundry_lvs_sealed(
+        {
+            "backend": "generic_cli",
+            "generic_cli_command": command,
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_lvs_sealed_summary_schema_path())
+    assert report["execution_backend"] == "generic_cli"
+    assert report["status"] == "error"
+    assert report["error_code"] == "generic_cli_empty_checks"
+    assert report["check_counts"] == {"total": 0, "passed": 0, "failed": 0, "errored": 0}
+
+
+def test_foundry_lvs_sealed_generic_cli_pass_status_conflict_is_error() -> None:
+    command = [
+        sys.executable,
+        "-c",
+        (
+            "import json; "
+            "payload={'status':'pass','checks':[{'id':'LVS.NET.MATCH','name':'net_match','status':'fail'}]}; "
+            "print(json.dumps(payload))"
+        ),
+    ]
+    report = run_foundry_lvs_sealed(
+        {
+            "backend": "generic_cli",
+            "generic_cli_command": command,
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_lvs_sealed_summary_schema_path())
+    assert report["execution_backend"] == "generic_cli"
+    assert report["status"] == "error"
+    assert report["error_code"] == "generic_cli_status_checks_conflict"
+    assert report["check_counts"] == {"total": 1, "passed": 0, "failed": 1, "errored": 0}
+    assert report["failed_check_ids"] == ["LVS.NET.MATCH"]
+
+
 def test_foundry_lvs_sealed_local_lvs_pass_schema_and_counts(tmp_path: Path) -> None:
     graph = _local_lvs_demo_graph()
     build_pic_layout_artifacts({"graph": graph}, tmp_path)
@@ -235,3 +278,28 @@ def test_foundry_pex_sealed_generic_cli_nested_contract_with_summary_json(tmp_pa
     assert report["execution_backend"] == "generic_cli"
     assert report["status"] == "fail"
     assert report["failed_check_ids"] == ["PEX.RC.BOUNDS"]
+
+
+def test_foundry_pex_sealed_generic_cli_pass_status_conflict_is_error() -> None:
+    command = [
+        sys.executable,
+        "-c",
+        (
+            "import json; "
+            "payload={'status':'pass','checks':[{'id':'PEX.RC.BOUNDS','name':'rc_bounds','status':'error'}]}; "
+            "print(json.dumps(payload))"
+        ),
+    ]
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "generic_cli",
+            "generic_cli_command": command,
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "generic_cli"
+    assert report["status"] == "error"
+    assert report["error_code"] == "generic_cli_status_checks_conflict"
+    assert report["check_counts"] == {"total": 1, "passed": 0, "failed": 0, "errored": 1}

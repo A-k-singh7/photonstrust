@@ -12,6 +12,8 @@ from photonstrust.utils import hash_dict
 
 _ALLOWED_CHECK_STATUSES = {"pass", "fail", "error"}
 _ALLOWED_RUN_STATUSES = {"pass", "fail", "error"}
+_GENERIC_CLI_EMPTY_CHECKS_ERROR_CODE = "generic_cli_empty_checks"
+_GENERIC_CLI_STATUS_CHECKS_CONFLICT_ERROR_CODE = "generic_cli_status_checks_conflict"
 
 
 def _utc_now_iso() -> str:
@@ -53,6 +55,23 @@ def _derived_status(checks: list[dict[str, str]]) -> str:
     if any(c["status"] == "fail" for c in checks):
         return "fail"
     return "pass"
+
+
+def _harden_generic_cli_outcome(
+    *,
+    status: str,
+    checks: list[dict[str, str]],
+    error_code: str | None,
+) -> tuple[str, str | None]:
+    normalized_status = _normalize_status(status, default="error")
+    normalized_error_code = _clean_text(error_code) or None
+    if normalized_status != "pass":
+        return normalized_status, normalized_error_code
+    if not checks:
+        return "error", normalized_error_code or _GENERIC_CLI_EMPTY_CHECKS_ERROR_CODE
+    if any(_clean_text(check.get("status")).lower() in {"fail", "error"} for check in checks):
+        return "error", normalized_error_code or _GENERIC_CLI_STATUS_CHECKS_CONFLICT_ERROR_CODE
+    return normalized_status, normalized_error_code
 
 
 def _deterministic_run_id(*, execution_backend: str, deck_fingerprint: str | None, checks: list[dict[str, str]]) -> str:
@@ -142,7 +161,8 @@ def run_foundry_lvs_sealed(
     req = dict(request or {})
     started_at = now_fn()
 
-    execution_backend = _clean_text(req.get("backend") or "mock") or "mock"
+    requested_backend = _clean_text(req.get("backend") or "mock") or "mock"
+    execution_backend = requested_backend if requested_backend in {"mock", "generic_cli", "local_lvs", "local"} else "mock"
     deck_fingerprint_raw = req.get("deck_fingerprint")
     deck_fingerprint = _clean_text(deck_fingerprint_raw) if deck_fingerprint_raw is not None else None
 
@@ -150,7 +170,7 @@ def run_foundry_lvs_sealed(
     checks: list[dict[str, str]] = []
     status: str
 
-    if execution_backend == "mock":
+    if requested_backend == "mock":
         raw_mock_result = req.get("mock_result")
         if isinstance(raw_mock_result, dict):
             mock_result: dict[str, Any] = dict(raw_mock_result)
@@ -158,7 +178,7 @@ def run_foundry_lvs_sealed(
             mock_result = {}
         checks = _normalize_checks(mock_result.get("checks"))
         status = _normalize_status(mock_result.get("status"), default=_derived_status(checks))
-    elif execution_backend in {"local_lvs", "local"}:
+    elif requested_backend in {"local_lvs", "local"}:
         graph = req.get("graph")
         routes = req.get("routes")
         ports = req.get("ports")
@@ -182,7 +202,7 @@ def run_foundry_lvs_sealed(
             checks = []
             status = "error"
             backend_error_code = "local_lvs_execution_error"
-    elif execution_backend == "generic_cli":
+    elif requested_backend == "generic_cli":
         generic_result = run_generic_cli_backend(
             req,
             normalize_status=_normalize_status,
@@ -192,6 +212,11 @@ def run_foundry_lvs_sealed(
         checks = generic_result.checks
         status = generic_result.status
         backend_error_code = generic_result.error_code
+        status, backend_error_code = _harden_generic_cli_outcome(
+            status=status,
+            checks=checks,
+            error_code=backend_error_code,
+        )
     else:
         checks = []
         status = "error"
@@ -206,7 +231,7 @@ def run_foundry_lvs_sealed(
     failed_check_names = [c["name"] for c in failed_checks]
 
     run_id = _clean_text(req.get("run_id")) or _deterministic_run_id(
-        execution_backend=execution_backend,
+        execution_backend=requested_backend,
         deck_fingerprint=deck_fingerprint,
         checks=checks,
     )

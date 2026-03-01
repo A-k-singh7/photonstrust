@@ -179,6 +179,90 @@ def test_foundry_drc_sealed_generic_cli_error_when_command_fails(tmp_path: Path)
     )
 
 
+def test_foundry_drc_sealed_generic_cli_missing_summary_json_fails_closed(tmp_path: Path) -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "generic_cli",
+            "generic_cli": {
+                "command": [sys.executable, "-c", "print('safe')"],
+                "cwd": str(tmp_path),
+                "timeout_s": 10,
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["execution_backend"] == "generic_cli"
+    assert report["status"] == "error"
+    assert report["error_code"] == "generic_cli_summary_json_required"
+    assert report["check_counts"] == {"total": 0, "passed": 0, "failed": 0, "errored": 0}
+
+
+def test_foundry_drc_sealed_generic_cli_empty_checks_cannot_pass(tmp_path: Path) -> None:
+    summary_path = tmp_path / "drc_empty_checks.json"
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "generic_cli",
+            "generic_cli": {
+                "command": [
+                    sys.executable,
+                    "-c",
+                    (
+                        "import json, pathlib, sys; "
+                        "pathlib.Path(sys.argv[1]).write_text(json.dumps({'status':'pass','checks':[]}), encoding='utf-8')"
+                    ),
+                    "{summary_json_path}",
+                ],
+                "summary_json_path": "{out}",
+                "output_paths": {"out": str(summary_path)},
+                "timeout_s": 10,
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["execution_backend"] == "generic_cli"
+    assert report["status"] == "error"
+    assert report["error_code"] == "generic_cli_empty_checks"
+    assert report["check_counts"] == {"total": 0, "passed": 0, "failed": 0, "errored": 0}
+
+
+def test_foundry_drc_sealed_generic_cli_pass_status_conflicts_with_failing_checks(tmp_path: Path) -> None:
+    summary_path = tmp_path / "drc_conflict.json"
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "generic_cli",
+            "generic_cli": {
+                "command": [
+                    sys.executable,
+                    "-c",
+                    (
+                        "import json, pathlib, sys; "
+                        "payload={'status':'pass','checks':["
+                        "{'id':'DRC.WG.MIN_WIDTH','name':'wg_min_width','status':'fail'}"
+                        "]}; "
+                        "pathlib.Path(sys.argv[1]).write_text(json.dumps(payload), encoding='utf-8')"
+                    ),
+                    "{summary_json_path}",
+                ],
+                "summary_json_path": "{out}",
+                "output_paths": {"out": str(summary_path)},
+                "timeout_s": 10,
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["execution_backend"] == "generic_cli"
+    assert report["status"] == "error"
+    assert report["error_code"] == "generic_cli_status_checks_conflict"
+    assert report["check_counts"] == {"total": 1, "passed": 0, "failed": 1, "errored": 0}
+    assert report["failed_check_ids"] == ["DRC.WG.MIN_WIDTH"]
+
+
 def test_foundry_drc_sealed_local_rules_pass_schema_and_counts() -> None:
     report = run_foundry_drc_sealed(
         {
@@ -236,6 +320,87 @@ def test_foundry_drc_sealed_local_rules_pass_schema_and_counts() -> None:
     assert rule_results["DRC.WG.MIN_SPACING"]["status"] == "pass"
     assert rule_results["DRC.WG.MIN_BEND_RADIUS"]["status"] == "pass"
     assert rule_results["DRC.WG.MIN_ENCLOSURE"]["status"] == "pass"
+
+
+def test_foundry_drc_sealed_local_spacing_errors_when_width_unknown() -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "local_rules",
+            "routes": {
+                "routes": [
+                    {
+                        "route_id": "known_width",
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 0.0], [10.0, 0.0]],
+                        "bends": [{"radius_um": 8.0}],
+                    },
+                    {
+                        "route_id": "unknown_width",
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 1.0], [10.0, 1.0]],
+                        "bends": [{"radius_um": 8.0}],
+                    },
+                ]
+            },
+            "pdk": {
+                "design_rules": {
+                    "min_waveguide_width_um": 0.0,
+                    "min_waveguide_spacing_um": 0.20,
+                    "min_bend_radius_um": 5.0,
+                    "min_waveguide_enclosure_um": 1.0,
+                }
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_rules"
+    assert report["status"] == "error"
+    assert report["check_counts"] == {"total": 4, "passed": 3, "failed": 0, "errored": 1}
+    rule_results = report.get("rule_results") if isinstance(report.get("rule_results"), dict) else {}
+    assert rule_results["DRC.WG.MIN_SPACING"]["status"] == "error"
+
+
+def test_foundry_drc_sealed_local_bend_radius_errors_without_evidence() -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "local_rules",
+            "routes": {
+                "routes": [
+                    {
+                        "route_id": "r1",
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 0.0], [10.0, 0.0]],
+                    },
+                    {
+                        "route_id": "r2",
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 2.0], [10.0, 2.0]],
+                    },
+                ]
+            },
+            "pdk": {
+                "design_rules": {
+                    "min_waveguide_width_um": 0.45,
+                    "min_waveguide_spacing_um": 0.20,
+                    "min_bend_radius_um": 5.0,
+                    "min_waveguide_enclosure_um": 1.0,
+                }
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_rules"
+    assert report["status"] == "error"
+    assert report["check_counts"] == {"total": 4, "passed": 3, "failed": 0, "errored": 1}
+    rule_results = report.get("rule_results") if isinstance(report.get("rule_results"), dict) else {}
+    assert rule_results["DRC.WG.MIN_BEND_RADIUS"]["status"] == "error"
 
 
 def test_foundry_drc_sealed_local_rules_fail_with_specific_failed_ids() -> None:
