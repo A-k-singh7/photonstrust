@@ -298,6 +298,102 @@ def test_build_pic_signoff_ladder_multi_stage_fail_fast_on_drc() -> None:
     validate(instance=report, schema=_schema())
 
 
+@pytest.mark.parametrize(
+    ("stage", "backend"),
+    [
+        ("drc", ""),
+        ("lvs", "mock"),
+        ("pex", "stub"),
+    ],
+)
+def test_build_pic_signoff_ladder_rejects_pass_stage_with_unacceptable_backend(stage: str, backend: str) -> None:
+    assembly_report = _assembly_report()
+    request = {
+        "assembly_report": assembly_report,
+        "policy": {"multi_stage": True},
+        "drc_summary": {
+            "run_id": "a" * 12,
+            "status": "pass",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": [],
+            "check_counts": {"total": 1, "passed": 1, "failed": 0, "errored": 0},
+        },
+        "lvs_summary": {
+            "run_id": "b" * 12,
+            "status": "pass",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": [],
+            "check_counts": {"total": 1, "passed": 1, "failed": 0, "errored": 0},
+        },
+        "pex_summary": {
+            "run_id": "c" * 12,
+            "status": "pass",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": [],
+            "check_counts": {"total": 1, "passed": 1, "failed": 0, "errored": 0},
+        },
+        "foundry_approval": {"run_id": "d" * 12, "decision": "GO", "status": "approved"},
+    }
+    summary_key = f"{stage}_summary"
+    request[summary_key]["execution_backend"] = backend
+
+    result = build_pic_signoff_ladder(request)
+    report = result["report"]
+    stage_index = {"drc": 1, "lvs": 2, "pex": 3}[stage]
+    stage_row = report["ladder"][stage_index]
+
+    assert result["decision"] == "HOLD"
+    assert stage_row["status"] == "error"
+    assert stage_row["failure_rule_ids"] == [f"{stage}.backend_not_acceptable"]
+    assert "requires execution_backend" in stage_row["reason"]
+    validate(instance=report, schema=_schema())
+
+
+@pytest.mark.parametrize("stage", ["drc", "lvs", "pex"])
+def test_build_pic_signoff_ladder_rejects_pass_stage_with_empty_check_set(stage: str) -> None:
+    assembly_report = _assembly_report()
+    request = {
+        "assembly_report": assembly_report,
+        "policy": {"multi_stage": True},
+        "drc_summary": {
+            "run_id": "e" * 12,
+            "status": "pass",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": [],
+            "check_counts": {"total": 1, "passed": 1, "failed": 0, "errored": 0},
+        },
+        "lvs_summary": {
+            "run_id": "f" * 12,
+            "status": "pass",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": [],
+            "check_counts": {"total": 1, "passed": 1, "failed": 0, "errored": 0},
+        },
+        "pex_summary": {
+            "run_id": "1" * 12,
+            "status": "pass",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": [],
+            "check_counts": {"total": 1, "passed": 1, "failed": 0, "errored": 0},
+        },
+        "foundry_approval": {"run_id": "2" * 12, "decision": "GO", "status": "approved"},
+    }
+    summary_key = f"{stage}_summary"
+    request[summary_key]["check_counts"]["total"] = 0
+    request[summary_key]["check_counts"]["passed"] = 0
+
+    result = build_pic_signoff_ladder(request)
+    report = result["report"]
+    stage_index = {"drc": 1, "lvs": 2, "pex": 3}[stage]
+    stage_row = report["ladder"][stage_index]
+
+    assert result["decision"] == "HOLD"
+    assert stage_row["status"] == "error"
+    assert stage_row["failure_rule_ids"] == [f"{stage}.empty_check_set"]
+    assert "check_counts.total=0" in stage_row["reason"]
+    validate(instance=report, schema=_schema())
+
+
 def test_build_pic_signoff_ladder_detects_pass_status_contradiction_in_foundry_summary() -> None:
     assembly_report = _assembly_report()
     request = {

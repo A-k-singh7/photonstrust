@@ -18,6 +18,7 @@ _MULTI_STAGE_ORDER: tuple[str, ...] = (
     "pex",
     "foundry_approval",
 )
+_UNACCEPTABLE_EXECUTION_BACKENDS: set[str] = {"mock", "stub"}
 
 
 def build_pic_signoff_ladder(
@@ -311,6 +312,7 @@ def _build_foundry_summary_stage(
         else []
     )
     check_counts = summary.get("check_counts") if isinstance(summary.get("check_counts"), dict) else {}
+    total_count = _int_or_none(check_counts.get("total"))
     failed_count = _int_or_none(check_counts.get("failed"))
     errored_count = _int_or_none(check_counts.get("errored"))
     has_failed_count = failed_count is not None and failed_count > 0
@@ -329,8 +331,19 @@ def _build_foundry_summary_stage(
             contradiction_signals.append(f"check_counts.errored={errored_count}")
         reason = f"{stage} status=pass contradicts reported failures ({', '.join(contradiction_signals)})"
     elif status == "pass":
-        stage_status = "pass"
-        reason = f"{stage} status=pass"
+        backend_acceptable = bool(backend) and backend not in _UNACCEPTABLE_EXECUTION_BACKENDS
+        empty_check_set = total_count is not None and total_count == 0
+        if not backend_acceptable:
+            stage_status = "error"
+            failure_rule_ids = [f"{stage}.backend_not_acceptable"]
+            reason = f"{stage} status=pass requires execution_backend; got {backend or 'missing'}"
+        elif empty_check_set:
+            stage_status = "error"
+            failure_rule_ids = [f"{stage}.empty_check_set"]
+            reason = f"{stage} status=pass with check_counts.total=0"
+        else:
+            stage_status = "pass"
+            reason = f"{stage} status=pass"
     elif status == "fail":
         stage_status = "fail"
         failure_rule_ids = failed_ids or [f"{stage}.failed"]
