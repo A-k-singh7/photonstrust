@@ -16,6 +16,11 @@ from photonstrust.pic.tapeout_package import build_tapeout_package
 
 
 STAGES = ("drc", "lvs", "pex")
+_SYNTHETIC_SMOKE_GENERATED_AT = "2026-03-01T00:00:00+00:00"
+_REAL_MODE_REQUIRED_SCRIPTS = (
+    Path("scripts/run_foundry_smoke.py"),
+    Path("scripts/check_pic_tapeout_gate.py"),
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -124,6 +129,98 @@ def _create_synthetic_inputs(run_dir: Path) -> None:
     (inputs / "layout.gds").write_bytes(b"GDSII")
 
 
+def _missing_real_mode_scripts(repo_root: Path) -> list[Path]:
+    missing: list[Path] = []
+    for rel_path in _REAL_MODE_REQUIRED_SCRIPTS:
+        candidate = (repo_root / rel_path).resolve()
+        if not candidate.exists() or not candidate.is_file():
+            missing.append(candidate)
+    return missing
+
+
+def _build_synthetic_smoke_report(*, deck_fingerprint: str, fail_stage: str) -> dict[str, Any]:
+    fail_stage_normalized = str(fail_stage).strip().lower()
+    stages: dict[str, dict[str, Any]] = {}
+    for kind in STAGES:
+        stage_failed = fail_stage_normalized == kind
+        status = "fail" if stage_failed else "pass"
+        stages[kind] = {
+            "run_id": f"day10_synth_{kind}",
+            "status": status,
+            "execution_backend": "synthetic_in_process",
+            "check_counts": {
+                "total": 3,
+                "passed": 2 if stage_failed else 3,
+                "failed": 1 if stage_failed else 0,
+                "errored": 0,
+            },
+            "failed_check_ids": [f"{kind.upper()}.SYNTH.FAIL"] if stage_failed else [],
+            "failed_check_names": [f"Synthetic injected {kind.upper()} failure"] if stage_failed else [],
+            "error_code": "synthetic_injected_failure" if stage_failed else None,
+        }
+    overall_status = "fail" if any(str(stage.get("status")) != "pass" for stage in stages.values()) else "pass"
+    return {
+        "schema_version": "0.1",
+        "kind": "photonstrust.foundry_smoke_report",
+        "generated_at": _SYNTHETIC_SMOKE_GENERATED_AT,
+        "deck_fingerprint": str(deck_fingerprint),
+        "overall_status": overall_status,
+        "stages": stages,
+    }
+
+
+def _build_synthetic_tapeout_gate_report(
+    *,
+    run_dir: Path,
+    smoke_report: dict[str, Any],
+    require_non_mock_backend: bool,
+    allow_waived_failures: bool,
+    run_pic_gate: bool,
+) -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    stages = smoke_report.get("stages") if isinstance(smoke_report.get("stages"), dict) else {}
+    for kind in STAGES:
+        stage = stages.get(kind) if isinstance(stages.get(kind), dict) else {}
+        status = str(stage.get("status") or "error").strip().lower()
+        checks.append(
+            {
+                "name": f"foundry_{kind}_status",
+                "status": status,
+                "passed": bool(status == "pass"),
+            }
+        )
+
+    non_mock_backends = True
+    for kind in STAGES:
+        stage = stages.get(kind) if isinstance(stages.get(kind), dict) else {}
+        backend = str(stage.get("execution_backend") or "").strip().lower()
+        if backend in {"mock", "stub"}:
+            non_mock_backends = False
+            break
+    if bool(require_non_mock_backend):
+        checks.append(
+            {
+                "name": "require_non_mock_backend",
+                "passed": bool(non_mock_backends),
+            }
+        )
+
+    all_passed = all(bool(item.get("passed")) for item in checks)
+    return {
+        "schema_version": "0.1",
+        "kind": "photonstrust.pic_tapeout_gate_report",
+        "generated_at": _SYNTHETIC_SMOKE_GENERATED_AT,
+        "run_dir": str(run_dir),
+        "all_passed": bool(all_passed),
+        "checks": checks,
+        "policy": {
+            "require_non_mock_backend": bool(require_non_mock_backend),
+            "allow_waived_failures": bool(allow_waived_failures),
+            "run_pic_gate": bool(run_pic_gate),
+        },
+    }
+
+
 def _run_command(cmd: list[str], *, cwd: Path) -> dict[str, Any]:
     started = time.perf_counter()
     completed = subprocess.run(cmd, cwd=str(cwd), check=False, capture_output=True, text=True)
@@ -208,6 +305,7 @@ def _derive_decision(*, smoke_status: str, tapeout_all_passed: bool, tapeout_pac
 def main() -> int:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[1]
+    is_synthetic_mode = str(args.mode) == "synthetic"
 
     packet_path = _resolve_path(repo_root, args.output_json, Path("results/day10/day10_decision_packet.json"))
     out_dir = packet_path.parent
@@ -233,37 +331,56 @@ def main() -> int:
         return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    if str(args.mode) == "synthetic":
+    if is_synthetic_mode:
         _create_synthetic_inputs(run_dir)
     else:
+        missing_scripts = _missing_real_mode_scripts(repo_root)
+        if missing_scripts:
+            print("day10 error: missing required external scripts for real mode:")
+            for script_path in missing_scripts:
+                print(f"- {script_path}")
+            return 2
         if not run_dir.exists() or not run_dir.is_dir():
             print(f"day10 error: run_dir does not exist for real mode: {run_dir}")
             return 2
 
     steps: list[dict[str, Any]] = []
-
-    smoke_cmd = [
-        sys.executable,
-        str((repo_root / "scripts" / "run_foundry_smoke.py").resolve()),
-        "--output-json",
-        str(smoke_report_path),
-        "--deck-fingerprint",
-        str(args.deck_fingerprint),
-        "--timeout-sec",
-        str(float(args.timeout_sec)),
-        "--no-strict",
-    ]
-    if str(args.mode) == "synthetic":
-        smoke_cmd.extend(["--fail-stage", str(args.fail_stage)])
-    else:
-        smoke_cmd.extend(["--runner-config", str(runner_config)])
-
-    smoke_step = _run_command(smoke_cmd, cwd=repo_root)
-    smoke_step["name"] = "foundry_smoke"
-    smoke_step["passed"] = bool(smoke_step.get("returncode") == 0)
-    steps.append(smoke_step)
-
     smoke_report: dict[str, Any] = {}
+    if is_synthetic_mode:
+        smoke_started = time.perf_counter()
+        smoke_report = _build_synthetic_smoke_report(
+            deck_fingerprint=str(args.deck_fingerprint),
+            fail_stage=str(args.fail_stage),
+        )
+        _write_json(smoke_report_path, smoke_report)
+        steps.append(
+            {
+                "name": "foundry_smoke",
+                "passed": True,
+                "returncode": 0,
+                "duration_s": float(time.perf_counter() - smoke_started),
+                "execution": "in_process_synthetic",
+            }
+        )
+    else:
+        smoke_cmd = [
+            sys.executable,
+            str((repo_root / "scripts" / "run_foundry_smoke.py").resolve()),
+            "--output-json",
+            str(smoke_report_path),
+            "--deck-fingerprint",
+            str(args.deck_fingerprint),
+            "--timeout-sec",
+            str(float(args.timeout_sec)),
+            "--no-strict",
+            "--runner-config",
+            str(runner_config),
+        ]
+        smoke_step = _run_command(smoke_cmd, cwd=repo_root)
+        smoke_step["name"] = "foundry_smoke"
+        smoke_step["passed"] = bool(smoke_step.get("returncode") == 0)
+        steps.append(smoke_step)
+
     materialized_paths: dict[str, str] = {}
     try:
         smoke_report = _load_json_object(smoke_report_path)
@@ -286,32 +403,54 @@ def main() -> int:
             }
         )
 
-    gate_cmd = [
-        sys.executable,
-        str((repo_root / "scripts" / "check_pic_tapeout_gate.py").resolve()),
-        "--run-dir",
-        str(run_dir),
-        "--require-foundry-signoff",
-        "--report-path",
-        str(tapeout_report_path),
-    ]
-    if bool(args.require_non_mock_backend):
-        gate_cmd.append("--require-non-mock-backend")
-    if bool(args.allow_waived_failures):
-        gate_cmd.extend(["--allow-waived-failures", "--waiver-file", str(waiver_file)])
-    if bool(args.run_pic_gate):
-        gate_cmd.extend(["--run-pic-gate", "--pic-gate-args", str(args.pic_gate_args)])
-
-    gate_step = _run_command(gate_cmd, cwd=repo_root)
-    gate_step["name"] = "tapeout_gate"
-    gate_step["passed"] = bool(gate_step.get("returncode") == 0)
-    steps.append(gate_step)
-
     tapeout_report: dict[str, Any] = {}
-    try:
-        tapeout_report = _load_json_object(tapeout_report_path)
-    except Exception:
-        tapeout_report = {}
+    if is_synthetic_mode:
+        gate_started = time.perf_counter()
+        tapeout_report = _build_synthetic_tapeout_gate_report(
+            run_dir=run_dir,
+            smoke_report=smoke_report,
+            require_non_mock_backend=bool(args.require_non_mock_backend),
+            allow_waived_failures=bool(args.allow_waived_failures),
+            run_pic_gate=bool(args.run_pic_gate),
+        )
+        _write_json(tapeout_report_path, tapeout_report)
+        gate_returncode = 0 if bool(tapeout_report.get("all_passed", False)) else 1
+        steps.append(
+            {
+                "name": "tapeout_gate",
+                "passed": bool(gate_returncode == 0),
+                "returncode": int(gate_returncode),
+                "duration_s": float(time.perf_counter() - gate_started),
+                "execution": "in_process_synthetic",
+            }
+        )
+    else:
+        gate_cmd = [
+            sys.executable,
+            str((repo_root / "scripts" / "check_pic_tapeout_gate.py").resolve()),
+            "--run-dir",
+            str(run_dir),
+            "--require-foundry-signoff",
+            "--report-path",
+            str(tapeout_report_path),
+        ]
+        if bool(args.require_non_mock_backend):
+            gate_cmd.append("--require-non-mock-backend")
+        if bool(args.allow_waived_failures):
+            gate_cmd.extend(["--allow-waived-failures", "--waiver-file", str(waiver_file)])
+        if bool(args.run_pic_gate):
+            gate_cmd.extend(["--run-pic-gate", "--pic-gate-args", str(args.pic_gate_args)])
+
+        gate_step = _run_command(gate_cmd, cwd=repo_root)
+        gate_step["name"] = "tapeout_gate"
+        gate_step["passed"] = bool(gate_step.get("returncode") == 0)
+        steps.append(gate_step)
+
+    if not tapeout_report:
+        try:
+            tapeout_report = _load_json_object(tapeout_report_path)
+        except Exception:
+            tapeout_report = {}
 
     tapeout_package_artifact: dict[str, Any] | None = None
     tapeout_package_ok = False
@@ -321,8 +460,8 @@ def main() -> int:
             {
                 "run_dir": str(run_dir),
                 "output_root": str(out_dir / "tapeout_packages"),
-                "allow_missing_signoff": True,
-                "allow_stub_pex": True,
+                "allow_missing_signoff": bool(is_synthetic_mode),
+                "allow_stub_pex": bool(is_synthetic_mode),
             },
             repo_root=repo_root,
         )
