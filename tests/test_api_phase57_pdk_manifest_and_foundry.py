@@ -15,7 +15,11 @@ from photonstrust.api import runs as run_store  # noqa: E402
 from photonstrust.api.server import app  # noqa: E402
 from photonstrust.benchmarks.schema import validate_instance  # noqa: E402
 from photonstrust.pdk import resolve_pdk_contract  # noqa: E402
-from photonstrust.workflow.schema import pic_foundry_drc_sealed_summary_schema_path  # noqa: E402
+from photonstrust.workflow.schema import (  # noqa: E402
+    pic_foundry_drc_sealed_summary_schema_path,
+    pic_foundry_lvs_sealed_summary_schema_path,
+    pic_foundry_pex_sealed_summary_schema_path,
+)
 
 
 def _pic_chain_graph() -> dict:
@@ -392,3 +396,160 @@ def test_phase57_foundry_drc_certification_rejects_mock_backend(tmp_path: Path, 
     assert res.status_code == 400
     detail = str((res.json() or {}).get("detail", "")).lower()
     assert "non-mock" in detail and "foundry drc" in detail
+
+
+def test_phase57_foundry_lvs_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = "f" * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        "/v0/pic/layout/foundry_lvs/run",
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "preview",
+            "backend": "mock",
+            "deck_fingerprint": "sha256:phase57-lvs",
+            "mock_result": {
+                "checks": [
+                    {"id": "LVS.DEVICE.MATCH", "name": "device_match", "status": "pass"},
+                ]
+            },
+        },
+    )
+    assert res.status_code == 200
+    payload = res.json()
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    validate_instance(summary, pic_foundry_lvs_sealed_summary_schema_path())
+    assert summary.get("status") == "pass"
+    assert (Path(payload["output_dir"]) / "foundry_lvs_sealed_summary.json").exists()
+    assert (Path(payload["output_dir"]) / "pdk_manifest.json").exists()
+
+
+def test_phase57_foundry_pex_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = "1" * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        "/v0/pic/layout/foundry_pex/run",
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "preview",
+            "backend": "mock",
+            "deck_fingerprint": "sha256:phase57-pex",
+            "mock_result": {
+                "checks": [
+                    {"id": "PEX.RC.BOUNDS", "name": "rc_bounds", "status": "fail"},
+                ]
+            },
+        },
+    )
+    assert res.status_code == 200
+    payload = res.json()
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    validate_instance(summary, pic_foundry_pex_sealed_summary_schema_path())
+    assert summary.get("status") == "fail"
+    assert (Path(payload["output_dir"]) / "foundry_pex_sealed_summary.json").exists()
+    assert (Path(payload["output_dir"]) / "pdk_manifest.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "stage"),
+    [
+        ("/v0/pic/layout/foundry_lvs/run", "foundry lvs"),
+        ("/v0/pic/layout/foundry_pex/run", "foundry pex"),
+    ],
+)
+def test_phase57_foundry_lvs_pex_certification_rejects_mock_backend(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    endpoint: str,
+    stage: str,
+) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = ("2" if "lvs" in endpoint else "3") * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        endpoint,
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "certification",
+            "backend": "mock",
+            "mock_result": {"checks": []},
+        },
+    )
+    assert res.status_code == 400
+    detail = str((res.json() or {}).get("detail", "")).lower()
+    assert "non-mock" in detail and stage in detail
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/v0/pic/layout/foundry_lvs/run",
+        "/v0/pic/layout/foundry_pex/run",
+    ],
+)
+def test_phase57_foundry_lvs_pex_reject_invalid_run_id(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    endpoint: str,
+) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = ("4" if "lvs" in endpoint else "5") * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        endpoint,
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "preview",
+            "backend": "mock",
+            "run_id": "BAD-RUN-ID",
+        },
+    )
+    assert res.status_code == 400
+    detail = str((res.json() or {}).get("detail", "")).lower()
+    assert "run_id must match" in detail
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "backend"),
+    [
+        ("/v0/pic/layout/foundry_lvs/run", "unsupported"),
+        ("/v0/pic/layout/foundry_pex/run", "local_lvs"),
+    ],
+)
+def test_phase57_foundry_lvs_pex_reject_invalid_backend(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    endpoint: str,
+    backend: str,
+) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = ("6" if "lvs" in endpoint else "7") * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        endpoint,
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "preview",
+            "backend": backend,
+        },
+    )
+    assert res.status_code == 400
+    detail = str((res.json() or {}).get("detail", "")).lower()
+    assert "backend must be one of" in detail

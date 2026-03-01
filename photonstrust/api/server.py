@@ -43,6 +43,8 @@ from photonstrust.orbit.diagnostics import validate_orbit_pass_semantics
 from photonstrust.orbit.pass_envelope import run_orbit_pass_from_config
 from photonstrust.orbit.schema import validate_orbit_pass_config
 from photonstrust.pic import simulate_pic_netlist, simulate_pic_netlist_sweep
+from photonstrust.layout.pic.foundry_lvs_sealed import run_foundry_lvs_sealed
+from photonstrust.layout.pic.foundry_pex_sealed import run_foundry_pex_sealed
 from photonstrust.sweep import run_scenarios
 from photonstrust.config import build_scenarios
 from photonstrust.invdesign import inverse_design_coupler_ratio, inverse_design_mzi_phase
@@ -63,6 +65,8 @@ from photonstrust.workflow.schema import (
     evidence_bundle_publish_manifest_schema_path,
     external_sim_result_schema_path,
     pic_foundry_drc_sealed_summary_schema_path,
+    pic_foundry_lvs_sealed_summary_schema_path,
+    pic_foundry_pex_sealed_summary_schema_path,
     protocol_steps_schema_path,
 )
 
@@ -167,6 +171,9 @@ _UI_TELEMETRY_OUTCOMES = {"success", "failure", "abandoned"}
 _UI_TELEMETRY_EVENT_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
 _SEALED_RUN_ID_RE = re.compile(r"^[a-z0-9_]{8,64}$")
 _FOUNDRY_DRC_ALLOWED_BACKENDS = {"mock", "generic_cli", "local_rules", "local"}
+_FOUNDRY_LVS_ALLOWED_BACKENDS = {"mock", "generic_cli", "local_lvs", "local"}
+_FOUNDRY_PEX_ALLOWED_BACKENDS = {"mock", "generic_cli"}
+_UNTRUSTED_BACKENDS = {"mock", "stub"}
 
 
 def _parse_execution_mode(payload: dict[str, Any] | None) -> str:
@@ -198,14 +205,64 @@ def _parse_optional_sealed_run_id(payload: dict[str, Any], *, field_name: str = 
     return run_id
 
 
-def _parse_foundry_drc_backend(payload: dict[str, Any], *, execution_mode: str) -> str:
+def _parse_foundry_backend(
+    payload: dict[str, Any],
+    *,
+    execution_mode: str,
+    stage_label: str,
+    allowed_backends: set[str],
+) -> str:
     backend = str(payload.get("backend", "mock") or "mock").strip().lower() or "mock"
-    if backend not in _FOUNDRY_DRC_ALLOWED_BACKENDS:
-        allowed = ", ".join(sorted(_FOUNDRY_DRC_ALLOWED_BACKENDS))
+    if backend not in allowed_backends:
+        allowed = ", ".join(sorted(allowed_backends))
         raise HTTPException(status_code=400, detail=f"backend must be one of: {allowed}")
-    if execution_mode == "certification" and backend == "mock":
-        raise HTTPException(status_code=400, detail="certification mode requires non-mock backend for foundry DRC")
+    if execution_mode == "certification" and backend in _UNTRUSTED_BACKENDS:
+        stage_name = stage_label.upper()
+        raise HTTPException(status_code=400, detail=f"certification mode requires non-mock backend for foundry {stage_name}")
     return backend
+
+
+def _parse_foundry_drc_backend(payload: dict[str, Any], *, execution_mode: str) -> str:
+    return _parse_foundry_backend(
+        payload,
+        execution_mode=execution_mode,
+        stage_label="drc",
+        allowed_backends=_FOUNDRY_DRC_ALLOWED_BACKENDS,
+    )
+
+
+def _parse_foundry_lvs_backend(payload: dict[str, Any], *, execution_mode: str) -> str:
+    return _parse_foundry_backend(
+        payload,
+        execution_mode=execution_mode,
+        stage_label="lvs",
+        allowed_backends=_FOUNDRY_LVS_ALLOWED_BACKENDS,
+    )
+
+
+def _parse_foundry_pex_backend(payload: dict[str, Any], *, execution_mode: str) -> str:
+    return _parse_foundry_backend(
+        payload,
+        execution_mode=execution_mode,
+        stage_label="pex",
+        allowed_backends=_FOUNDRY_PEX_ALLOWED_BACKENDS,
+    )
+
+
+def _enforce_foundry_certification_provenance(summary: dict[str, Any], *, stage_label: str) -> None:
+    stage = stage_label.lower()
+    backend = str(summary.get("execution_backend") or "").strip().lower()
+    if not backend or backend in _UNTRUSTED_BACKENDS:
+        raise HTTPException(status_code=400, detail=f"certification mode requires trusted execution_backend for foundry {stage}")
+
+    counts = summary.get("check_counts") if isinstance(summary.get("check_counts"), dict) else {}
+    total = int(counts.get("total", 0) or 0)
+    if total <= 0:
+        raise HTTPException(status_code=400, detail=f"certification mode requires non-empty check_counts for foundry {stage}")
+
+    deck_fingerprint = str(summary.get("deck_fingerprint") or "").strip()
+    if not deck_fingerprint:
+        raise HTTPException(status_code=400, detail=f"certification mode requires deck_fingerprint for foundry {stage}")
 
 
 def _auth_mode() -> str:
@@ -3663,6 +3720,8 @@ def pic_layout_foundry_drc_run(payload: dict = Body(...)) -> dict[str, Any]:
         validate_instance(summary, pic_foundry_drc_sealed_summary_schema_path())
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"foundry drc sealed summary schema validation failed: {exc}") from exc
+    if execution_mode == "certification":
+        _enforce_foundry_certification_provenance(summary, stage_label="drc")
 
     run_id = uuid.uuid4().hex[:12]
     run_dir = run_store.run_dir_for_id(run_id)
@@ -3694,6 +3753,303 @@ def pic_layout_foundry_drc_run(payload: dict = Body(...)) -> dict[str, Any]:
         "schema_version": "0.1",
         "run_id": run_id,
         "run_type": "pic_foundry_drc_sealed",
+        "generated_at": generated_at,
+        "output_dir": str(run_dir),
+        "input": {
+            "project_id": project_id,
+            "source_run_id": ref_run_id,
+            "layout_run_id": layout_run_id or None,
+            "execution_mode": execution_mode,
+            "pdk": ((pdk_manifest.get("pdk") or {}).get("name") if isinstance(pdk_manifest, dict) else None),
+            "deck_fingerprint": summary.get("deck_fingerprint"),
+        },
+        "outputs_summary": outputs_summary,
+        "artifacts": artifacts,
+        "provenance": {
+            "photonstrust_version": app.version,
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+    manifest_path = run_store.write_run_manifest(run_dir, manifest)
+
+    return {
+        "generated_at": generated_at,
+        "run_id": run_id,
+        "output_dir": str(run_dir),
+        "summary": summary,
+        "manifest_path": str(manifest_path),
+        "artifact_relpaths": artifacts,
+        "provenance": {
+            "photonstrust_version": app.version,
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+
+
+@app.post("/v0/pic/layout/foundry_lvs/run")
+def pic_layout_foundry_lvs_run(payload: dict = Body(...)) -> dict[str, Any]:
+    """Run metadata-only sealed foundry LVS seam (mockable, no deck leakage)."""
+
+    if str(payload.get("output_root", "")).strip():
+        raise HTTPException(
+            status_code=400,
+            detail="output_root override is disabled for API runs; set PHOTONTRUST_API_RUNS_ROOT instead",
+        )
+    try:
+        project_id = project_store.validate_project_id(payload.get("project_id", "default"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    execution_mode = _parse_execution_mode(payload)
+    backend = _parse_foundry_lvs_backend(payload, execution_mode=execution_mode)
+    sealed_run_id = _parse_optional_sealed_run_id(payload, field_name="run_id")
+    pdk_req = payload.get("pdk") if isinstance(payload.get("pdk"), dict) else None
+
+    layout_run_id = str(payload.get("layout_run_id", "")).strip()
+    source_run_id = str(payload.get("source_run_id", "") or payload.get("run_id", "")).strip()
+    if source_run_id and layout_run_id and source_run_id != layout_run_id:
+        raise HTTPException(status_code=400, detail="source_run_id and layout_run_id must match when both are provided")
+
+    ref_run_id = source_run_id or layout_run_id
+    if not ref_run_id:
+        raise HTTPException(status_code=400, detail="Provide source_run_id (preferred) or layout_run_id")
+
+    try:
+        ref_dir = run_store.run_dir_for_id(ref_run_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not ref_dir.exists():
+        raise HTTPException(status_code=404, detail="source_run_id not found" if source_run_id else "layout_run_id not found")
+
+    pdk_manifest = _resolve_run_pdk_manifest(
+        pdk_request=pdk_req,
+        execution_mode=execution_mode,
+        source_run_dir=ref_dir,
+        source_run_id=ref_run_id,
+        require_context_in_cert=True,
+    )
+    if not isinstance(pdk_manifest, dict):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "certification mode requires source pdk_manifest context; provide source_run_id/layout_run_id with "
+                "pdk_manifest_json or provide payload.pdk"
+            ),
+        )
+
+    sealed_request: dict[str, Any] = {
+        "backend": backend,
+    }
+    if sealed_run_id is not None:
+        sealed_request["run_id"] = sealed_run_id
+    if payload.get("deck_fingerprint") is not None:
+        sealed_request["deck_fingerprint"] = str(payload.get("deck_fingerprint"))
+    if isinstance(payload.get("mock_result"), dict):
+        sealed_request["mock_result"] = payload.get("mock_result")
+    if isinstance(payload.get("generic_cli"), dict):
+        sealed_request["generic_cli"] = payload.get("generic_cli")
+    if isinstance(payload.get("generic_cli_command"), list):
+        sealed_request["generic_cli_command"] = payload.get("generic_cli_command")
+    if payload.get("generic_cli_timeout_sec") is not None:
+        sealed_request["generic_cli_timeout_sec"] = payload.get("generic_cli_timeout_sec")
+    if backend in {"local_lvs", "local"}:
+        if isinstance(payload.get("graph"), dict):
+            sealed_request["graph"] = payload.get("graph")
+        if isinstance(payload.get("routes"), dict):
+            sealed_request["routes"] = payload.get("routes")
+        if isinstance(payload.get("ports"), dict):
+            sealed_request["ports"] = payload.get("ports")
+        if isinstance(payload.get("settings"), dict):
+            sealed_request["settings"] = payload.get("settings")
+        if payload.get("coord_tol_um") is not None:
+            sealed_request["coord_tol_um"] = payload.get("coord_tol_um")
+
+    try:
+        summary = run_foundry_lvs_sealed(sealed_request)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        validate_instance(summary, pic_foundry_lvs_sealed_summary_schema_path())
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"foundry lvs sealed summary schema validation failed: {exc}") from exc
+    if execution_mode == "certification":
+        _enforce_foundry_certification_provenance(summary, stage_label="lvs")
+
+    run_id = uuid.uuid4().hex[:12]
+    run_dir = run_store.run_dir_for_id(run_id)
+    Path(run_dir).mkdir(parents=True, exist_ok=True)
+
+    generated_at = datetime.now(timezone.utc).isoformat()
+    summary_rel = "foundry_lvs_sealed_summary.json"
+    (Path(run_dir) / summary_rel).write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    pdk_manifest_rel = _write_pdk_manifest_artifact(run_dir, pdk_manifest)
+
+    counts = summary.get("check_counts") if isinstance(summary.get("check_counts"), dict) else {}
+    outputs_summary = {
+        "pic_foundry_lvs_sealed": {
+            "status": summary.get("status"),
+            "execution_backend": summary.get("execution_backend"),
+            "failed_checks": counts.get("failed"),
+            "errored_checks": counts.get("errored"),
+            "source_run_id": ref_run_id,
+            "layout_run_id": layout_run_id or None,
+        }
+    }
+
+    artifacts = {
+        "foundry_lvs_sealed_summary_json": summary_rel,
+        "pdk_manifest_json": pdk_manifest_rel,
+    }
+
+    manifest = {
+        "schema_version": "0.1",
+        "run_id": run_id,
+        "run_type": "pic_foundry_lvs_sealed",
+        "generated_at": generated_at,
+        "output_dir": str(run_dir),
+        "input": {
+            "project_id": project_id,
+            "source_run_id": ref_run_id,
+            "layout_run_id": layout_run_id or None,
+            "execution_mode": execution_mode,
+            "pdk": ((pdk_manifest.get("pdk") or {}).get("name") if isinstance(pdk_manifest, dict) else None),
+            "deck_fingerprint": summary.get("deck_fingerprint"),
+        },
+        "outputs_summary": outputs_summary,
+        "artifacts": artifacts,
+        "provenance": {
+            "photonstrust_version": app.version,
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+    manifest_path = run_store.write_run_manifest(run_dir, manifest)
+
+    return {
+        "generated_at": generated_at,
+        "run_id": run_id,
+        "output_dir": str(run_dir),
+        "summary": summary,
+        "manifest_path": str(manifest_path),
+        "artifact_relpaths": artifacts,
+        "provenance": {
+            "photonstrust_version": app.version,
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+
+
+@app.post("/v0/pic/layout/foundry_pex/run")
+def pic_layout_foundry_pex_run(payload: dict = Body(...)) -> dict[str, Any]:
+    """Run metadata-only sealed foundry PEX seam (mockable, no deck leakage)."""
+
+    if str(payload.get("output_root", "")).strip():
+        raise HTTPException(
+            status_code=400,
+            detail="output_root override is disabled for API runs; set PHOTONTRUST_API_RUNS_ROOT instead",
+        )
+    try:
+        project_id = project_store.validate_project_id(payload.get("project_id", "default"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    execution_mode = _parse_execution_mode(payload)
+    backend = _parse_foundry_pex_backend(payload, execution_mode=execution_mode)
+    sealed_run_id = _parse_optional_sealed_run_id(payload, field_name="run_id")
+    pdk_req = payload.get("pdk") if isinstance(payload.get("pdk"), dict) else None
+
+    layout_run_id = str(payload.get("layout_run_id", "")).strip()
+    source_run_id = str(payload.get("source_run_id", "") or payload.get("run_id", "")).strip()
+    if source_run_id and layout_run_id and source_run_id != layout_run_id:
+        raise HTTPException(status_code=400, detail="source_run_id and layout_run_id must match when both are provided")
+
+    ref_run_id = source_run_id or layout_run_id
+    if not ref_run_id:
+        raise HTTPException(status_code=400, detail="Provide source_run_id (preferred) or layout_run_id")
+
+    try:
+        ref_dir = run_store.run_dir_for_id(ref_run_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not ref_dir.exists():
+        raise HTTPException(status_code=404, detail="source_run_id not found" if source_run_id else "layout_run_id not found")
+
+    pdk_manifest = _resolve_run_pdk_manifest(
+        pdk_request=pdk_req,
+        execution_mode=execution_mode,
+        source_run_dir=ref_dir,
+        source_run_id=ref_run_id,
+        require_context_in_cert=True,
+    )
+    if not isinstance(pdk_manifest, dict):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "certification mode requires source pdk_manifest context; provide source_run_id/layout_run_id with "
+                "pdk_manifest_json or provide payload.pdk"
+            ),
+        )
+
+    sealed_request: dict[str, Any] = {
+        "backend": backend,
+    }
+    if sealed_run_id is not None:
+        sealed_request["run_id"] = sealed_run_id
+    if payload.get("deck_fingerprint") is not None:
+        sealed_request["deck_fingerprint"] = str(payload.get("deck_fingerprint"))
+    if isinstance(payload.get("mock_result"), dict):
+        sealed_request["mock_result"] = payload.get("mock_result")
+    if isinstance(payload.get("generic_cli"), dict):
+        sealed_request["generic_cli"] = payload.get("generic_cli")
+    if isinstance(payload.get("generic_cli_command"), list):
+        sealed_request["generic_cli_command"] = payload.get("generic_cli_command")
+    if payload.get("generic_cli_timeout_sec") is not None:
+        sealed_request["generic_cli_timeout_sec"] = payload.get("generic_cli_timeout_sec")
+
+    try:
+        summary = run_foundry_pex_sealed(sealed_request)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        validate_instance(summary, pic_foundry_pex_sealed_summary_schema_path())
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"foundry pex sealed summary schema validation failed: {exc}") from exc
+    if execution_mode == "certification":
+        _enforce_foundry_certification_provenance(summary, stage_label="pex")
+
+    run_id = uuid.uuid4().hex[:12]
+    run_dir = run_store.run_dir_for_id(run_id)
+    Path(run_dir).mkdir(parents=True, exist_ok=True)
+
+    generated_at = datetime.now(timezone.utc).isoformat()
+    summary_rel = "foundry_pex_sealed_summary.json"
+    (Path(run_dir) / summary_rel).write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    pdk_manifest_rel = _write_pdk_manifest_artifact(run_dir, pdk_manifest)
+
+    counts = summary.get("check_counts") if isinstance(summary.get("check_counts"), dict) else {}
+    outputs_summary = {
+        "pic_foundry_pex_sealed": {
+            "status": summary.get("status"),
+            "execution_backend": summary.get("execution_backend"),
+            "failed_checks": counts.get("failed"),
+            "errored_checks": counts.get("errored"),
+            "source_run_id": ref_run_id,
+            "layout_run_id": layout_run_id or None,
+        }
+    }
+
+    artifacts = {
+        "foundry_pex_sealed_summary_json": summary_rel,
+        "pdk_manifest_json": pdk_manifest_rel,
+    }
+
+    manifest = {
+        "schema_version": "0.1",
+        "run_id": run_id,
+        "run_type": "pic_foundry_pex_sealed",
         "generated_at": generated_at,
         "output_dir": str(run_dir),
         "input": {
