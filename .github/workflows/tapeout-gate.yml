@@ -1,0 +1,85 @@
+name: tapeout-gate
+
+on:
+  push:
+    paths:
+      - "graphs/**"
+      - "configs/**"
+      - "photonstrust/pic/**"
+      - "photonstrust/layout/pic/**"
+      - "photonstrust/pdk/**"
+      - "scripts/check_pic_tapeout_gate.py"
+      - "scripts/run_day10_tapeout_rehearsal.py"
+      - "scripts/build_tapeout_package.py"
+      - "schemas/photonstrust.pic_*"
+      - "schemas/photonstrust.day10_tapeout_rehearsal_packet.v0.schema.json"
+  pull_request:
+    paths:
+      - "graphs/**"
+      - "configs/**"
+      - "photonstrust/pic/**"
+      - "photonstrust/layout/pic/**"
+      - "photonstrust/pdk/**"
+      - "scripts/check_pic_tapeout_gate.py"
+      - "scripts/run_day10_tapeout_rehearsal.py"
+      - "scripts/build_tapeout_package.py"
+      - "schemas/photonstrust.pic_*"
+      - "schemas/photonstrust.day10_tapeout_rehearsal_packet.v0.schema.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tapeout-gate:
+    name: PIC Tapeout Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,pic,api,layout]"
+
+      - name: Run tapeout lane unit tests
+        run: |
+          python -m pytest -q \
+            tests/test_pic_layout_build_and_lvs_lite.py \
+            tests/test_foundry_drc_sealed_runner.py \
+            tests/test_foundry_lvs_pex_sealed_runner.py \
+            tests/test_pic_signoff_core.py \
+            tests/test_pic_tapeout_gate.py \
+            tests/test_tapeout_package_builder.py
+
+      - name: Run Day 10 tapeout rehearsal (synthetic strict)
+        run: |
+          python scripts/run_day10_tapeout_rehearsal.py \
+            --mode synthetic \
+            --output-json results/day10_ci/day10_decision_packet.json \
+            --run-dir results/day10_ci/run_pkg \
+            --strict
+
+      - name: Build deterministic tapeout package
+        run: |
+          python scripts/build_tapeout_package.py \
+            --run-dir results/day10_ci/run_pkg \
+            --output-root results/tapeout_packages_ci \
+            --allow-missing-signoff \
+            --allow-stub-pex \
+            --report-path results/day10_ci/tapeout_package_report.json
+
+      - name: Upload tapeout artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tapeout-gate-artifacts
+          path: |
+            results/day10_ci/
+            results/tapeout_packages_ci/

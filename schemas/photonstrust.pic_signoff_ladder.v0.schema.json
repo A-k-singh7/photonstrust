@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_signoff_ladder.v0.schema.json",
+  "title": "PhotonTrust PIC Signoff Ladder (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "kind",
+    "run_id",
+    "inputs",
+    "ladder",
+    "final_decision",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "kind": { "type": "string", "const": "pic.signoff_ladder" },
+    "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chip_assembly_run_id", "chip_assembly_hash", "policy_hash"],
+      "properties": {
+        "chip_assembly_run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+        "chip_assembly_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "policy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "multi_stage_enabled": { "type": "boolean" }
+      }
+    },
+    "ladder": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["level", "stage", "status"],
+        "properties": {
+          "level": { "type": "integer", "minimum": 1 },
+          "stage": { "type": "string", "minLength": 1 },
+          "status": {
+            "type": "string",
+            "enum": ["pass", "fail", "hold", "waived", "skipped", "error"]
+          },
+          "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+          "reason": { "type": "string" },
+          "evidence_hashes": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          },
+          "failure_rule_ids": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "waived_rule_ids": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "prev_stage_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "stage_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "final_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reasons"],
+      "properties": {
+        "decision": { "type": "string", "enum": ["GO", "HOLD"] },
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "evidence_chain_root": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["photonstrust_version", "python", "platform"],
+      "properties": {
+        "photonstrust_version": { "type": "string" },
+        "python": { "type": "string" },
+        "platform": { "type": "string" }
+      }
+    }
+  }
+}
