@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.day10_tapeout_rehearsal_packet.v0.schema.json",
+  "title": "PhotonTrust Day-10 tapeout rehearsal packet schema v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "mode",
+    "strict",
+    "decision",
+    "reasons",
+    "inputs",
+    "artifacts",
+    "smoke_overall_status",
+    "tapeout_all_passed",
+    "steps"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "photonstrust.day10_tapeout_rehearsal_packet"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "synthetic",
+        "real"
+      ]
+    },
+    "strict": {
+      "type": "boolean"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "GO",
+        "HOLD"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_dir",
+        "runner_config",
+        "waiver_file",
+        "allow_waived_failures",
+        "require_non_mock_backend",
+        "run_pic_gate",
+        "deck_fingerprint",
+        "timeout_sec",
+        "fail_stage"
+      ],
+      "properties": {
+        "run_dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runner_config": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "waiver_file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "allow_waived_failures": {
+          "type": "boolean"
+        },
+        "require_non_mock_backend": {
+          "type": "boolean"
+        },
+        "run_pic_gate": {
+          "type": "boolean"
+        },
+        "deck_fingerprint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeout_sec": {
+          "type": "number"
+        },
+        "fail_stage": {
+          "type": "string",
+          "enum": [
+            "none",
+            "drc",
+            "lvs",
+            "pex"
+          ]
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "foundry_smoke_report_json",
+        "tapeout_gate_report_json",
+        "foundry_summary_paths"
+      ],
+      "properties": {
+        "foundry_smoke_report_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tapeout_gate_report_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "foundry_summary_paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "drc",
+            "lvs",
+            "pex"
+          ],
+          "properties": {
+            "drc": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lvs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pex": {
+              "type": "string",
+              "minLength": 1
+              }
+            }
+        },
+        "tapeout_package": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "package_dir",
+            "manifest_path",
+            "package_manifest_path",
+            "report_json"
+          ],
+          "properties": {
+            "package_dir": {
+              "type": "string",
+              "minLength": 1
+            },
+            "manifest_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "package_manifest_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "report_json": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "smoke_overall_status": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "error"
+      ]
+    },
+    "tapeout_all_passed": {
+      "type": "boolean"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "passed"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "passed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}
