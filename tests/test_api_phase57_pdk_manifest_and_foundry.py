@@ -330,3 +330,65 @@ def test_phase57_foundry_drc_certification_requires_pdk_manifest_context(tmp_pat
     assert res.status_code == 400
     detail = str((res.json() or {}).get("detail", "")).lower()
     assert "pdk_manifest" in detail or "certification" in detail
+
+
+def test_phase57_foundry_drc_rejects_invalid_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = "c" * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        "/v0/pic/layout/foundry_drc/run",
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "preview",
+            "backend": "unknown_backend",
+        },
+    )
+    assert res.status_code == 400
+    detail = str((res.json() or {}).get("detail", "")).lower()
+    assert "backend must be one of" in detail
+
+
+def test_phase57_foundry_drc_rejects_invalid_run_id_format(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = "d" * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        "/v0/pic/layout/foundry_drc/run",
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "preview",
+            "backend": "mock",
+            "run_id": "BAD-RUN-ID",
+        },
+    )
+    assert res.status_code == 400
+    detail = str((res.json() or {}).get("detail", "")).lower()
+    assert "run_id must match" in detail
+
+
+def test_phase57_foundry_drc_certification_rejects_mock_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = "e" * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    res = client.post(
+        "/v0/pic/layout/foundry_drc/run",
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "certification",
+            "backend": "mock",
+            "mock_result": {"checks": []},
+        },
+    )
+    assert res.status_code == 400
+    detail = str((res.json() or {}).get("detail", "")).lower()
+    assert "non-mock" in detail and "foundry drc" in detail

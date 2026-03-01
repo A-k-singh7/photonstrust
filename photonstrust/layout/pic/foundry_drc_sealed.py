@@ -28,9 +28,21 @@ _LOCAL_DRC_DEFAULTS_UM: dict[str, float] = {
     "DRC.WG.MIN_BEND_RADIUS": 5.0,
     "DRC.WG.MIN_ENCLOSURE": 1.0,
 }
+_LOCAL_DRC_REQUIRED_RULE_KEYS: dict[str, tuple[str, ...]] = {
+    "DRC.WG.MIN_WIDTH": ("min_waveguide_width_um", "min_width_um", "waveguide_min_width_um"),
+    "DRC.WG.MIN_SPACING": (
+        "min_waveguide_spacing_um",
+        "min_waveguide_gap_um",
+        "min_spacing_um",
+        "min_gap_um",
+    ),
+    "DRC.WG.MIN_BEND_RADIUS": ("min_bend_radius_um", "min_waveguide_bend_radius_um", "min_radius_um"),
+    "DRC.WG.MIN_ENCLOSURE": ("min_waveguide_enclosure_um", "min_enclosure_um", "waveguide_min_enclosure_um"),
+}
 _GENERIC_CLI_EMPTY_CHECKS_ERROR_CODE = "generic_cli_empty_checks"
 _GENERIC_CLI_STATUS_CHECKS_CONFLICT_ERROR_CODE = "generic_cli_status_checks_conflict"
 _GENERIC_CLI_SUMMARY_JSON_REQUIRED_ERROR_CODE = "generic_cli_summary_json_required"
+_LOCAL_RULES_MISSING_PDK_RULES_ERROR_CODE = "local_rules_missing_required_pdk_rules"
 
 
 def _utc_now_iso() -> str:
@@ -190,30 +202,33 @@ def _resolve_local_rule_thresholds(design_rules: dict[str, Any]) -> dict[str, fl
     return {
         "DRC.WG.MIN_WIDTH": _resolve_design_rule_um(
             design_rules,
-            keys=("min_waveguide_width_um", "min_width_um", "waveguide_min_width_um"),
+            keys=_LOCAL_DRC_REQUIRED_RULE_KEYS["DRC.WG.MIN_WIDTH"],
             fallback=_LOCAL_DRC_DEFAULTS_UM["DRC.WG.MIN_WIDTH"],
         ),
         "DRC.WG.MIN_SPACING": _resolve_design_rule_um(
             design_rules,
-            keys=(
-                "min_waveguide_spacing_um",
-                "min_waveguide_gap_um",
-                "min_spacing_um",
-                "min_gap_um",
-            ),
+            keys=_LOCAL_DRC_REQUIRED_RULE_KEYS["DRC.WG.MIN_SPACING"],
             fallback=_LOCAL_DRC_DEFAULTS_UM["DRC.WG.MIN_SPACING"],
         ),
         "DRC.WG.MIN_BEND_RADIUS": _resolve_design_rule_um(
             design_rules,
-            keys=("min_bend_radius_um", "min_waveguide_bend_radius_um", "min_radius_um"),
+            keys=_LOCAL_DRC_REQUIRED_RULE_KEYS["DRC.WG.MIN_BEND_RADIUS"],
             fallback=_LOCAL_DRC_DEFAULTS_UM["DRC.WG.MIN_BEND_RADIUS"],
         ),
         "DRC.WG.MIN_ENCLOSURE": _resolve_design_rule_um(
             design_rules,
-            keys=("min_waveguide_enclosure_um", "min_enclosure_um", "waveguide_min_enclosure_um"),
+            keys=_LOCAL_DRC_REQUIRED_RULE_KEYS["DRC.WG.MIN_ENCLOSURE"],
             fallback=_LOCAL_DRC_DEFAULTS_UM["DRC.WG.MIN_ENCLOSURE"],
         ),
     }
+
+
+def _missing_explicit_rule_ids(design_rules: dict[str, Any]) -> list[str]:
+    missing: list[str] = []
+    for rule_id, keys in _LOCAL_DRC_REQUIRED_RULE_KEYS.items():
+        if not any(key in design_rules for key in keys):
+            missing.append(rule_id)
+    return sorted(missing, key=lambda t: (t.lower(), t))
 
 
 def _route_id(raw_route: dict[str, Any], *, index: int) -> str:
@@ -265,6 +280,13 @@ def _normalize_points_um(raw_points: Any) -> list[tuple[float, float]]:
         return points
 
     for point in raw_points:
+        if isinstance(point, dict):
+            x = _safe_float(point.get("x_um") if "x_um" in point else point.get("x"))
+            y = _safe_float(point.get("y_um") if "y_um" in point else point.get("y"))
+            if x is None or y is None:
+                continue
+            points.append((x, y))
+            continue
         if not isinstance(point, (list, tuple)) or len(point) < 2:
             continue
         x = _safe_float(point[0])
@@ -403,8 +425,32 @@ def _bend_radius_from_triplet_um(
     return radius_um
 
 
-def _collect_route_bend_radii_um(raw_route: dict[str, Any], points: list[tuple[float, float]]) -> list[float]:
+def _collect_arc_radius_evidence_um(raw_route: dict[str, Any]) -> list[float]:
     radii: list[float] = []
+    for key in ("segments", "path_segments", "path_elements", "arcs"):
+        raw_elements = raw_route.get(key)
+        if not isinstance(raw_elements, list):
+            continue
+        for element in raw_elements:
+            if not isinstance(element, dict):
+                continue
+            kind = _clean_text(element.get("type") or element.get("kind") or element.get("segment_type")).lower()
+            has_radius_hint = any(radius_key in element for radius_key in ("radius_um", "radius", "bend_radius_um", "arc_radius_um"))
+            if kind and kind not in {"arc", "bend", "circular_arc", "curve"} and not has_radius_hint:
+                continue
+            radius = None
+            for radius_key in ("radius_um", "radius", "bend_radius_um", "arc_radius_um"):
+                radius = _safe_float(element.get(radius_key))
+                if radius is not None:
+                    break
+            if radius is None or radius < 0.0:
+                continue
+            radii.append(radius)
+    return radii
+
+
+def _collect_route_bend_radii_um(raw_route: dict[str, Any], points: list[tuple[float, float]]) -> list[float]:
+    radii: list[float] = list(_collect_arc_radius_evidence_um(raw_route))
 
     raw_bends = raw_route.get("bends")
     if isinstance(raw_bends, list):
@@ -660,17 +706,19 @@ def _evaluate_local_min_enclosure(routes: list[dict[str, Any]], required_um: flo
     )
 
 
-def _evaluate_local_rule_results(req: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _evaluate_local_rule_results(req: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], list[str]]:
     design_rules = _extract_local_design_rules(req)
     required_by_rule = _resolve_local_rule_thresholds(design_rules)
+    require_explicit_pdk_rules = bool(req.get("require_explicit_pdk_rules"))
+    missing_explicit_rule_ids = _missing_explicit_rule_ids(design_rules) if require_explicit_pdk_rules else []
 
     raw_routes = _extract_local_routes_payload(req)
     if raw_routes is None:
-        return _local_rule_error_results(required_by_rule)
+        return _local_rule_error_results(required_by_rule), missing_explicit_rule_ids
 
     routes = _normalize_local_routes(raw_routes)
 
-    return {
+    results = {
         "DRC.WG.MIN_WIDTH": _evaluate_local_min_width(routes, required_by_rule["DRC.WG.MIN_WIDTH"]),
         "DRC.WG.MIN_SPACING": _evaluate_local_min_spacing(
             routes,
@@ -685,6 +733,16 @@ def _evaluate_local_rule_results(req: dict[str, Any]) -> dict[str, dict[str, Any
             required_by_rule["DRC.WG.MIN_ENCLOSURE"],
         ),
     }
+    if missing_explicit_rule_ids:
+        for rule_id in missing_explicit_rule_ids:
+            results[rule_id] = _rule_result(
+                status="error",
+                required_um=None,
+                observed_um=None,
+                violation_count=0,
+                entity_refs=[],
+            )
+    return results, missing_explicit_rule_ids
 
 
 def _normalize_rule_results(raw_rule_results: Any) -> dict[str, dict[str, Any]]:
@@ -864,9 +922,11 @@ def run_foundry_drc_sealed(
             error_code=backend_error_code,
         )
     elif requested_backend in {"local_rules", "local"}:
-        rule_results = _evaluate_local_rule_results(req)
+        rule_results, missing_explicit_rule_ids = _evaluate_local_rule_results(req)
         checks = _checks_from_rule_results(rule_results)
         status = _derived_status(checks)
+        if missing_explicit_rule_ids:
+            backend_error_code = _LOCAL_RULES_MISSING_PDK_RULES_ERROR_CODE
     else:
         # Sealed proprietary backends are not implemented in open-core.
         checks = []

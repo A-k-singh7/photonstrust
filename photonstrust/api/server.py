@@ -62,6 +62,7 @@ from photonstrust.workflow.schema import (
     event_trace_schema_path,
     evidence_bundle_publish_manifest_schema_path,
     external_sim_result_schema_path,
+    pic_foundry_drc_sealed_summary_schema_path,
     protocol_steps_schema_path,
 )
 
@@ -164,6 +165,8 @@ _UI_TELEMETRY_USER_MODES = {"builder", "reviewer", "exec"}
 _UI_TELEMETRY_PROFILES = {"qkd_link", "pic_circuit", "orbit"}
 _UI_TELEMETRY_OUTCOMES = {"success", "failure", "abandoned"}
 _UI_TELEMETRY_EVENT_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
+_SEALED_RUN_ID_RE = re.compile(r"^[a-z0-9_]{8,64}$")
+_FOUNDRY_DRC_ALLOWED_BACKENDS = {"mock", "generic_cli", "local_rules", "local"}
 
 
 def _parse_execution_mode(payload: dict[str, Any] | None) -> str:
@@ -176,6 +179,33 @@ def _parse_execution_mode(payload: dict[str, Any] | None) -> str:
             detail="execution_mode must be 'preview' or 'certification' when provided",
         )
     return mode
+
+
+def _parse_optional_sealed_run_id(payload: dict[str, Any], *, field_name: str = "run_id") -> str | None:
+    raw = payload.get(field_name)
+    if raw is None:
+        return None
+    if not isinstance(raw, str):
+        raise HTTPException(status_code=400, detail=f"{field_name} must be a string when provided")
+    run_id = raw.strip().lower()
+    if not run_id:
+        return None
+    if not _SEALED_RUN_ID_RE.fullmatch(run_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name} must match ^[a-z0-9_]{{8,64}}$ when provided",
+        )
+    return run_id
+
+
+def _parse_foundry_drc_backend(payload: dict[str, Any], *, execution_mode: str) -> str:
+    backend = str(payload.get("backend", "mock") or "mock").strip().lower() or "mock"
+    if backend not in _FOUNDRY_DRC_ALLOWED_BACKENDS:
+        allowed = ", ".join(sorted(_FOUNDRY_DRC_ALLOWED_BACKENDS))
+        raise HTTPException(status_code=400, detail=f"backend must be one of: {allowed}")
+    if execution_mode == "certification" and backend == "mock":
+        raise HTTPException(status_code=400, detail="certification mode requires non-mock backend for foundry DRC")
+    return backend
 
 
 def _auth_mode() -> str:
@@ -3572,6 +3602,8 @@ def pic_layout_foundry_drc_run(payload: dict = Body(...)) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     execution_mode = _parse_execution_mode(payload)
+    backend = _parse_foundry_drc_backend(payload, execution_mode=execution_mode)
+    sealed_run_id = _parse_optional_sealed_run_id(payload, field_name="run_id")
     pdk_req = payload.get("pdk") if isinstance(payload.get("pdk"), dict) else None
 
     layout_run_id = str(payload.get("layout_run_id", "")).strip()
@@ -3606,20 +3638,31 @@ def pic_layout_foundry_drc_run(payload: dict = Body(...)) -> dict[str, Any]:
             ),
         )
 
-    sealed_request: dict[str, Any] = {}
-    if isinstance(payload.get("backend"), str) and str(payload.get("backend") or "").strip():
-        sealed_request["backend"] = str(payload.get("backend")).strip()
-    if isinstance(payload.get("run_id"), str) and str(payload.get("run_id") or "").strip():
-        sealed_request["run_id"] = str(payload.get("run_id")).strip()
+    sealed_request: dict[str, Any] = {
+        "backend": backend,
+    }
+    if sealed_run_id is not None:
+        sealed_request["run_id"] = sealed_run_id
     if payload.get("deck_fingerprint") is not None:
         sealed_request["deck_fingerprint"] = str(payload.get("deck_fingerprint"))
     if isinstance(payload.get("mock_result"), dict):
         sealed_request["mock_result"] = payload.get("mock_result")
+    if backend in {"local_rules", "local"}:
+        if isinstance(payload.get("routes"), (dict, list)):
+            sealed_request["routes"] = payload.get("routes")
+        if isinstance(payload.get("pdk"), dict):
+            sealed_request["pdk"] = payload.get("pdk")
+    if execution_mode == "certification":
+        sealed_request["require_explicit_pdk_rules"] = True
 
     try:
         summary = run_foundry_drc_sealed(sealed_request)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        validate_instance(summary, pic_foundry_drc_sealed_summary_schema_path())
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"foundry drc sealed summary schema validation failed: {exc}") from exc
 
     run_id = uuid.uuid4().hex[:12]
     run_dir = run_store.run_dir_for_id(run_id)

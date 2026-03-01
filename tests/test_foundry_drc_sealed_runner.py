@@ -464,3 +464,88 @@ def test_foundry_drc_sealed_local_rules_fail_with_specific_failed_ids() -> None:
     assert rule_results["DRC.WG.MIN_SPACING"]["violation_count"] == 1
     assert rule_results["DRC.WG.MIN_BEND_RADIUS"]["violation_count"] == 2
     assert rule_results["DRC.WG.MIN_ENCLOSURE"]["violation_count"] == 2
+
+
+def test_foundry_drc_sealed_local_rules_uses_arc_radius_evidence() -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "local_rules",
+            "routes": {
+                "schema_version": "0.1",
+                "kind": "pic.routes",
+                "routes": [
+                    {
+                        "route_id": "arc_route",
+                        "width_um": 0.50,
+                        "enclosure_um": 1.10,
+                        "points_um": [[0.0, 0.0], [10.0, 0.0]],
+                        "segments": [{"type": "arc", "radius_um": 8.0}],
+                    },
+                    {
+                        "route_id": "ref_route",
+                        "width_um": 0.50,
+                        "enclosure_um": 1.10,
+                        "points_um": [[0.0, 2.0], [10.0, 2.0]],
+                        "segments": [{"kind": "circular_arc", "radius": 7.5}],
+                    },
+                ],
+            },
+            "pdk": {
+                "design_rules": {
+                    "min_waveguide_width_um": 0.45,
+                    "min_waveguide_spacing_um": 0.20,
+                    "min_bend_radius_um": 5.0,
+                    "min_waveguide_enclosure_um": 1.0,
+                }
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["status"] == "pass"
+    bend = (report.get("rule_results") or {}).get("DRC.WG.MIN_BEND_RADIUS") or {}
+    assert bend.get("status") == "pass"
+    assert float(bend.get("observed_um") or 0.0) >= 7.5
+
+
+def test_foundry_drc_sealed_local_rules_require_explicit_pdk_rules() -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "local_rules",
+            "require_explicit_pdk_rules": True,
+            "routes": {
+                "schema_version": "0.1",
+                "kind": "pic.routes",
+                "routes": [
+                    {
+                        "route_id": "r1",
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 0.0], [20.0, 0.0]],
+                        "segments": [{"type": "arc", "radius_um": 8.0}],
+                    },
+                    {
+                        "route_id": "r2",
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 2.0], [20.0, 2.0]],
+                        "segments": [{"type": "arc", "radius_um": 8.0}],
+                    },
+                ],
+            },
+            "pdk": {
+                "design_rules": {
+                    "min_waveguide_width_um": 0.45,
+                }
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["status"] == "error"
+    assert report["error_code"] == "local_rules_missing_required_pdk_rules"
+    assert int((report.get("check_counts") or {}).get("errored") or 0) >= 3
+    rule_results = report.get("rule_results") if isinstance(report.get("rule_results"), dict) else {}
+    assert (rule_results.get("DRC.WG.MIN_SPACING") or {}).get("status") == "error"
+    assert (rule_results.get("DRC.WG.MIN_BEND_RADIUS") or {}).get("status") == "error"
+    assert (rule_results.get("DRC.WG.MIN_ENCLOSURE") or {}).get("status") == "error"
