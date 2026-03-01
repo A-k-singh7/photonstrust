@@ -310,8 +310,25 @@ def _build_foundry_summary_stage(
         if isinstance(failed_ids_raw, list)
         else []
     )
+    check_counts = summary.get("check_counts") if isinstance(summary.get("check_counts"), dict) else {}
+    failed_count = _int_or_none(check_counts.get("failed"))
+    errored_count = _int_or_none(check_counts.get("errored"))
+    has_failed_count = failed_count is not None and failed_count > 0
+    has_errored_count = errored_count is not None and errored_count > 0
+    status_pass_contradiction = status == "pass" and (bool(failed_ids) or has_failed_count or has_errored_count)
 
-    if status == "pass":
+    if status_pass_contradiction:
+        stage_status = "error"
+        failure_rule_ids = [f"{stage}.status_pass_contradiction"]
+        contradiction_signals: list[str] = []
+        if failed_ids:
+            contradiction_signals.append(f"failed_check_ids={len(failed_ids)}")
+        if has_failed_count:
+            contradiction_signals.append(f"check_counts.failed={failed_count}")
+        if has_errored_count:
+            contradiction_signals.append(f"check_counts.errored={errored_count}")
+        reason = f"{stage} status=pass contradicts reported failures ({', '.join(contradiction_signals)})"
+    elif status == "pass":
         stage_status = "pass"
         reason = f"{stage} status=pass"
     elif status == "fail":
@@ -376,23 +393,39 @@ def _build_foundry_approval_stage(
     evidence_hashes.append(hash_dict(summary))
     decision_text = str(summary.get("decision", "")).strip().lower()
     status_text = str(summary.get("status", "")).strip().lower()
-    merged = decision_text or status_text
 
-    if merged in {"go", "pass", "approved"}:
-        stage_status = "pass"
-        reason = f"foundry_approval status={merged}"
-    elif merged in {"hold", "fail", "rejected", "error"}:
-        stage_status = "fail" if merged != "error" else "error"
-        reason = f"foundry_approval status={merged}"
-        failed_ids_raw = summary.get("failed_check_ids")
-        if isinstance(failed_ids_raw, list):
-            failure_rule_ids = sorted({str(v).strip() for v in failed_ids_raw if str(v).strip()}, key=lambda v: v.lower())
-        if not failure_rule_ids:
-            failure_rule_ids = [f"foundry_approval.{merged}"]
+    decision_signal = _normalize_foundry_approval_signal(decision_text)
+    status_signal = _normalize_foundry_approval_signal(status_text)
+    decision_status_mismatch = (
+        bool(decision_text)
+        and bool(status_text)
+        and decision_signal in {"pass", "hold", "error"}
+        and status_signal in {"pass", "hold", "error"}
+        and decision_signal != status_signal
+    )
+
+    if decision_status_mismatch:
+        stage_status = "hold"
+        reason = f"foundry_approval decision/status mismatch: decision={decision_text}, status={status_text}"
+        failure_rule_ids = ["foundry_approval.decision_status_mismatch"]
     else:
-        stage_status = "error"
-        reason = f"foundry_approval status invalid: {merged or 'missing'}"
-        failure_rule_ids = ["foundry_approval.status_invalid"]
+        merged = decision_text or status_text
+        merged_signal = decision_signal if decision_text else status_signal
+        if merged_signal == "pass":
+            stage_status = "pass"
+            reason = f"foundry_approval status={merged}"
+        elif merged_signal in {"hold", "error"}:
+            stage_status = "fail" if merged_signal != "error" else "error"
+            reason = f"foundry_approval status={merged}"
+            failed_ids_raw = summary.get("failed_check_ids")
+            if isinstance(failed_ids_raw, list):
+                failure_rule_ids = sorted({str(v).strip() for v in failed_ids_raw if str(v).strip()}, key=lambda v: v.lower())
+            if not failure_rule_ids:
+                failure_rule_ids = [f"foundry_approval.{merged}"]
+        else:
+            stage_status = "error"
+            reason = f"foundry_approval status invalid: {merged or 'missing'}"
+            failure_rule_ids = ["foundry_approval.status_invalid"]
 
     if stage_status in {"fail", "error"} and allow_waived_failures and failure_rule_ids:
         if all(rule_id.strip().lower() in applicable_waiver_ids for rule_id in failure_rule_ids):
@@ -410,6 +443,19 @@ def _build_foundry_approval_stage(
         "failure_rule_ids": sorted(set(failure_rule_ids), key=lambda v: v.lower()),
         "waived_rule_ids": waived_rule_ids,
     }
+
+
+def _normalize_foundry_approval_signal(value: str) -> str:
+    normalized = str(value or "").strip().lower()
+    if normalized in {"go", "pass", "approved"}:
+        return "pass"
+    if normalized in {"hold", "fail", "rejected"}:
+        return "hold"
+    if normalized == "error":
+        return "error"
+    if normalized:
+        return "invalid"
+    return ""
 
 
 def _resolve_stage_run_id(*, stage: str, summary: dict[str, Any] | None) -> str:

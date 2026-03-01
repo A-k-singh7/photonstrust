@@ -296,3 +296,60 @@ def test_build_pic_signoff_ladder_multi_stage_fail_fast_on_drc() -> None:
     assert report["ladder"][3]["status"] == "skipped"
     assert report["ladder"][4]["status"] == "skipped"
     validate(instance=report, schema=_schema())
+
+
+def test_build_pic_signoff_ladder_detects_pass_status_contradiction_in_foundry_summary() -> None:
+    assembly_report = _assembly_report()
+    request = {
+        "assembly_report": assembly_report,
+        "policy": {"multi_stage": True},
+        "drc_summary": {
+            "run_id": "a" * 12,
+            "status": "pass",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": ["DRC.WG.MIN_WIDTH"],
+            "check_counts": {"total": 1, "passed": 0, "failed": 0, "errored": 1},
+        },
+        "lvs_summary": {"run_id": "b" * 12, "status": "pass", "execution_backend": "generic_cli", "failed_check_ids": []},
+        "pex_summary": {"run_id": "c" * 12, "status": "pass", "execution_backend": "generic_cli", "failed_check_ids": []},
+        "foundry_approval": {"run_id": "d" * 12, "decision": "GO", "status": "approved"},
+    }
+
+    result = build_pic_signoff_ladder(request)
+    report = result["report"]
+    drc_row = report["ladder"][1]
+
+    assert result["decision"] == "HOLD"
+    assert drc_row["stage"] == "drc"
+    assert drc_row["status"] == "error"
+    assert drc_row["failure_rule_ids"] == ["drc.status_pass_contradiction"]
+    assert "failed_check_ids=1" in drc_row["reason"]
+    assert "check_counts.errored=1" in drc_row["reason"]
+    assert report["ladder"][2]["status"] == "skipped"
+    assert report["ladder"][3]["status"] == "skipped"
+    assert report["ladder"][4]["status"] == "skipped"
+    validate(instance=report, schema=_schema())
+
+
+def test_build_pic_signoff_ladder_detects_foundry_approval_decision_status_mismatch() -> None:
+    assembly_report = _assembly_report()
+    request = {
+        "assembly_report": assembly_report,
+        "policy": {"multi_stage": True},
+        "drc_summary": {"run_id": "e" * 12, "status": "pass", "execution_backend": "generic_cli", "failed_check_ids": []},
+        "lvs_summary": {"run_id": "f" * 12, "status": "pass", "execution_backend": "generic_cli", "failed_check_ids": []},
+        "pex_summary": {"run_id": "1" * 12, "status": "pass", "execution_backend": "generic_cli", "failed_check_ids": []},
+        "foundry_approval": {"run_id": "2" * 12, "decision": "GO", "status": "rejected"},
+    }
+
+    result = build_pic_signoff_ladder(request)
+    report = result["report"]
+    approval_row = report["ladder"][4]
+
+    assert result["decision"] == "HOLD"
+    assert approval_row["stage"] == "foundry_approval"
+    assert approval_row["status"] == "hold"
+    assert approval_row["failure_rule_ids"] == ["foundry_approval.decision_status_mismatch"]
+    assert "decision=go" in approval_row["reason"]
+    assert "status=rejected" in approval_row["reason"]
+    validate(instance=report, schema=_schema())
