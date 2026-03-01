@@ -128,3 +128,58 @@ def test_build_tapeout_package_fails_when_required_input_missing(tmp_path: Path)
     with pytest.raises(FileNotFoundError):
         build_tapeout_package({"run_dir": str(run_dir), "output_root": str(tmp_path / "out")})
 
+
+@pytest.mark.parametrize(
+    "malicious_run_id",
+    [
+        "../../../outside_target",
+        r"..\..\outside_target",
+        "abc/def",
+        "abc\\def",
+        "abc..def",
+        "A123",
+        "-abc",
+        "a" * 65,
+    ],
+)
+def test_build_tapeout_package_rejects_malicious_run_id(tmp_path: Path, malicious_run_id: str) -> None:
+    run_dir = _make_source_run(tmp_path)
+    output_root = tmp_path / "tapeout_out"
+
+    with pytest.raises(ValueError, match="run_id"):
+        build_tapeout_package({"run_dir": str(run_dir), "output_root": str(output_root), "run_id": malicious_run_id})
+
+
+def test_build_tapeout_package_rejects_escape_run_id_without_deleting_external_marker(tmp_path: Path) -> None:
+    run_dir = _make_source_run(tmp_path)
+    output_root = tmp_path / "tapeout_out"
+    output_root.mkdir(parents=True, exist_ok=True)
+
+    external_dir = tmp_path / "outside_target"
+    external_dir.mkdir(parents=True, exist_ok=True)
+    marker = external_dir / "marker.txt"
+    marker.write_text("do-not-delete", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="run_id"):
+        build_tapeout_package(
+            {
+                "run_dir": str(run_dir),
+                "output_root": str(output_root),
+                "run_id": "../../../outside_target",
+            }
+        )
+
+    assert external_dir.exists()
+    assert marker.exists()
+    assert marker.read_text(encoding="utf-8") == "do-not-delete"
+
+
+def test_build_tapeout_package_accepts_64_char_run_id(tmp_path: Path) -> None:
+    run_dir = _make_source_run(tmp_path)
+    output_root = tmp_path / "tapeout_out"
+    run_id = "a" + ("b" * 63)
+
+    report = build_tapeout_package({"run_dir": str(run_dir), "output_root": str(output_root), "run_id": run_id})
+
+    assert report["run_id"] == run_id
+    assert Path(report["package_dir"]).name == f"tapeout_{run_id}"

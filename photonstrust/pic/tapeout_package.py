@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 import shutil
@@ -15,6 +16,7 @@ _DEFAULT_OUTPUT_ROOT = Path("results/tapeout_packages")
 _DEFAULT_MANIFEST_NAME = "MANIFEST.sha256"
 _DEFAULT_README_NAME = "README.md"
 _DEFAULT_PACKAGE_MANIFEST_NAME = "tapeout_package_manifest.json"
+_RUN_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 
 _INPUT_SOURCES = {
     "graph.json": Path("inputs/graph.json"),
@@ -61,9 +63,10 @@ def build_tapeout_package(
     output_root.mkdir(parents=True, exist_ok=True)
 
     run_id = _resolve_run_id(request.get("run_id"), run_dir=run_dir)
-    package_dir = output_root / f"tapeout_{run_id}"
+    package_dir = _resolve_package_dir(output_root=output_root, run_id=run_id)
     if package_dir.exists():
         shutil.rmtree(package_dir)
+    _ensure_path_under_root(path=package_dir, root=output_root, label="package_dir")
     package_dir.mkdir(parents=True, exist_ok=False)
 
     inputs_dir = package_dir / "inputs"
@@ -158,10 +161,34 @@ def _resolve_required_path(request: dict[str, Any], key: str, *, repo_root: Path
 
 
 def _resolve_run_id(raw: Any, *, run_dir: Path) -> str:
-    text = str(raw or "").strip().lower()
-    if text:
-        return text
-    return hash_dict({"run_dir": str(run_dir.resolve())})[:12]
+    if raw is None:
+        return hash_dict({"run_dir": str(run_dir.resolve())})[:12]
+    if not isinstance(raw, str):
+        raise TypeError("request.run_id must be a string when provided")
+    text = raw.strip()
+    if not text:
+        raise ValueError("request.run_id must be non-empty when provided")
+    if "/" in text or "\\" in text:
+        raise ValueError("request.run_id must not contain path separators")
+    if text == "." or text == ".." or ".." in text:
+        raise ValueError("request.run_id must not contain traversal segments")
+    if not _RUN_ID_PATTERN.fullmatch(text):
+        raise ValueError("request.run_id must match ^[a-z0-9][a-z0-9._-]{0,63}$")
+    return text
+
+
+def _resolve_package_dir(*, output_root: Path, run_id: str) -> Path:
+    resolved_output_root = output_root.resolve()
+    package_dir = (resolved_output_root / f"tapeout_{run_id}").resolve()
+    _ensure_path_under_root(path=package_dir, root=resolved_output_root, label="package_dir")
+    return package_dir
+
+
+def _ensure_path_under_root(*, path: Path, root: Path, label: str) -> None:
+    try:
+        path.relative_to(root.resolve())
+    except ValueError as exc:
+        raise ValueError(f"{label} escapes output_root: {path}") from exc
 
 
 def _copy_inputs(*, run_dir: Path, inputs_dir: Path) -> dict[str, str]:
@@ -375,4 +402,3 @@ def _sha256_file(path: Path) -> str:
                 break
             digest.update(chunk)
     return digest.hexdigest()
-
