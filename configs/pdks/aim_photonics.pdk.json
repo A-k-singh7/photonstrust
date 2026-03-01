@@ -1,0 +1,60 @@
+{
+  "name": "aim_photonics",
+  "version": "1.0",
+  "design_rules": {
+    "min_waveguide_width_um": 0.50,
+    "min_waveguide_gap_um": 0.25,
+    "min_bend_radius_um": 10.0
+  },
+  "notes": [
+    "Runtime AIM Photonics manifest for alias-driven loading.",
+    "Illustrative values only; replace with foundry-approved deck data in production."
+  ],
+  "capabilities": {
+    "supports_layout": true,
+    "supports_performance_drc": true,
+    "supports_lvs_lite_signoff": true,
+    "supports_spice_export": true
+  },
+  "layer_stack": [
+    {
+      "name": "si_core",
+      "gds_layer": 1,
+      "gds_datatype": 0,
+      "material": "Si",
+      "thickness_um": 0.22
+    },
+    {
+      "name": "si_nitride",
+      "gds_layer": 3,
+      "gds_datatype": 0,
+      "material": "SiN",
+      "thickness_um": 0.40
+    }
+  ],
+  "component_cells": [
+    {
+      "name": "grating_coupler_te",
+      "library": "aim",
+      "cell": "GC_TE",
+      "ports": ["opt1", "opt2"]
+    },
+    {
+      "name": "ring_resonator",
+      "library": "aim",
+      "cell": "RING_SINGLE_BUS",
+      "ports": ["bus_in", "bus_out"]
+    }
+  ],
+  "interop": {
+    "aim": {
+      "enabled": true,
+      "technology_name": "AIM",
+      "pdk_release": "v3"
+    },
+    "siepic": {
+      "enabled": true,
+      "technology_name": "AIM_for_SiEPIC"
+    }
+  }
+}

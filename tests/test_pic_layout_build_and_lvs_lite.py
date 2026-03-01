@@ -136,3 +136,33 @@ def test_pic_lvs_lite_includes_signoff_bundle_summary(tmp_path: Path):
     assert lvs["summary"]["signoff_total_checks"] == 2
     assert lvs["summary"]["signoff_failed_checks"] == 0
     assert isinstance(lvs.get("violations_annotated", []), list)
+
+
+def test_pic_layout_build_gds_is_deterministic_with_fixed_env_timestamp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    pytest.importorskip("gdstk")
+    graph = _demo_pic_graph()
+    monkeypatch.setenv("PT_GDS_TIMESTAMP", "2026-02-14T12:34:56Z")
+
+    out_a = tmp_path / "run_a"
+    out_b = tmp_path / "run_b"
+    rep_a = build_pic_layout_artifacts({"graph": graph}, out_a)
+    rep_b = build_pic_layout_artifacts({"graph": graph}, out_b)
+
+    assert rep_a["summary"]["gds_emitted"] is True
+    assert rep_b["summary"]["gds_emitted"] is True
+    assert (out_a / "layout.gds").read_bytes() == (out_b / "layout.gds").read_bytes()
+
+
+def test_pic_layout_build_gds_is_deterministic_with_settings_timestamp(tmp_path: Path):
+    pytest.importorskip("gdstk")
+    graph = _demo_pic_graph()
+    req = {"graph": graph, "settings": {"gds_timestamp": "2026-02-14T12:34:56Z"}}
+
+    out_a = tmp_path / "run_a"
+    out_b = tmp_path / "run_b"
+    rep_a = build_pic_layout_artifacts(req, out_a)
+    rep_b = build_pic_layout_artifacts(req, out_b)
+
+    assert rep_a["summary"]["gds_emitted"] is True
+    assert rep_b["summary"]["gds_emitted"] is True
+    assert (out_a / "layout.gds").read_bytes() == (out_b / "layout.gds").read_bytes()

@@ -26,6 +26,7 @@ from typing import Any
 from photonstrust.components.pic.library import component_ports
 from photonstrust.graph.compiler import compile_graph
 from photonstrust.graph.schema import validate_graph
+from photonstrust.layout.gds_write import write_gds
 from photonstrust.pdk import resolve_pdk_contract
 from photonstrust.utils import hash_dict
 
@@ -73,12 +74,21 @@ def build_pic_layout_artifacts(
     if str(graph.get("profile", "")).strip().lower() != "pic_circuit":
         raise ValueError("build_pic_layout_artifacts requires graph.profile=pic_circuit")
 
-    settings = normalize_layout_settings(request.get("settings") if isinstance(request.get("settings"), dict) else None)
+    raw_settings = request.get("settings") if isinstance(request.get("settings"), dict) else None
+    settings = normalize_layout_settings(raw_settings)
+    if isinstance(raw_settings, dict):
+        # Forward deterministic/advanced writer knobs without changing v0.1 defaults.
+        for key in ("gds_timestamp", "timestamp", "gds_unit", "gds_precision", "port_marker_size_um"):
+            if key in raw_settings:
+                settings[key] = raw_settings[key]
 
     # PDK: resolve through adapter contract for consistent portability.
     pdk_req = request.get("pdk") if isinstance(request.get("pdk"), dict) else {}
     pdk_contract = resolve_pdk_contract(pdk_req)
     pdk = pdk_contract["pdk"]
+    pdk_for_gds = dict(pdk)
+    if isinstance(pdk_req, dict) and "layer_stack" in pdk_req and "layer_stack" not in pdk_for_gds:
+        pdk_for_gds["layer_stack"] = pdk_req["layer_stack"]
 
     # Compile to normalized netlist (but keep UI positions from the input graph).
     compiled = compile_graph(graph, require_schema=require_schema)
@@ -125,7 +135,15 @@ def build_pic_layout_artifacts(
 
     layout_gds_path = None
     try:
-        layout_gds_path = _emit_gds(output_dir, netlist, node_positions_um, ports, routes, settings)
+        layout_gds_path = _emit_gds(
+            output_dir,
+            netlist,
+            pdk_for_gds,
+            node_positions_um,
+            ports,
+            routes,
+            settings,
+        )
     except OptionalDependencyError as exc:
         warnings.append(str(exc))
 
@@ -326,87 +344,21 @@ def _gdstk_version_or_none() -> str | None:
 def _emit_gds(
     output_dir: Path,
     netlist: dict[str, Any],
+    pdk: dict[str, Any],
     node_positions_um: dict[str, tuple[float, float]],
     ports: dict[str, Any],
     routes: dict[str, Any],
     settings: dict[str, Any],
 ) -> Path:
-    gdstk = _import_gdstk()
-
-    wg_layer = settings["waveguide_layer"]
-    comp_layer = settings["component_layer"]
-    label_layer = settings["label_layer"]
-    label_prefix = str(settings["label_prefix"])
-    cell_name = str(settings["cell_name"] or "TOP")
-
-    lib = gdstk.Library(unit=1e-6, precision=1e-9)
-    cell = gdstk.Cell(cell_name)
-
-    # Components: bounding boxes (visual + anchor).
-    bw = float(settings["component_box_w_um"])
-    bh = float(settings["component_box_h_um"])
-    for node in (netlist.get("nodes") or []):
-        if not isinstance(node, dict):
-            continue
-        node_id = str(node.get("id", "")).strip()
-        if not node_id:
-            continue
-        x0, y0 = node_positions_um.get(node_id, (0.0, 0.0))
-        rect = gdstk.rectangle(
-            (x0 - bw / 2.0, y0 - bh / 2.0),
-            (x0 + bw / 2.0, y0 + bh / 2.0),
-            layer=int(comp_layer["layer"]),
-            datatype=int(comp_layer["datatype"]),
-        )
-        cell.add(rect)
-
-    # Routes: PATH elements (FlexPath).
-    for r in (routes.get("routes") or []):
-        if not isinstance(r, dict):
-            continue
-        pts = r.get("points_um") or []
-        if not isinstance(pts, list) or len(pts) < 2:
-            continue
-        try:
-            points = [(float(p[0]), float(p[1])) for p in pts]
-        except Exception:
-            continue
-        w = float(r.get("width_um", 0.0) or 0.0)
-        if w <= 0.0:
-            continue
-        cell.add(
-            gdstk.FlexPath(
-                points,
-                w,
-                # Use real GDS PATH elements (not polygonized boundaries) so downstream
-                # extraction (KLayout macro / gds_extract) can reliably recover spines.
-                simple_path=True,
-                layer=int(wg_layer["layer"]),
-                datatype=int(wg_layer["datatype"]),
-            )
-        )
-
-    # Port labels (for extraction/LVS-lite).
-    for p in (ports.get("ports") or []):
-        if not isinstance(p, dict):
-            continue
-        node = str(p.get("node", "")).strip()
-        port = str(p.get("port", "")).strip()
-        if not node or not port:
-            continue
-        x = float(p.get("x_um", 0.0) or 0.0)
-        y = float(p.get("y_um", 0.0) or 0.0)
-        text = f"{label_prefix}:{node}:{port}"
-        cell.add(
-            gdstk.Label(
-                text,
-                (x, y),
-                layer=int(label_layer["layer"]),
-                texttype=int(label_layer["datatype"]),
-            )
-        )
-
-    lib.add(cell)
+    _import_gdstk()
+    writer_settings = dict(settings)
+    writer_settings["_node_positions_um"] = {k: [float(v[0]), float(v[1])] for k, v in node_positions_um.items()}
     gds_path = output_dir / "layout.gds"
-    lib.write_gds(gds_path)
-    return gds_path
+    return write_gds(
+        netlist=netlist,
+        pdk=pdk,
+        output_path=gds_path,
+        routes=routes,
+        ports=ports,
+        settings=writer_settings,
+    )

@@ -34,7 +34,21 @@
       "properties": {
         "name": { "type": ["string", "null"] },
         "manifest_path": { "type": ["string", "null"] }
-      }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "manifest_path": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "name": { "type": "null" },
+            "manifest_path": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
     },
     "pdk": {
       "type": "object",
@@ -44,7 +58,15 @@
         "name": { "type": "string", "minLength": 1 },
         "version": { "type": "string", "minLength": 1 },
         "design_rules": { "type": "object" },
-        "notes": { "type": "array", "items": { "type": "string" } }
+        "notes": { "type": "array", "items": { "type": "string" } },
+        "layer_stack": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "component_cells": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
       }
     },
     "capabilities": {

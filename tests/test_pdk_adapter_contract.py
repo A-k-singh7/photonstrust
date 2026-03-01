@@ -6,7 +6,12 @@ from pathlib import Path
 import pytest
 from jsonschema import validate
 
-from photonstrust.pdk import pdk_capability_matrix, resolve_pdk_contract, validate_pdk_adapter_contract
+from photonstrust.pdk import (
+    get_pdk,
+    pdk_capability_matrix,
+    resolve_pdk_contract,
+    validate_pdk_adapter_contract,
+)
 
 
 def _toy_manifest_path() -> Path:
@@ -23,6 +28,7 @@ def test_resolve_pdk_contract_by_name_validates_against_schema():
     validate(instance=contract, schema=_contract_schema())
 
     assert contract["pdk"]["name"] == "generic_silicon_photonics"
+    assert contract["pdk"]["version"] == "0.1"
     assert contract["request"]["name"] == "generic_silicon_photonics"
     assert contract["request"]["manifest_path"] is None
     assert contract["capabilities"]["supports_layout"] is True
@@ -52,6 +58,35 @@ def test_pdk_capability_matrix_mixed_requests():
     assert rows[0]["name"] == "generic_silicon_photonics"
     assert rows[1]["name"] == "toy_pdk"
     assert rows[1]["capabilities"]["supports_spice_export"] is False
+
+
+def test_resolve_pdk_contract_supports_aim_alias_names():
+    contract = resolve_pdk_contract({"name": "aim"})
+    validate(instance=contract, schema=_contract_schema())
+
+    assert contract["request"]["name"] == "aim"
+    assert contract["request"]["manifest_path"] is None
+    assert contract["pdk"]["name"] == "aim_photonics"
+    assert contract["capabilities"]["supports_lvs_lite_signoff"] is True
+
+
+def test_get_pdk_alias_includes_richer_optional_payload():
+    pdk = get_pdk("aim_photonics")
+
+    assert pdk.name == "aim_photonics"
+    assert isinstance(pdk.layer_stack, list) and len(pdk.layer_stack) >= 1
+    assert isinstance(pdk.component_cells, list) and len(pdk.component_cells) >= 1
+    assert isinstance(pdk.interop, dict) and "aim" in pdk.interop
+
+
+def test_resolve_pdk_contract_from_runtime_config_manifest_path():
+    manifest_path = Path("configs") / "pdks" / "aim_photonics.pdk.json"
+    contract = resolve_pdk_contract({"manifest_path": str(manifest_path)})
+    validate(instance=contract, schema=_contract_schema())
+
+    assert contract["pdk"]["name"] == "aim_photonics"
+    assert contract["request"]["name"] is None
+    assert contract["request"]["manifest_path"] == str(manifest_path)
 
 
 def test_validate_pdk_adapter_contract_rejects_missing_pdk_name():

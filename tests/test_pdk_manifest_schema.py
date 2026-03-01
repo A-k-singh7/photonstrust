@@ -4,7 +4,9 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
 from jsonschema import validate
+from jsonschema.exceptions import ValidationError
 
 from photonstrust.pdk import resolve_pdk_contract
 
@@ -39,3 +41,24 @@ def test_pdk_manifest_schema_manifest_based_contract() -> None:
     contract = resolve_pdk_contract({"manifest_path": str(fixture_path)})
     manifest = _manifest_from_contract(contract, execution_mode="certification")
     validate(instance=manifest, schema=_schema())
+
+
+def test_pdk_manifest_schema_allows_optional_layer_stack_and_component_cells() -> None:
+    contract = resolve_pdk_contract({"name": "aim"})
+    manifest = _manifest_from_contract(contract, execution_mode="preview")
+    manifest["pdk"]["layer_stack"] = [
+        {"name": "si_core", "gds_layer": 1, "gds_datatype": 0},
+    ]
+    manifest["pdk"]["component_cells"] = [
+        {"name": "grating_coupler_te", "library": "aim", "cell": "GC_TE"},
+    ]
+    validate(instance=manifest, schema=_schema())
+
+
+def test_pdk_manifest_schema_request_rejects_name_and_manifest_path_both_null() -> None:
+    contract = resolve_pdk_contract({"name": "generic_silicon_photonics"})
+    manifest = _manifest_from_contract(contract, execution_mode="preview")
+    manifest["request"] = {"name": None, "manifest_path": None}
+
+    with pytest.raises(ValidationError):
+        validate(instance=manifest, schema=_schema())
