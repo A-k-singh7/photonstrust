@@ -1,0 +1,15 @@
+{
+  "checks": [
+    {
+      "check_id": "DRC.WG.MIN_GAP",
+      "check_name": "wg_min_gap",
+      "status": "violation"
+    },
+    {
+      "id": "DRC.WG.MIN_WIDTH",
+      "name": "wg_min_width",
+      "status": "clean"
+    }
+  ],
+  "deck_path": "C:/sealed/secret_drc.deck"
+}

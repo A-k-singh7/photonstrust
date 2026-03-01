@@ -1,0 +1,14 @@
+{
+  "checks": [
+    {
+      "id": "PEX.RC.BOUNDS",
+      "name": "rc_bounds",
+      "status": "violation"
+    },
+    {
+      "id": "PEX.EXTRA.UNKNOWN",
+      "name": "extra_unknown",
+      "status": "mystery"
+    }
+  ]
+}

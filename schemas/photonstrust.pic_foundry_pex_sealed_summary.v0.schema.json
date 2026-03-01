@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_foundry_pex_sealed_summary.v0.schema.json",
+  "title": "PhotonTrust PIC Foundry PEX Sealed Summary (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "run_id",
+    "status",
+    "execution_backend",
+    "started_at",
+    "finished_at",
+    "check_counts",
+    "failed_check_ids",
+    "failed_check_names",
+    "deck_fingerprint",
+    "error_code"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "pic.foundry_pex_sealed_summary" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["pass", "fail", "error"] },
+    "execution_backend": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "check_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "passed", "failed", "errored"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "errored": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "failed_check_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "failed_check_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "deck_fingerprint": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9_.:+\\-/]{1,256}$"
+    },
+    "error_code": { "type": ["string", "null"] }
+  }
+}

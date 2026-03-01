@@ -1,0 +1,15 @@
+{
+  "status": "ViOlAtIoN",
+  "checks": [
+    {
+      "id": "LVS.SHORT.NET",
+      "name": "short_net",
+      "status": "vIoLaTiOn"
+    },
+    {
+      "id": "LVS.DEVICE.MATCH",
+      "name": "device_match",
+      "status": "cLeAn"
+    }
+  ]
+}

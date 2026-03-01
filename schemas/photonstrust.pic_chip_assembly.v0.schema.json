@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_chip_assembly.v0.schema.json",
+  "title": "PhotonTrust PIC Chip Assembly Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "kind",
+    "assembly_run_id",
+    "inputs",
+    "outputs",
+    "stitch",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "kind": { "type": "string", "const": "pic.chip_assembly" },
+    "assembly_run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["graph_hash", "block_refs"],
+      "properties": {
+        "graph_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "block_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["block_id", "run_id", "artifact_hash", "status"],
+            "properties": {
+              "block_id": { "type": "string", "minLength": 1 },
+              "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+              "artifact_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "status": { "type": "string", "enum": ["ready", "missing", "error"] },
+              "kind": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "assembled_blocks", "output_hash"],
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "partial"] },
+            "assembled_blocks": { "type": "integer", "minimum": 0 },
+            "output_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "artifact_relpaths": { "$ref": "#/$defs/artifact_relpaths" }
+          }
+        }
+      }
+    },
+    "stitch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "stitched_links", "failed_links"],
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "partial"] },
+            "stitched_links": { "type": "integer", "minimum": 0 },
+            "failed_links": { "type": "integer", "minimum": 0 },
+            "warnings": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["photonstrust_version", "python", "platform"],
+      "properties": {
+        "photonstrust_version": { "type": "string" },
+        "python": { "type": "string" },
+        "platform": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "artifact_relpaths": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] }
+    }
+  }
+}

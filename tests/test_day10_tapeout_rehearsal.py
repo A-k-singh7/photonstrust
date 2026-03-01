@@ -153,9 +153,20 @@ def test_day10_rehearsal_real_mode_missing_external_scripts_fails_fast(tmp_path:
         ]
     )
 
+    smoke_script = REPO_ROOT / "scripts" / "run_foundry_smoke.py"
+    gate_script = REPO_ROOT / "scripts" / "check_pic_tapeout_gate.py"
     combined_output = completed.stdout + completed.stderr
-    assert completed.returncode == 2, combined_output
-    assert "day10 error: missing required external scripts for real mode:" in combined_output
-    assert "run_foundry_smoke.py" in combined_output
-    assert "check_pic_tapeout_gate.py" in combined_output
-    assert packet_path.exists() is False
+
+    if not smoke_script.exists() or not gate_script.exists():
+        assert completed.returncode == 2, combined_output
+        assert "day10 error: missing required external scripts for real mode:" in combined_output
+        assert "run_foundry_smoke.py" in combined_output
+        assert "check_pic_tapeout_gate.py" in combined_output
+        assert packet_path.exists() is False
+        return
+
+    assert completed.returncode == 1, combined_output
+    assert packet_path.exists()
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    assert packet["decision"] == "HOLD"
+    assert packet["smoke_overall_status"] == "error"

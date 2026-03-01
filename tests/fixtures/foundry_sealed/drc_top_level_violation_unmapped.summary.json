@@ -1,0 +1,10 @@
+{
+  "status": "violation",
+  "checks": [
+    {
+      "id": "DRC.WG.MIN_WIDTH",
+      "name": "wg_min_width",
+      "status": "clean"
+    }
+  ]
+}

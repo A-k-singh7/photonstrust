@@ -14,6 +14,18 @@ def workflow_invdesign_chain_report_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.pic_workflow_invdesign_chain_report.v0.schema.json").resolve()
 
 
+def workflow_chip_chain_report_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_workflow_chip_chain_report.v0.schema.json").resolve()
+
+
+def pic_chip_assembly_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_chip_assembly.v0.schema.json").resolve()
+
+
+def pic_signoff_ladder_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_signoff_ladder.v0.schema.json").resolve()
+
+
 def evidence_bundle_manifest_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.evidence_bundle_manifest.v0.schema.json").resolve()
 
@@ -34,6 +46,14 @@ def pic_foundry_drc_sealed_summary_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.pic_foundry_drc_sealed_summary.v0.schema.json").resolve()
 
 
+def pic_foundry_lvs_sealed_summary_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_foundry_lvs_sealed_summary.v0.schema.json").resolve()
+
+
+def pic_foundry_pex_sealed_summary_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_foundry_pex_sealed_summary.v0.schema.json").resolve()
+
+
 def event_trace_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.event_trace.v0.schema.json").resolve()
 
@@ -44,3 +64,11 @@ def protocol_steps_schema_path() -> Path:
 
 def external_sim_result_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.external_sim_result.v0.schema.json").resolve()
+
+
+def day10_tapeout_rehearsal_packet_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.day10_tapeout_rehearsal_packet.v0.schema.json").resolve()
+
+
+def pic_tapeout_gate_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_tapeout_gate.v0.schema.json").resolve()

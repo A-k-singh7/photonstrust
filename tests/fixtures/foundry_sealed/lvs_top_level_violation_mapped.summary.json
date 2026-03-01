@@ -1,0 +1,10 @@
+{
+  "status": "violation",
+  "checks": [
+    {
+      "id": "LVS.DEVICE.MATCH",
+      "name": "device_match",
+      "status": "clean"
+    }
+  ]
+}

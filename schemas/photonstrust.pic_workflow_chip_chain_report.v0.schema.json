@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_workflow_chip_chain_report.v0.schema.json",
+  "title": "PhotonTrust PIC Workflow Chip Chain Report (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "kind",
+    "workflow_run_id",
+    "inputs",
+    "steps",
+    "summary",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "kind": { "type": "string", "const": "pic.workflow.chip_chain" },
+    "workflow_run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "graph_hash",
+        "assembly_settings_hash",
+        "signoff_settings_hash"
+      ],
+      "properties": {
+        "project_id": { "type": "string", "minLength": 1 },
+        "graph_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "assembly_settings_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "signoff_settings_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "replayed_from_run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" }
+      }
+    },
+    "steps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chip_assembly", "signoff_ladder"],
+      "properties": {
+        "chip_assembly": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["run_id", "status"],
+          "properties": {
+            "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+            "status": { "type": "string", "enum": ["pass", "fail", "error"] },
+            "output_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "signoff_ladder": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["run_id", "status", "decision"],
+          "properties": {
+            "run_id": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+            "status": { "type": "string", "enum": ["pass", "fail", "error"] },
+            "decision": { "type": "string", "enum": ["GO", "HOLD"] }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "final_decision"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "fail", "hold", "error"] },
+        "final_decision": { "type": "string", "enum": ["GO", "HOLD"] }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["photonstrust_version", "python", "platform"],
+      "properties": {
+        "photonstrust_version": { "type": "string" },
+        "python": { "type": "string" },
+        "platform": { "type": "string" }
+      }
+    }
+  }
+}

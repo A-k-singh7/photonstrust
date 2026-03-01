@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.pic_tapeout_gate.v0.schema.json",
+  "title": "PhotonTrust PIC Tapeout Gate Report Schema v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "run_dir",
+    "required_artifacts",
+    "checks",
+    "all_passed"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "photonstrust.pic_tapeout_gate"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_dir": {
+      "type": "string"
+    },
+    "required_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "passed"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "duration_s": {
+            "type": "number"
+          },
+          "details": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "all_passed": {
+      "type": "boolean"
+    }
+  }
+}

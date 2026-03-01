@@ -1,0 +1,126 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.foundry_sealed_generic_cli_golden_cases",
+  "cases": [
+    {
+      "id": "drc_alias_fields_map_fail",
+      "runner": "drc",
+      "summary_fixture": "drc_alias_fields_map_fail.summary.json",
+      "check_status_map": {
+        "clean": "pass",
+        "violation": "fail"
+      },
+      "forbidden_values": [
+        "secret_drc.deck"
+      ],
+      "expected": {
+        "status": "fail",
+        "check_counts": {
+          "total": 2,
+          "passed": 1,
+          "failed": 1,
+          "errored": 0
+        },
+        "failed_check_ids": [
+          "DRC.WG.MIN_GAP"
+        ],
+        "failed_check_names": [
+          "wg_min_gap"
+        ],
+        "error_code": null
+      }
+    },
+    {
+      "id": "drc_top_level_violation_unmapped_derived_pass",
+      "runner": "drc",
+      "summary_fixture": "drc_top_level_violation_unmapped.summary.json",
+      "check_status_map": {
+        "clean": "pass",
+        "violation": "fail"
+      },
+      "expected": {
+        "status": "pass",
+        "check_counts": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "errored": 0
+        },
+        "failed_check_ids": [],
+        "failed_check_names": [],
+        "error_code": null
+      }
+    },
+    {
+      "id": "lvs_top_level_violation_mapped_fail",
+      "runner": "lvs",
+      "summary_fixture": "lvs_top_level_violation_mapped.summary.json",
+      "check_status_map": {
+        "clean": "pass",
+        "violation": "fail"
+      },
+      "expected": {
+        "status": "fail",
+        "check_counts": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "errored": 0
+        },
+        "failed_check_ids": [],
+        "failed_check_names": [],
+        "error_code": null
+      }
+    },
+    {
+      "id": "lvs_case_insensitive_status_map",
+      "runner": "lvs",
+      "summary_fixture": "lvs_case_insensitive_status_map.summary.json",
+      "check_status_map": {
+        "CLEAN": "pass",
+        "VIOLATION": "fail"
+      },
+      "expected": {
+        "status": "fail",
+        "check_counts": {
+          "total": 2,
+          "passed": 1,
+          "failed": 1,
+          "errored": 0
+        },
+        "failed_check_ids": [
+          "LVS.SHORT.NET"
+        ],
+        "failed_check_names": [
+          "short_net"
+        ],
+        "error_code": null
+      }
+    },
+    {
+      "id": "pex_missing_status_error_precedence",
+      "runner": "pex",
+      "summary_fixture": "pex_missing_status_error_precedence.summary.json",
+      "check_status_map": {
+        "clean": "pass",
+        "violation": "fail"
+      },
+      "expected": {
+        "status": "error",
+        "check_counts": {
+          "total": 2,
+          "passed": 0,
+          "failed": 1,
+          "errored": 1
+        },
+        "failed_check_ids": [
+          "PEX.RC.BOUNDS"
+        ],
+        "failed_check_names": [
+          "rc_bounds"
+        ],
+        "error_code": null
+      }
+    }
+  ]
+}

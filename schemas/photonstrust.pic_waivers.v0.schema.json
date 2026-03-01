@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_waivers.v0.schema.json",
+  "title": "PhotonTrust PIC Waivers (v0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "waivers"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0"
+    },
+    "kind": {
+      "type": "string",
+      "const": "photonstrust.pic_waivers"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "waivers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule_id",
+          "entity_ref",
+          "justification",
+          "reviewer",
+          "approved_at",
+          "expires_at",
+          "status"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "entity_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "justification": {
+            "type": "string"
+          },
+          "reviewer": {
+            "type": "string"
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expired",
+              "revoked"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
