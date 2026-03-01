@@ -4,9 +4,17 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -30,7 +38,8 @@ jobs:
 
   optional-dependency-lanes:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 35
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     strategy:
       fail-fast: false
       matrix:
@@ -60,5 +69,20 @@ jobs:
           pip install -e ".[${{ matrix.extras }}]"
       - name: Verify dependency resolution
         run: python -m pip check
-      - name: Optional lane import smoke
-        run: python -c "import importlib; importlib.import_module('${{ matrix.smoke_module }}')"
+      - name: Optional lane checks
+        run: |
+          if [ "${{ matrix.lane }}" = "qutip" ]; then
+            if [ "${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}" = "true" ]; then
+              python scripts/run_qutip_parity_lane.py --strict --output-json results/ci/qutip_lane_report.json
+            else
+              python scripts/run_qutip_parity_lane.py --output-json results/ci/qutip_lane_report.json
+            fi
+          elif [ "${{ matrix.lane }}" = "qiskit" ]; then
+            if [ "${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}" = "true" ]; then
+              python scripts/run_qiskit_lane.py --strict --output-json results/ci/qiskit_lane_report.json
+            else
+              python scripts/run_qiskit_lane.py --output-json results/ci/qiskit_lane_report.json
+            fi
+          else
+            python -c "import importlib; importlib.import_module('${{ matrix.smoke_module }}')"
+          fi

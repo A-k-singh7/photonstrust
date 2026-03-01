@@ -30,10 +30,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: tapeout-gate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tapeout-gate:
     name: PIC Tapeout Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      IS_STRICT_RELEASE: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,6 +54,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev,pic,api,layout]"
+
+      - name: Sanity-check tapeout scripts
+        run: |
+          test -f scripts/run_day10_tapeout_rehearsal.py
+          test -f scripts/build_tapeout_package.py
+          test -f scripts/check_pic_tapeout_gate.py
+          test -f scripts/run_foundry_smoke.py
 
       - name: Run tapeout lane unit tests
         run: |
@@ -68,12 +82,26 @@ jobs:
 
       - name: Build deterministic tapeout package
         run: |
-          python scripts/build_tapeout_package.py \
-            --run-dir results/day10_ci/run_pkg \
-            --output-root results/tapeout_packages_ci \
-            --allow-missing-signoff \
-            --allow-stub-pex \
-            --report-path results/day10_ci/tapeout_package_report.json
+          if [ "${IS_STRICT_RELEASE}" = "true" ]; then
+            python scripts/build_tapeout_package.py \
+              --run-dir results/day10_ci/run_pkg \
+              --output-root results/tapeout_packages_ci \
+              --report-path results/day10_ci/tapeout_package_report.json
+          else
+            python scripts/build_tapeout_package.py \
+              --run-dir results/day10_ci/run_pkg \
+              --output-root results/tapeout_packages_ci \
+              --allow-missing-signoff \
+              --allow-stub-pex \
+              --report-path results/day10_ci/tapeout_package_report.json
+          fi
+
+      - name: Release gate checks (main/tag push only)
+        if: env.IS_STRICT_RELEASE == 'true'
+        run: |
+          python scripts/release_gate_check.py --output results/release_gate_ci/release_gate_report.json
+          python scripts/verify_release_gate_packet.py
+          python scripts/verify_release_gate_packet_signature.py
 
       - name: Upload tapeout artifacts
         if: always()
