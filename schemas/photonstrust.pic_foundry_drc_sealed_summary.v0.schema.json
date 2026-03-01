@@ -21,9 +21,9 @@
   "properties": {
     "schema_version": { "type": "string", "const": "0.1" },
     "kind": { "type": "string", "const": "pic.foundry_drc_sealed_summary" },
-    "run_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "pattern": "^[a-z0-9_]{8,64}$" },
     "status": { "type": "string", "enum": ["pass", "fail", "error"] },
-    "execution_backend": { "type": "string", "minLength": 1 },
+    "execution_backend": { "type": "string", "enum": ["mock", "generic_cli", "local_rules", "local"] },
     "started_at": { "type": "string", "format": "date-time" },
     "finished_at": { "type": "string", "format": "date-time" },
     "check_counts": {
