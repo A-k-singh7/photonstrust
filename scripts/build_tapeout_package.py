@@ -44,6 +44,12 @@ def parse_args() -> argparse.Namespace:
         help="Generate stub foundry_pex_sealed_summary.json when missing",
     )
     parser.add_argument(
+        "--require-foundry-approval",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Require foundry_approval_sealed_summary.json verification artifact (default: true)",
+    )
+    parser.add_argument(
         "--report-path",
         type=Path,
         default=Path("results/tapeout_packages/tapeout_package_report.json"),
@@ -72,6 +78,7 @@ def main() -> int:
         "output_root": str(output_root),
         "allow_missing_signoff": bool(args.allow_missing_signoff),
         "allow_stub_pex": bool(args.allow_stub_pex),
+        "require_foundry_approval": bool(args.require_foundry_approval),
     }
     if args.signoff_ladder_path is not None:
         request["signoff_ladder_path"] = str(_resolve_cli_path(args.signoff_ladder_path, cwd=invocation_cwd))

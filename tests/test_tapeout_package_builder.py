@@ -506,3 +506,39 @@ def test_build_tapeout_package_cli_resolves_paths_from_invocation_cwd(tmp_path: 
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert Path(report["package_dir"]).exists()
     assert Path(report["package_dir"]).parent == (workspace / "pkg_out").resolve()
+
+
+def test_build_tapeout_package_cli_can_disable_foundry_approval_requirement(tmp_path: Path) -> None:
+    workspace = tmp_path / "cli_workspace_no_approval"
+    workspace.mkdir(parents=True, exist_ok=True)
+    run_dir = _make_source_run(workspace)
+    (run_dir / "foundry_approval_sealed_summary.json").unlink()
+
+    script = REPO_ROOT / "scripts" / "build_tapeout_package.py"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--run-dir",
+            "run_pkg",
+            "--run-id",
+            "clinofoundry1",
+            "--output-root",
+            "pkg_out",
+            "--report-path",
+            "reports/tapeout_package_report.json",
+            "--no-require-foundry-approval",
+        ],
+        cwd=str(workspace),
+        env=_subprocess_env(),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    report_path = workspace / "reports" / "tapeout_package_report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    package_dir = Path(report["package_dir"])
+    assert package_dir.exists()
+    assert not (package_dir / "verification" / "foundry_approval_sealed_summary.json").exists()
