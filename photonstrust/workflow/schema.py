@@ -54,6 +54,10 @@ def pic_foundry_pex_sealed_summary_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.pic_foundry_pex_sealed_summary.v0.schema.json").resolve()
 
 
+def pic_foundry_approval_sealed_summary_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_foundry_approval_sealed_summary.v0.schema.json").resolve()
+
+
 def event_trace_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.event_trace.v0.schema.json").resolve()
 

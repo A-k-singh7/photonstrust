@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.pic_foundry_approval_sealed_summary.v0.schema.json",
+  "title": "PhotonTrust PIC Foundry Approval Sealed Summary (v0.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "run_id",
+    "started_at",
+    "finished_at",
+    "decision",
+    "status",
+    "failed_check_ids",
+    "failed_check_names",
+    "source_run_ids",
+    "deck_fingerprint",
+    "error_code"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "kind": { "type": "string", "const": "pic.foundry_approval_sealed_summary" },
+    "run_id": { "type": "string", "pattern": "^[a-z0-9_]{8,64}$" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "decision": { "type": "string", "enum": ["GO", "HOLD"] },
+    "status": { "type": "string", "enum": ["pass", "fail", "error"] },
+    "failed_check_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "failed_check_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "source_run_ids": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["drc", "lvs", "pex"],
+      "properties": {
+        "drc": { "type": "string", "pattern": "^[a-z0-9_]{8,64}$" },
+        "lvs": { "type": "string", "pattern": "^[a-z0-9_]{8,64}$" },
+        "pex": { "type": "string", "pattern": "^[a-z0-9_]{8,64}$" }
+      }
+    },
+    "deck_fingerprint": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9_.:+\\-/]{1,256}$"
+    },
+    "error_code": { "type": ["string", "null"] }
+  }
+}

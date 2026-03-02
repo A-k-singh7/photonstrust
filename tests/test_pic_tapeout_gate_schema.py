@@ -6,6 +6,7 @@ import pytest
 
 from photonstrust.benchmarks.schema import SchemaValidationError, validate_instance
 from photonstrust.workflow.schema import (
+    pic_foundry_approval_sealed_summary_schema_path,
     pic_foundry_drc_sealed_summary_schema_path,
     pic_foundry_lvs_sealed_summary_schema_path,
     pic_foundry_pex_sealed_summary_schema_path,
@@ -75,6 +76,27 @@ def _minimal_foundry_summary(*, kind: str, execution_backend: str, run_id: str =
     if kind == "pic.foundry_drc_sealed_summary":
         summary["rule_results"] = _minimal_drc_rule_results()
     return summary
+
+
+def _minimal_foundry_approval_summary() -> dict:
+    return {
+        "schema_version": "0.1",
+        "kind": "pic.foundry_approval_sealed_summary",
+        "run_id": "phase57_99",
+        "started_at": "2026-02-26T00:00:00Z",
+        "finished_at": "2026-02-26T00:00:01Z",
+        "decision": "GO",
+        "status": "pass",
+        "failed_check_ids": [],
+        "failed_check_names": [],
+        "source_run_ids": {
+            "drc": "phase57_01",
+            "lvs": "phase57_02",
+            "pex": "phase57_03",
+        },
+        "deck_fingerprint": "sha256:foundry_approval_summary",
+        "error_code": None,
+    }
 
 
 _FOUNDRY_SCHEMA_CASES = (
@@ -163,3 +185,15 @@ def test_drc_summary_schema_rejects_incomplete_rule_results() -> None:
 
     with pytest.raises(SchemaValidationError):
         validate_instance(bad, pic_foundry_drc_sealed_summary_schema_path())
+
+
+def test_foundry_approval_sealed_summary_schema_accepts_minimal_valid_instance() -> None:
+    validate_instance(_minimal_foundry_approval_summary(), pic_foundry_approval_sealed_summary_schema_path())
+
+
+def test_foundry_approval_sealed_summary_schema_rejects_non_strict_source_run_ids() -> None:
+    bad = copy.deepcopy(_minimal_foundry_approval_summary())
+    bad["source_run_ids"]["approval"] = "phase57_04"
+
+    with pytest.raises(SchemaValidationError):
+        validate_instance(bad, pic_foundry_approval_sealed_summary_schema_path())
