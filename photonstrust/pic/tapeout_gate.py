@@ -24,6 +24,7 @@ _STRING_FLAGS: dict[str, str] = {
     "drc_summary_rel": "--drc-summary-rel",
     "lvs_summary_rel": "--lvs-summary-rel",
     "pex_summary_rel": "--pex-summary-rel",
+    "foundry_approval_summary_rel": "--foundry-approval-summary-rel",
     "report_path": "--report-path",
 }
 

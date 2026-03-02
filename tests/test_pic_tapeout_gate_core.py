@@ -51,3 +51,22 @@ def test_run_pic_tapeout_gate_minimal_fixture_passes(tmp_path: Path) -> None:
     assert result["report_path"] == str(report_path.resolve())
     assert isinstance(result["report"], dict)
     assert result["report"]["all_passed"] is True
+
+
+def test_run_pic_tapeout_gate_forwards_foundry_approval_summary_rel_flag(tmp_path: Path) -> None:
+    report_path = tmp_path / "dry_run_report_with_approval_rel.json"
+
+    result = run_pic_tapeout_gate(
+        {
+            "run_dir": "results/does_not_matter",
+            "dry_run": True,
+            "report_path": str(report_path),
+            "foundry_approval_summary_rel": "custom/foundry_approval.json",
+        }
+    )
+
+    assert result["ok"] is True
+    assert result["returncode"] == 0
+    assert "--foundry-approval-summary-rel" in result["command"]
+    idx = result["command"].index("--foundry-approval-summary-rel")
+    assert result["command"][idx + 1] == "custom/foundry_approval.json"
