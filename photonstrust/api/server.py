@@ -173,7 +173,7 @@ _UI_TELEMETRY_EVENT_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
 _SEALED_RUN_ID_RE = re.compile(r"^[a-z0-9_]{8,64}$")
 _FOUNDRY_DRC_ALLOWED_BACKENDS = {"mock", "generic_cli", "local_rules", "local"}
 _FOUNDRY_LVS_ALLOWED_BACKENDS = {"mock", "generic_cli", "local_lvs", "local"}
-_FOUNDRY_PEX_ALLOWED_BACKENDS = {"mock", "generic_cli"}
+_FOUNDRY_PEX_ALLOWED_BACKENDS = {"mock", "generic_cli", "local_pex", "local"}
 _UNTRUSTED_BACKENDS = {"mock", "stub"}
 
 
@@ -4038,6 +4038,15 @@ def pic_layout_foundry_pex_run(payload: dict = Body(...)) -> dict[str, Any]:
         sealed_request["generic_cli_command"] = payload.get("generic_cli_command")
     if payload.get("generic_cli_timeout_sec") is not None:
         sealed_request["generic_cli_timeout_sec"] = payload.get("generic_cli_timeout_sec")
+    if backend in {"local_pex", "local"}:
+        if isinstance(payload.get("graph"), dict):
+            sealed_request["graph"] = payload.get("graph")
+        if isinstance(payload.get("routes"), (dict, list)):
+            sealed_request["routes"] = payload.get("routes")
+        if isinstance(payload.get("pdk"), dict):
+            sealed_request["pdk"] = payload.get("pdk")
+    if execution_mode == "certification":
+        sealed_request["require_explicit_pex_rules"] = True
 
     try:
         summary = run_foundry_pex_sealed(sealed_request)

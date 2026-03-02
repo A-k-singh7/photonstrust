@@ -460,6 +460,69 @@ def test_phase57_foundry_pex_sealed_run_writes_outputs(tmp_path: Path, monkeypat
     assert (Path(payload["output_dir"]) / "pdk_manifest.json").exists()
 
 
+def test_phase57_foundry_pex_local_backend_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    src_run = "8" * 12
+    _write_manual_layout_source_run(src_run, include_pdk_context=True, include_gds=True)
+
+    routes = {
+        "schema_version": "0.1",
+        "kind": "pic.routes",
+        "routes": [
+            {
+                "route_id": "e1:gc_in.out->wg_1.in",
+                "points_um": [[-20.0, 0.0], [80.0, 0.0]],
+                "coupling_coeff": 0.01,
+                "source": {
+                    "edge": {"from": "gc_in", "from_port": "out", "to": "wg_1", "to_port": "in", "kind": "optical"}
+                },
+            },
+            {
+                "route_id": "e2:wg_1.out->ec_out.in",
+                "points_um": [[120.0, 0.0], [220.0, 0.0]],
+                "coupling_coeff": 0.02,
+                "source": {
+                    "edge": {"from": "wg_1", "from_port": "out", "to": "ec_out", "to_port": "in", "kind": "optical"}
+                },
+            },
+        ],
+    }
+    pdk_rules = {
+        "design_rules": {
+            "resistance_ohm_per_um": 0.02,
+            "capacitance_ff_per_um": 0.002,
+            "max_total_resistance_ohm": 5000.0,
+            "max_total_capacitance_ff": 10000.0,
+            "max_rc_delay_ps": 50000.0,
+            "max_coupling_coeff": 0.1,
+            "min_net_coverage_ratio": 1.0,
+        }
+    }
+
+    res = client.post(
+        "/v0/pic/layout/foundry_pex/run",
+        json={
+            "source_run_id": src_run,
+            "execution_mode": "preview",
+            "backend": "local_pex",
+            "deck_fingerprint": "sha256:phase57-pex-local",
+            "graph": _pic_chain_graph(),
+            "routes": routes,
+            "pdk": pdk_rules,
+        },
+    )
+    assert res.status_code == 200
+    payload = res.json()
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    validate_instance(summary, pic_foundry_pex_sealed_summary_schema_path())
+    assert summary.get("execution_backend") == "local_pex"
+    assert summary.get("status") == "pass"
+    assert (Path(payload["output_dir"]) / "foundry_pex_sealed_summary.json").exists()
+    assert (Path(payload["output_dir"]) / "pdk_manifest.json").exists()
+
+
 @pytest.mark.parametrize(
     ("endpoint", "stage"),
     [

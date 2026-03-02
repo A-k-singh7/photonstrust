@@ -55,6 +55,60 @@ def _local_lvs_demo_graph() -> dict:
     }
 
 
+def _local_pex_demo_graph() -> dict:
+    return {
+        "schema_version": "0.1",
+        "graph_id": "local_pex_runner_demo",
+        "profile": "pic_circuit",
+        "nodes": [
+            {"id": "gc_in", "kind": "pic.grating_coupler"},
+            {"id": "wg_1", "kind": "pic.waveguide"},
+            {"id": "ec_out", "kind": "pic.edge_coupler"},
+        ],
+        "edges": [
+            {"id": "e1", "from": "gc_in", "from_port": "out", "to": "wg_1", "to_port": "in", "kind": "optical"},
+            {"id": "e2", "from": "wg_1", "from_port": "out", "to": "ec_out", "to_port": "in", "kind": "optical"},
+        ],
+    }
+
+
+def _local_pex_demo_routes() -> dict:
+    return {
+        "schema_version": "0.1",
+        "kind": "pic.routes",
+        "routes": [
+            {
+                "route_id": "e1:gc_in.out->wg_1.in",
+                "points_um": [[-20.0, 0.0], [80.0, 0.0]],
+                "coupling_coeff": 0.01,
+                "source": {"edge": {"from": "gc_in", "from_port": "out", "to": "wg_1", "to_port": "in", "kind": "optical"}},
+            },
+            {
+                "route_id": "e2:wg_1.out->ec_out.in",
+                "points_um": [[120.0, 0.0], [220.0, 0.0]],
+                "coupling_coeff": 0.02,
+                "source": {
+                    "edge": {"from": "wg_1", "from_port": "out", "to": "ec_out", "to_port": "in", "kind": "optical"}
+                },
+            },
+        ],
+    }
+
+
+def _local_pex_demo_pdk() -> dict:
+    return {
+        "design_rules": {
+            "resistance_ohm_per_um": 0.02,
+            "capacitance_ff_per_um": 0.002,
+            "max_total_resistance_ohm": 5000.0,
+            "max_total_capacitance_ff": 10000.0,
+            "max_rc_delay_ps": 50000.0,
+            "max_coupling_coeff": 0.10,
+            "min_net_coverage_ratio": 1.0,
+        }
+    }
+
+
 def test_foundry_lvs_sealed_mock_pass_schema_and_counts() -> None:
     report = run_foundry_lvs_sealed(
         {
@@ -368,3 +422,93 @@ def test_foundry_pex_sealed_generic_cli_pass_status_conflict_is_error() -> None:
     assert report["status"] == "error"
     assert report["error_code"] == "generic_cli_status_checks_conflict"
     assert report["check_counts"] == {"total": 1, "passed": 0, "failed": 0, "errored": 1}
+
+
+def test_foundry_pex_sealed_local_pex_pass_schema_and_counts() -> None:
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "local_pex",
+            "deck_fingerprint": "sha256:pex_local_pass",
+            "graph": _local_pex_demo_graph(),
+            "routes": _local_pex_demo_routes(),
+            "pdk": _local_pex_demo_pdk(),
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_pex"
+    assert report["status"] == "pass"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 3, "passed": 3, "failed": 0, "errored": 0}
+    assert report["failed_check_ids"] == []
+    assert report["failed_check_names"] == []
+
+
+def test_foundry_pex_sealed_local_alias_fail_reports_deterministic_checks() -> None:
+    routes = _local_pex_demo_routes()
+    routes["routes"][0]["coupling_coeff"] = 0.5
+    routes["routes"][0]["resistance_ohm"] = 9000.0
+    routes["routes"] = [routes["routes"][0]]
+
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "local",
+            "deck_fingerprint": "sha256:pex_local_fail",
+            "graph": _local_pex_demo_graph(),
+            "routes": routes,
+            "pdk": _local_pex_demo_pdk(),
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local"
+    assert report["status"] == "fail"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 3, "passed": 0, "failed": 3, "errored": 0}
+    assert report["failed_check_ids"] == ["PEX.COUPLING.BOUNDS", "PEX.NET.COVERAGE", "PEX.RC.BOUNDS"]
+    assert report["failed_check_names"] == ["coupling_bounds", "net_coverage", "rc_bounds"]
+
+
+def test_foundry_pex_sealed_local_pex_errors_without_coupling_evidence() -> None:
+    routes = _local_pex_demo_routes()
+    for row in routes["routes"]:
+        row.pop("coupling_coeff", None)
+
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "local_pex",
+            "deck_fingerprint": "sha256:pex_local_missing_coupling",
+            "graph": _local_pex_demo_graph(),
+            "routes": routes,
+            "pdk": _local_pex_demo_pdk(),
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_pex"
+    assert report["status"] == "error"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 3, "passed": 2, "failed": 0, "errored": 1}
+    assert report["failed_check_ids"] == []
+
+
+def test_foundry_pex_sealed_local_pex_require_explicit_rules_fails_closed() -> None:
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "local_pex",
+            "require_explicit_pex_rules": True,
+            "graph": _local_pex_demo_graph(),
+            "routes": _local_pex_demo_routes(),
+            "pdk": {"design_rules": {"max_total_resistance_ohm": 5000.0}},
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_pex"
+    assert report["status"] == "error"
+    assert report["error_code"] == "local_pex_missing_required_pdk_rules"
+    assert report["check_counts"] == {"total": 3, "passed": 0, "failed": 0, "errored": 3}

@@ -23,7 +23,7 @@
     "kind": { "type": "string", "const": "pic.foundry_pex_sealed_summary" },
     "run_id": { "type": "string", "pattern": "^[a-z0-9_]{8,64}$" },
     "status": { "type": "string", "enum": ["pass", "fail", "error"] },
-    "execution_backend": { "type": "string", "enum": ["mock", "generic_cli"] },
+    "execution_backend": { "type": "string", "enum": ["mock", "generic_cli", "local_pex", "local"] },
     "started_at": { "type": "string", "format": "date-time" },
     "finished_at": { "type": "string", "format": "date-time" },
     "check_counts": {

@@ -126,7 +126,7 @@ def test_foundry_sealed_summary_schemas_reject_invalid_run_id(
     [
         ("pic.foundry_drc_sealed_summary", pic_foundry_drc_sealed_summary_schema_path, "local_lvs"),
         ("pic.foundry_lvs_sealed_summary", pic_foundry_lvs_sealed_summary_schema_path, "local_rules"),
-        ("pic.foundry_pex_sealed_summary", pic_foundry_pex_sealed_summary_schema_path, "local"),
+        ("pic.foundry_pex_sealed_summary", pic_foundry_pex_sealed_summary_schema_path, "local_lvs"),
     ],
 )
 def test_foundry_sealed_summary_schemas_reject_unsupported_execution_backend(
@@ -140,6 +140,11 @@ def test_foundry_sealed_summary_schemas_reject_unsupported_execution_backend(
 
     with pytest.raises(SchemaValidationError):
         validate_instance(bad, schema_path_fn())
+
+
+def test_pex_summary_schema_accepts_local_pex_backend() -> None:
+    summary = _minimal_foundry_summary(kind="pic.foundry_pex_sealed_summary", execution_backend="local_pex")
+    validate_instance(summary, pic_foundry_pex_sealed_summary_schema_path())
 
 
 def test_drc_summary_schema_rejects_missing_rule_results() -> None:
