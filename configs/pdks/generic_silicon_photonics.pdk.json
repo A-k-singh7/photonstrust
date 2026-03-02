@@ -33,6 +33,20 @@
   ],
   "component_cells": [
     {
+      "name": "grating_coupler_te",
+      "library": "generic_sip",
+      "cell": "GC_TE",
+      "ports": ["opt1", "opt2"],
+      "nominal_il_db": 3.0
+    },
+    {
+      "name": "edge_coupler_te",
+      "library": "generic_sip",
+      "cell": "EC_TE",
+      "ports": ["opt1", "opt2"],
+      "nominal_il_db": 1.2
+    },
+    {
       "name": "waveguide_straight",
       "library": "generic_sip",
       "cell": "WG_STRAIGHT",

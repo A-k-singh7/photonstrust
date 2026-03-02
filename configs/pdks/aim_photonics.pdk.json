@@ -37,7 +37,15 @@
       "name": "grating_coupler_te",
       "library": "aim",
       "cell": "GC_TE",
-      "ports": ["opt1", "opt2"]
+      "ports": ["opt1", "opt2"],
+      "nominal_il_db": 2.6
+    },
+    {
+      "name": "edge_coupler_te",
+      "library": "aim",
+      "cell": "EC_TE",
+      "ports": ["opt1", "opt2"],
+      "nominal_il_db": 1.0
     },
     {
       "name": "ring_resonator",

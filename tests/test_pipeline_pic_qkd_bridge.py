@@ -7,6 +7,7 @@ import pytest
 from photonstrust.pipeline.pic_qkd_bridge import (
     build_qkd_scenario_from_pic,
     extract_eta_chip,
+    extract_eta_chip_channels,
     pdk_coupler_efficiency,
 )
 
@@ -24,6 +25,26 @@ def test_extract_eta_chip_prefers_dag_external_output_power_sum() -> None:
 
     eta = extract_eta_chip(sim_result, wavelength_nm=1550.0)
     assert eta == pytest.approx(0.55)
+
+
+def test_extract_eta_chip_channels_is_deterministic_and_sorted() -> None:
+    sim_result = {
+        "dag_solver": {
+            "external_outputs": [
+                {"node": "z_out", "port": "o2", "power": 0.1},
+                {"node": "a_out", "port": "o1", "power": 0.2},
+                {"node": "a_out", "port": "o1", "power": 0.05},
+                {"node": "m_out", "port": "o3", "power": 0.3},
+                {"node": "bad", "port": "x", "power": "nan"},
+            ]
+        }
+    }
+
+    channels = extract_eta_chip_channels(sim_result, wavelength_nm=1550.0)
+    assert [row["node"] for row in channels] == ["a_out", "a_out", "m_out", "z_out"]
+    assert [row["port"] for row in channels] == ["o1", "o1", "o3", "o2"]
+    assert [row["eta"] for row in channels] == pytest.approx([0.2, 0.05, 0.3, 0.1])
+    assert extract_eta_chip(sim_result, wavelength_nm=1550.0) == pytest.approx(0.65)
 
 
 def test_extract_eta_chip_falls_back_to_chain_eta_and_loss() -> None:

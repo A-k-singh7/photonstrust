@@ -1,0 +1,139 @@
+{
+  "schema_version": "0.1",
+  "graph_id": "demo_qkd_transmitter",
+  "profile": "pic_circuit",
+  "metadata": {
+    "title": "Demo QKD Transmitter",
+    "description": "Simple transmitter-like PIC path with coupler branch and dual outputs",
+    "created_at": "2026-03-02"
+  },
+  "circuit": {
+    "id": "demo_qkd_transmitter",
+    "wavelength_nm": 1550.0,
+    "inputs": [
+      {
+        "node": "gc_in",
+        "port": "in",
+        "kind": "optical"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "ec_out_h",
+        "port": "out",
+        "kind": "optical"
+      },
+      {
+        "node": "ec_out_v",
+        "port": "out",
+        "kind": "optical"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "gc_in",
+      "kind": "pic.grating_coupler",
+      "params": {
+        "insertion_loss_db": 2.0
+      }
+    },
+    {
+      "id": "wg_in",
+      "kind": "pic.waveguide",
+      "params": {
+        "length_um": 300.0,
+        "width_um": 0.5
+      }
+    },
+    {
+      "id": "splitter",
+      "kind": "pic.coupler",
+      "params": {
+        "coupling_ratio": 0.5,
+        "insertion_loss_db": 0.1,
+        "gap_um": 0.25
+      }
+    },
+    {
+      "id": "wg_h",
+      "kind": "pic.waveguide",
+      "params": {
+        "length_um": 200.0,
+        "width_um": 0.5
+      }
+    },
+    {
+      "id": "wg_v",
+      "kind": "pic.waveguide",
+      "params": {
+        "length_um": 220.0,
+        "width_um": 0.5
+      }
+    },
+    {
+      "id": "ec_out_h",
+      "kind": "pic.edge_coupler",
+      "params": {
+        "insertion_loss_db": 1.5
+      }
+    },
+    {
+      "id": "ec_out_v",
+      "kind": "pic.edge_coupler",
+      "params": {
+        "insertion_loss_db": 1.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "gc_in",
+      "from_port": "out",
+      "to": "wg_in",
+      "to_port": "in",
+      "kind": "optical"
+    },
+    {
+      "id": "e2",
+      "from": "wg_in",
+      "from_port": "out",
+      "to": "splitter",
+      "to_port": "in1",
+      "kind": "optical"
+    },
+    {
+      "id": "e3",
+      "from": "splitter",
+      "from_port": "out1",
+      "to": "wg_h",
+      "to_port": "in",
+      "kind": "optical"
+    },
+    {
+      "id": "e4",
+      "from": "splitter",
+      "from_port": "out2",
+      "to": "wg_v",
+      "to_port": "in",
+      "kind": "optical"
+    },
+    {
+      "id": "e5",
+      "from": "wg_h",
+      "from_port": "out",
+      "to": "ec_out_h",
+      "to_port": "in",
+      "kind": "optical"
+    },
+    {
+      "id": "e6",
+      "from": "wg_v",
+      "from_port": "out",
+      "to": "ec_out_v",
+      "to_port": "in",
+      "kind": "optical"
+    }
+  ]
+}

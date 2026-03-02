@@ -6,6 +6,52 @@ import math
 from typing import Any, Iterable
 
 
+def extract_eta_chip_channels(sim_result: dict[str, Any], wavelength_nm: float) -> list[dict[str, Any]]:
+    """Extract per-output eta channels from DAG external outputs.
+
+    Returns deterministic rows sorted by ``(node, port, source_index)``.
+    Rows include:
+      - ``channel_id``: stable identifier for this output
+      - ``node`` / ``port``: normalized endpoint names when available
+      - ``eta``: clamped output power interpreted as transmission efficiency
+    """
+
+    selected = _select_wavelength_point(sim_result, wavelength_nm=wavelength_nm)
+    dag_solver = selected.get("dag_solver") if isinstance(selected.get("dag_solver"), dict) else {}
+    external_outputs = dag_solver.get("external_outputs")
+    if not isinstance(external_outputs, list):
+        return []
+
+    rows: list[dict[str, Any]] = []
+    for idx, raw in enumerate(external_outputs):
+        if not isinstance(raw, dict):
+            continue
+        power = _as_finite_float(raw.get("power"))
+        if power is None:
+            continue
+        node = str(raw.get("node") or "").strip()
+        port = str(raw.get("port") or "").strip()
+        row = {
+            "channel_id": f"{node}.{port}" if node or port else f"output_{idx:04d}",
+            "node": node,
+            "port": port,
+            "eta": _clamp01(max(0.0, power)),
+            "_source_index": int(idx),
+        }
+        rows.append(row)
+
+    rows.sort(
+        key=lambda row: (
+            str(row.get("node", "")).lower(),
+            str(row.get("port", "")).lower(),
+            int(row.get("_source_index", 0)),
+        )
+    )
+    for row in rows:
+        row.pop("_source_index", None)
+    return rows
+
+
 def extract_eta_chip(sim_result: dict[str, Any], wavelength_nm: float) -> float:
     """Extract chip transmission efficiency from PIC simulation outputs.
 
@@ -15,23 +61,11 @@ def extract_eta_chip(sim_result: dict[str, Any], wavelength_nm: float) -> float:
       3) chain_solver.total_loss_db
     """
 
-    selected = _select_wavelength_point(sim_result, wavelength_nm=wavelength_nm)
+    dag_channels = extract_eta_chip_channels(sim_result, wavelength_nm=wavelength_nm)
+    if dag_channels:
+        return _clamp01(sum(float(row.get("eta", 0.0) or 0.0) for row in dag_channels))
 
-    dag_solver = selected.get("dag_solver") if isinstance(selected.get("dag_solver"), dict) else {}
-    external_outputs = dag_solver.get("external_outputs")
-    if isinstance(external_outputs, list):
-        total_power = 0.0
-        seen_power = False
-        for row in external_outputs:
-            if not isinstance(row, dict):
-                continue
-            power = _as_finite_float(row.get("power"))
-            if power is None:
-                continue
-            seen_power = True
-            total_power += max(0.0, power)
-        if seen_power:
-            return _clamp01(total_power)
+    selected = _select_wavelength_point(sim_result, wavelength_nm=wavelength_nm)
 
     chain_solver = selected.get("chain_solver") if isinstance(selected.get("chain_solver"), dict) else {}
     eta_total = _as_finite_float(chain_solver.get("eta_total"))
@@ -52,8 +86,17 @@ def pdk_coupler_efficiency(pdk: Any) -> float:
     if not component_cells:
         return 1.0
 
+    ordered_cells = sorted(
+        component_cells,
+        key=lambda cell: (
+            str((cell or {}).get("name", "")).lower(),
+            str((cell or {}).get("cell", "")).lower(),
+            str((cell or {}).get("library", "")).lower(),
+        ),
+    )
+
     il_db_values: list[float] = []
-    for cell in component_cells:
+    for cell in ordered_cells:
         if not isinstance(cell, dict):
             continue
         if not _looks_like_io_coupler_cell(cell):

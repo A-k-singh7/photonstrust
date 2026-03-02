@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
+import photonstrust.pipeline.certify as certify_mod
 from photonstrust.pipeline.certify import run_certify
 
 
@@ -54,6 +57,21 @@ def test_run_certify_dry_run_returns_payload_and_writes_certificate(tmp_path: Pa
     assert certificate["artifacts"]["certificate_path"] == str(certificate_path)
 
 
+def test_run_certify_dry_run_does_not_import_simulator(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    original_import_module = certify_mod.importlib.import_module
+
+    def _guarded_import(name: str, *args, **kwargs):
+        if name == "photonstrust.pic.simulate":
+            raise ModuleNotFoundError("simulator import should not happen in dry-run")
+        return original_import_module(name, *args, **kwargs)
+
+    monkeypatch.setattr(certify_mod.importlib, "import_module", _guarded_import)
+    result = run_certify(_graph(), output_dir=tmp_path / "dry_run_guarded", dry_run=True)
+    assert result["decision"] == "GO"
+    assert result["certificate"]["inputs"]["dry_run"] is True
+    assert result["certificate"]["pex_summary"]["status"] == "pass"
+
+
 def test_run_certify_hold_when_drc_or_lvs_fail_fixture(tmp_path: Path) -> None:
     out_dir = tmp_path / "certify_hold_case"
     result = run_certify(_graph(width_um=0.1), output_dir=out_dir, dry_run=True)
@@ -61,6 +79,28 @@ def test_run_certify_hold_when_drc_or_lvs_fail_fixture(tmp_path: Path) -> None:
     assert result["decision"] == "HOLD"
     certificate = result["certificate"]
     assert certificate["drc_summary"]["status"] == "fail"
+    assert certificate["signoff"]["decision"] == "HOLD"
+
+
+def test_run_certify_full_mode_handles_missing_simulator_import_as_hold(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_import_module = certify_mod.importlib.import_module
+
+    def _guarded_import(name: str, *args, **kwargs):
+        if name == "photonstrust.pic.simulate":
+            raise ModuleNotFoundError("simulator unavailable")
+        return original_import_module(name, *args, **kwargs)
+
+    monkeypatch.setattr(certify_mod.importlib, "import_module", _guarded_import)
+    result = run_certify(_graph(), output_dir=tmp_path / "full_mode_missing_sim", dry_run=False)
+
+    assert result["decision"] == "HOLD"
+    certificate = result["certificate"]
+    assert certificate["pex_summary"]["status"] == "error"
+    assert certificate["pex_summary"]["failed_check_ids"] == ["PEX.SIMULATION_ERROR"]
+    assert certificate["target_distance_summary"]["reason"] == "simulation_failed"
     assert certificate["signoff"]["decision"] == "HOLD"
 
 

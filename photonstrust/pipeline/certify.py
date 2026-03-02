@@ -16,7 +16,6 @@ from photonstrust.graph import compile_graph, load_graph_file, stable_graph_hash
 from photonstrust.pdk.registry import get_pdk
 from photonstrust.pic.assembly import assemble_pic_chip
 from photonstrust.pic.signoff import build_pic_signoff_ladder
-from photonstrust.pic.simulate import simulate_pic_netlist
 from photonstrust.pipeline.pic_qkd_bridge import (
     build_qkd_scenario_from_pic,
     extract_eta_chip,
@@ -81,7 +80,10 @@ def run_certify(
     pex_started_at = _now_iso()
     if not bool(dry_run):
         try:
-            simulation_result = simulate_pic_netlist(assembled_netlist, wavelength_nm=float(wavelength_nm))
+            simulation_result = _simulate_pic_netlist(
+                assembled_netlist=assembled_netlist,
+                wavelength_nm=float(wavelength_nm),
+            )
         except Exception as exc:  # pragma: no cover - defensive path
             simulate_error = str(exc)
     pex_finished_at = _now_iso()
@@ -284,6 +286,17 @@ def _run_m1_lvs(*, graph_payload: dict[str, Any], assembled_netlist: dict[str, A
     if hasattr(module, "run_lvs_lite"):
         return module.run_lvs_lite(graph_payload, assembled_netlist)
     raise RuntimeError("photonstrust.pic.lvs_lite.run_lvs_lite is not available")
+
+
+def _simulate_pic_netlist(*, assembled_netlist: dict[str, Any], wavelength_nm: float) -> dict[str, Any]:
+    module = importlib.import_module("photonstrust.pic.simulate")
+    simulator = getattr(module, "simulate_pic_netlist", None)
+    if not callable(simulator):
+        raise RuntimeError("photonstrust.pic.simulate.simulate_pic_netlist is not available")
+    result = simulator(assembled_netlist, wavelength_nm=float(wavelength_nm))
+    if not isinstance(result, dict):
+        raise RuntimeError("simulate_pic_netlist returned non-dict payload")
+    return result
 
 
 def _to_drc_summary(report: dict[str, Any], *, graph_hash: str, started_at: str, finished_at: str) -> dict[str, Any]:

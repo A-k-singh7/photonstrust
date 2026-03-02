@@ -44,6 +44,10 @@ jobs:
             --demo-label ci_cv_quick_verify \
             --output-root results/cv_quick_verify_ci
 
+      - name: Run certify dry-run demo
+        run: |
+          python -m photonstrust.cli certify graphs/demo_qkd_transmitter.json --dry-run --output results/certify_ci_demo
+
       - name: Upload CV verify artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -52,6 +56,7 @@ jobs:
           path: |
             results/cv_quick_verify_ci/
             results/demo_pack/ci_cv_quick_verify/
+            results/certify_ci_demo/
 
   tapeout-gate-final:
     name: Tapeout Gate Final
