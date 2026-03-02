@@ -49,7 +49,15 @@ def parse_args() -> argparse.Namespace:
         "--runner-config",
         type=Path,
         default=None,
-        help="Foundry smoke runner config path (required in real mode)",
+        help="Foundry smoke runner config path (required in real mode unless --smoke-local-backend)",
+    )
+    parser.add_argument(
+        "--smoke-local-backend",
+        action="store_true",
+        help=(
+            "Real mode only: run foundry smoke with local backends "
+            "(drc=local_rules, lvs=local_lvs, pex=local_pex) from --run-dir context"
+        ),
     )
     parser.add_argument(
         "--waiver-file",
@@ -104,8 +112,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Print plan only")
     args = parser.parse_args()
 
-    if str(args.mode) == "real" and args.runner_config is None:
-        parser.error("--runner-config is required in real mode")
+    if str(args.mode) == "real" and not bool(args.smoke_local_backend) and args.runner_config is None:
+        parser.error("--runner-config is required in real mode unless --smoke-local-backend is set")
+    if str(args.mode) == "real" and bool(args.smoke_local_backend) and args.runner_config is not None:
+        parser.error("--runner-config cannot be combined with --smoke-local-backend")
     if bool(args.allow_waived_failures) and args.waiver_file is None:
         parser.error("--allow-waived-failures requires --waiver-file")
 
@@ -406,6 +416,7 @@ def main() -> int:
         print(f"- smoke_report_path: {smoke_report_path}")
         print(f"- tapeout_report_path: {tapeout_report_path}")
         print(f"- runner_config: {runner_config}")
+        print(f"- smoke_local_backend: {bool(args.smoke_local_backend)}")
         print(f"- waiver_file: {waiver_file}")
         print(f"- require_non_mock_backend: {bool(args.require_non_mock_backend)}")
         print(f"- allow_waived_failures: {bool(args.allow_waived_failures)}")
@@ -456,9 +467,22 @@ def main() -> int:
             "--timeout-sec",
             str(float(args.timeout_sec)),
             "--no-strict",
-            "--runner-config",
-            str(runner_config),
         ]
+        if bool(args.smoke_local_backend):
+            smoke_cmd.extend(
+                [
+                    "--use-local-backend",
+                    "--run-dir",
+                    str(run_dir),
+                ]
+            )
+        else:
+            smoke_cmd.extend(
+                [
+                    "--runner-config",
+                    str(runner_config),
+                ]
+            )
         smoke_step = _run_command(smoke_cmd, cwd=repo_root)
         smoke_step["name"] = "foundry_smoke"
         smoke_step["passed"] = bool(smoke_step.get("returncode") == 0)
@@ -609,6 +633,7 @@ def main() -> int:
             "deck_fingerprint": str(args.deck_fingerprint),
             "timeout_sec": float(args.timeout_sec),
             "fail_stage": str(args.fail_stage),
+            "smoke_local_backend": bool(args.smoke_local_backend),
         },
         "artifacts": {
             "foundry_smoke_report_json": str(smoke_report_path),

@@ -445,6 +445,103 @@ def test_foundry_pex_sealed_local_pex_pass_schema_and_counts() -> None:
     assert report["failed_check_names"] == []
 
 
+def test_foundry_pex_sealed_local_pex_width_aware_rc_estimation_can_fail() -> None:
+    routes = _local_pex_demo_routes()
+    for row in routes["routes"]:
+        row["width_um"] = 0.25
+
+    pdk = _local_pex_demo_pdk()
+    pdk["design_rules"]["max_total_resistance_ohm"] = 7.0
+
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "local_pex",
+            "deck_fingerprint": "sha256:pex_width_sensitive_rc",
+            "graph": _local_pex_demo_graph(),
+            "routes": routes,
+            "pdk": pdk,
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_pex"
+    assert report["status"] == "fail"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 3, "passed": 2, "failed": 1, "errored": 0}
+    assert report["failed_check_ids"] == ["PEX.RC.BOUNDS"]
+    assert report["failed_check_names"] == ["rc_bounds"]
+
+
+def test_foundry_pex_sealed_local_pex_spacing_coupling_estimation_opt_in() -> None:
+    routes = _local_pex_demo_routes()
+    for row in routes["routes"]:
+        row.pop("coupling_coeff", None)
+        row["width_um"] = 0.5
+        row["spacing_um"] = 1.0
+
+    pdk = _local_pex_demo_pdk()
+    pdk["design_rules"].update(
+        {
+            "enable_spacing_coupling_estimation": True,
+            "coupling_ref_coeff": 0.08,
+            "coupling_ref_spacing_um": 0.2,
+            "coupling_spacing_decay_um": 0.5,
+            "coupling_length_scale_um": 50.0,
+            "coupling_reference_width_um": 0.5,
+            "coupling_width_exponent": 1.0,
+        }
+    )
+
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "local_pex",
+            "deck_fingerprint": "sha256:pex_spacing_estimation",
+            "graph": _local_pex_demo_graph(),
+            "routes": routes,
+            "pdk": pdk,
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_pex"
+    assert report["status"] == "pass"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 3, "passed": 3, "failed": 0, "errored": 0}
+    assert report["failed_check_ids"] == []
+
+
+def test_foundry_pex_sealed_local_pex_rule_aliases_handle_case_and_separators() -> None:
+    report = run_foundry_pex_sealed(
+        {
+            "backend": "local_pex",
+            "require_explicit_pex_rules": True,
+            "deck_fingerprint": "sha256:pex_alias_tolerant_rules",
+            "graph": _local_pex_demo_graph(),
+            "routes": _local_pex_demo_routes(),
+            "pdk": {
+                "design_rules": {
+                    "WG-RESISTANCE-OHM-PER-UM": 0.02,
+                    "WG_CAPACITANCE_FF_PER_UM": 0.002,
+                    "MAX-RESISTANCE-OHM": 5000.0,
+                    "MAX-CAPACITANCE-FF": 10000.0,
+                    "MAX-RC-PS": 50000.0,
+                    "MAX-COUPLING-RATIO": 0.10,
+                    "MIN-NET-COVERAGE-RATIO": 1.0,
+                }
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_pex_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_pex"
+    assert report["status"] == "pass"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 3, "passed": 3, "failed": 0, "errored": 0}
+
+
 def test_foundry_pex_sealed_local_alias_fail_reports_deterministic_checks() -> None:
     routes = _local_pex_demo_routes()
     routes["routes"][0]["coupling_coeff"] = 0.5

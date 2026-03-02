@@ -28,16 +28,77 @@ _LOCAL_PEX_DEFAULT_RULES: dict[str, float] = {
     "max_rc_delay_ps": 50000.0,
     "max_coupling_coeff": 0.1,
     "min_net_coverage_ratio": 1.0,
+    "reference_width_um": 0.5,
+    "min_effective_width_um": 0.05,
+    "resistance_width_exponent": 1.0,
+    "capacitance_width_exponent": 1.0,
+    "enable_spacing_coupling_estimation": 0.0,
+    "coupling_ref_coeff": 0.05,
+    "coupling_ref_spacing_um": 0.5,
+    "coupling_spacing_decay_um": 0.25,
+    "coupling_length_scale_um": 200.0,
+    "coupling_width_exponent": 1.0,
+    "coupling_reference_width_um": 0.5,
+    "min_effective_spacing_um": 0.02,
 }
 _LOCAL_PEX_RULE_ALIASES: dict[str, tuple[str, ...]] = {
-    "resistance_ohm_per_um": ("resistance_ohm_per_um", "wg_resistance_ohm_per_um"),
-    "capacitance_ff_per_um": ("capacitance_ff_per_um", "wg_capacitance_ff_per_um"),
-    "max_total_resistance_ohm": ("max_total_resistance_ohm", "max_resistance_ohm"),
-    "max_total_capacitance_ff": ("max_total_capacitance_ff", "max_capacitance_ff"),
-    "max_rc_delay_ps": ("max_rc_delay_ps", "max_rc_ps"),
-    "max_coupling_coeff": ("max_coupling_coeff", "max_coupling_ratio"),
-    "min_net_coverage_ratio": ("min_net_coverage_ratio",),
+    "resistance_ohm_per_um": (
+        "resistance_ohm_per_um",
+        "wg_resistance_ohm_per_um",
+        "waveguide_resistance_ohm_per_um",
+    ),
+    "capacitance_ff_per_um": (
+        "capacitance_ff_per_um",
+        "wg_capacitance_ff_per_um",
+        "waveguide_capacitance_ff_per_um",
+    ),
+    "max_total_resistance_ohm": (
+        "max_total_resistance_ohm",
+        "max_resistance_ohm",
+        "max_total_r_ohm",
+    ),
+    "max_total_capacitance_ff": (
+        "max_total_capacitance_ff",
+        "max_capacitance_ff",
+        "max_total_c_ff",
+    ),
+    "max_rc_delay_ps": ("max_rc_delay_ps", "max_rc_ps", "max_delay_ps"),
+    "max_coupling_coeff": ("max_coupling_coeff", "max_coupling_ratio", "max_xt_coeff"),
+    "min_net_coverage_ratio": ("min_net_coverage_ratio", "min_coverage_ratio"),
+    "reference_width_um": (
+        "reference_width_um",
+        "waveguide_reference_width_um",
+        "nominal_width_um",
+    ),
+    "min_effective_width_um": ("min_effective_width_um", "min_effective_wg_width_um"),
+    "resistance_width_exponent": ("resistance_width_exponent", "resistance_width_power"),
+    "capacitance_width_exponent": ("capacitance_width_exponent", "capacitance_width_power"),
+    "enable_spacing_coupling_estimation": (
+        "enable_spacing_coupling_estimation",
+        "estimate_coupling_from_spacing",
+        "spacing_based_coupling_estimation",
+    ),
+    "coupling_ref_coeff": ("coupling_ref_coeff", "coupling_reference_coeff"),
+    "coupling_ref_spacing_um": ("coupling_ref_spacing_um", "coupling_reference_spacing_um"),
+    "coupling_spacing_decay_um": ("coupling_spacing_decay_um", "coupling_decay_um"),
+    "coupling_length_scale_um": (
+        "coupling_length_scale_um",
+        "coupling_parallel_length_scale_um",
+    ),
+    "coupling_width_exponent": ("coupling_width_exponent",),
+    "coupling_reference_width_um": ("coupling_reference_width_um", "coupling_ref_width_um"),
+    "min_effective_spacing_um": ("min_effective_spacing_um", "min_spacing_for_coupling_um"),
 }
+_LOCAL_PEX_EXPLICIT_REQUIRED_RULES: tuple[str, ...] = (
+    "resistance_ohm_per_um",
+    "capacitance_ff_per_um",
+    "max_total_resistance_ohm",
+    "max_total_capacitance_ff",
+    "max_rc_delay_ps",
+    "max_coupling_coeff",
+    "min_net_coverage_ratio",
+)
+_LOCAL_PEX_BOOLEAN_RULES: tuple[str, ...] = ("enable_spacing_coupling_estimation",)
 
 
 def _utc_now_iso() -> str:
@@ -56,6 +117,36 @@ def _safe_float(value: Any) -> float | None:
     if not math.isfinite(parsed):
         return None
     return parsed
+
+
+def _safe_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    parsed_num = _safe_float(value)
+    if parsed_num is not None:
+        return bool(parsed_num)
+    parsed_text = _clean_text(value).lower()
+    if parsed_text in {"true", "yes", "on", "enabled"}:
+        return True
+    if parsed_text in {"false", "no", "off", "disabled"}:
+        return False
+    return None
+
+
+def _normalize_rule_key(value: Any) -> str:
+    raw = _clean_text(value).lower()
+    if not raw:
+        return ""
+    return "".join(ch for ch in raw if ch.isalnum())
+
+
+def _normalized_rule_source(raw_rules: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for raw_key, raw_value in raw_rules.items():
+        normalized_key = _normalize_rule_key(raw_key)
+        if normalized_key and normalized_key not in out:
+            out[normalized_key] = raw_value
+    return out
 
 
 def _normalize_status(value: Any, *, default: str = "error") -> str:
@@ -138,19 +229,33 @@ def _extract_local_graph_payload(req: dict[str, Any]) -> dict[str, Any] | None:
 
 def _resolve_local_pex_rules(req: dict[str, Any]) -> tuple[dict[str, float], list[str]]:
     req_pex_rules = req.get("pex_rules") if isinstance(req.get("pex_rules"), dict) else {}
+    settings = req.get("settings") if isinstance(req.get("settings"), dict) else {}
+    settings_pex_rules = settings.get("pex_rules") if isinstance(settings.get("pex_rules"), dict) else {}
     pdk = req.get("pdk") if isinstance(req.get("pdk"), dict) else {}
     pdk_pex_rules = pdk.get("pex_rules") if isinstance(pdk.get("pex_rules"), dict) else {}
     pdk_design_rules = pdk.get("design_rules") if isinstance(pdk.get("design_rules"), dict) else {}
-    sources = [req_pex_rules, pdk_pex_rules, pdk_design_rules]
+    sources = [
+        _normalized_rule_source(req_pex_rules),
+        _normalized_rule_source(settings_pex_rules),
+        _normalized_rule_source(pdk_pex_rules),
+        _normalized_rule_source(pdk_design_rules),
+    ]
 
     out: dict[str, float] = {}
     missing_explicit: list[str] = []
     for canonical_key, aliases in _LOCAL_PEX_RULE_ALIASES.items():
         value: float | None = None
+        normalized_aliases = tuple(_normalize_rule_key(alias) for alias in aliases if _normalize_rule_key(alias))
         for source in sources:
-            for alias in aliases:
+            for alias in normalized_aliases:
                 if alias in source:
-                    value = _safe_float(source.get(alias))
+                    raw_value = source.get(alias)
+                    if canonical_key in _LOCAL_PEX_BOOLEAN_RULES:
+                        parsed_bool = _safe_bool(raw_value)
+                        if parsed_bool is not None:
+                            value = 1.0 if parsed_bool else 0.0
+                    else:
+                        value = _safe_float(raw_value)
                     break
             if value is not None:
                 break
@@ -159,7 +264,8 @@ def _resolve_local_pex_rules(req: dict[str, Any]) -> tuple[dict[str, float], lis
             default_value = _safe_float(_LOCAL_PEX_DEFAULT_RULES.get(canonical_key))
             if default_value is not None:
                 value = default_value
-            missing_explicit.append(canonical_key)
+            if canonical_key in _LOCAL_PEX_EXPLICIT_REQUIRED_RULES:
+                missing_explicit.append(canonical_key)
 
         if value is None:
             value = 0.0
@@ -191,6 +297,44 @@ def _polyline_length_um(raw_points: Any) -> float | None:
     return total
 
 
+def _route_width_um(raw_route: dict[str, Any]) -> float | None:
+    for key in ("width_um", "width", "core_width_um", "waveguide_width_um"):
+        parsed = _safe_float(raw_route.get(key))
+        if parsed is not None and parsed > 0:
+            return float(parsed)
+
+    raw_cross_section = raw_route.get("cross_section")
+    if isinstance(raw_cross_section, dict):
+        for key in ("width_um", "width", "core_width_um"):
+            parsed = _safe_float(raw_cross_section.get(key))
+            if parsed is not None and parsed > 0:
+                return float(parsed)
+    return None
+
+
+def _route_spacing_um(raw_route: dict[str, Any]) -> float | None:
+    for key in ("spacing_um", "gap_um", "coupling_spacing_um", "nearest_neighbor_spacing_um"):
+        parsed = _safe_float(raw_route.get(key))
+        if parsed is not None and parsed >= 0:
+            return float(parsed)
+
+    raw_coupling = raw_route.get("coupling")
+    if isinstance(raw_coupling, dict):
+        for key in ("spacing_um", "gap_um"):
+            parsed = _safe_float(raw_coupling.get(key))
+            if parsed is not None and parsed >= 0:
+                return float(parsed)
+    return None
+
+
+def _route_parallel_length_um(raw_route: dict[str, Any], *, length_um: float | None) -> float | None:
+    for key in ("parallel_length_um", "parallel_run_length_um", "coupling_length_um"):
+        parsed = _safe_float(raw_route.get(key))
+        if parsed is not None and parsed >= 0:
+            return float(parsed)
+    return length_um
+
+
 def _edge_key_from_route(route: dict[str, Any], *, fallback: str) -> str:
     source = route.get("source") if isinstance(route.get("source"), dict) else {}
     edge = source.get("edge") if isinstance(source.get("edge"), dict) else {}
@@ -214,6 +358,9 @@ def _normalize_local_routes(raw_routes: list[Any]) -> list[dict[str, Any]]:
         length_um = _safe_float(raw.get("length_um"))
         if length_um is None:
             length_um = _polyline_length_um(raw.get("points_um"))
+        width_um = _route_width_um(raw)
+        spacing_um = _route_spacing_um(raw)
+        parallel_length_um = _route_parallel_length_um(raw, length_um=length_um)
 
         resistance_ohm = _safe_float(raw.get("resistance_ohm"))
         capacitance_ff = _safe_float(raw.get("capacitance_ff"))
@@ -228,6 +375,9 @@ def _normalize_local_routes(raw_routes: list[Any]) -> list[dict[str, Any]]:
                 "route_id": route_id,
                 "edge_key": _edge_key_from_route(raw, fallback=route_id),
                 "length_um": length_um,
+                "width_um": width_um,
+                "spacing_um": spacing_um,
+                "parallel_length_um": parallel_length_um,
                 "resistance_ohm": resistance_ohm,
                 "capacitance_ff": capacitance_ff,
                 "coupling_coeff": coupling_coeff,
@@ -242,9 +392,15 @@ def _evaluate_local_rc_bounds(routes: list[dict[str, Any]], rules: dict[str, flo
 
     res_per_um = float(rules["resistance_ohm_per_um"])
     cap_per_um = float(rules["capacitance_ff_per_um"])
+    reference_width_um = float(rules["reference_width_um"])
+    min_effective_width_um = float(rules["min_effective_width_um"])
+    resistance_width_exponent = max(float(rules["resistance_width_exponent"]), 0.0)
+    capacitance_width_exponent = max(float(rules["capacitance_width_exponent"]), 0.0)
     max_r = float(rules["max_total_resistance_ohm"])
     max_c = float(rules["max_total_capacitance_ff"])
     max_rc_ps = float(rules["max_rc_delay_ps"])
+    if reference_width_um <= 0 or min_effective_width_um <= 0:
+        return "error"
 
     total_r = 0.0
     total_c = 0.0
@@ -254,10 +410,16 @@ def _evaluate_local_rc_bounds(routes: list[dict[str, Any]], rules: dict[str, flo
         length = _safe_float(route.get("length_um"))
         resistance = _safe_float(route.get("resistance_ohm"))
         capacitance = _safe_float(route.get("capacitance_ff"))
+        width_um = _safe_float(route.get("width_um"))
+        if width_um is not None and width_um <= 0:
+            width_um = None
+        width_for_estimation = max(float(width_um), min_effective_width_um) if width_um is not None else reference_width_um
+        resistance_scale = (reference_width_um / width_for_estimation) ** resistance_width_exponent
+        capacitance_scale = (width_for_estimation / reference_width_um) ** capacitance_width_exponent
         if resistance is None and length is not None:
-            resistance = float(length) * res_per_um
+            resistance = float(length) * res_per_um * resistance_scale
         if capacitance is None and length is not None:
-            capacitance = float(length) * cap_per_um
+            capacitance = float(length) * cap_per_um * capacitance_scale
         if resistance is None or capacitance is None or resistance < 0 or capacitance < 0:
             unknown_count += 1
             continue
@@ -275,14 +437,64 @@ def _evaluate_local_rc_bounds(routes: list[dict[str, Any]], rules: dict[str, flo
     return "pass"
 
 
+def _estimate_spacing_coupling_coeff(route: dict[str, Any], rules: dict[str, float]) -> float | None:
+    spacing_um = _safe_float(route.get("spacing_um"))
+    if spacing_um is None or spacing_um < 0:
+        return None
+    reference_spacing_um = float(rules["coupling_ref_spacing_um"])
+    spacing_decay_um = float(rules["coupling_spacing_decay_um"])
+    coupling_ref_coeff = float(rules["coupling_ref_coeff"])
+    coupling_length_scale_um = float(rules["coupling_length_scale_um"])
+    coupling_width_exponent = max(float(rules["coupling_width_exponent"]), 0.0)
+    coupling_reference_width_um = float(rules["coupling_reference_width_um"])
+    min_effective_width_um = float(rules["min_effective_width_um"])
+    min_effective_spacing_um = float(rules["min_effective_spacing_um"])
+
+    if (
+        reference_spacing_um < 0
+        or spacing_decay_um <= 0
+        or coupling_ref_coeff < 0
+        or coupling_length_scale_um <= 0
+        or coupling_reference_width_um <= 0
+        or min_effective_width_um <= 0
+        or min_effective_spacing_um <= 0
+    ):
+        return None
+
+    effective_spacing_um = max(float(spacing_um), min_effective_spacing_um)
+    spacing_term = math.exp(-(effective_spacing_um - reference_spacing_um) / spacing_decay_um)
+
+    width_um = _safe_float(route.get("width_um"))
+    if width_um is None or width_um <= 0:
+        effective_width_um = coupling_reference_width_um
+    else:
+        effective_width_um = max(float(width_um), min_effective_width_um)
+    width_term = (effective_width_um / coupling_reference_width_um) ** coupling_width_exponent
+
+    parallel_length_um = _safe_float(route.get("parallel_length_um"))
+    if parallel_length_um is None:
+        parallel_length_um = _safe_float(route.get("length_um"))
+    if parallel_length_um is None or parallel_length_um < 0:
+        return None
+    length_term = 1.0 - math.exp(-float(parallel_length_um) / coupling_length_scale_um)
+
+    coupling_coeff = coupling_ref_coeff * spacing_term * width_term * length_term
+    if not math.isfinite(coupling_coeff):
+        return None
+    return max(0.0, min(float(coupling_coeff), 1.0))
+
+
 def _evaluate_local_coupling_bounds(routes: list[dict[str, Any]], rules: dict[str, float]) -> str:
     if not routes:
         return "error"
 
     max_coeff = float(rules["max_coupling_coeff"])
+    estimate_from_spacing = float(rules["enable_spacing_coupling_estimation"]) > 0.5
     observed: list[float] = []
     for route in routes:
         coeff = _safe_float(route.get("coupling_coeff"))
+        if coeff is None and estimate_from_spacing:
+            coeff = _estimate_spacing_coupling_coeff(route, rules)
         if coeff is None:
             continue
         if coeff < 0:

@@ -16,6 +16,108 @@ _MANDATORY_DRC_RULE_IDS = (
 )
 
 
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _make_local_layout_run_dir(root: Path) -> Path:
+    run_dir = root / "real_run_pkg"
+    inputs = run_dir / "inputs"
+    inputs.mkdir(parents=True, exist_ok=True)
+
+    _write_json(
+        inputs / "graph.json",
+        {
+            "schema_version": "0.1",
+            "graph_id": "day10_local_graph",
+            "profile": "pic_circuit",
+            "circuit": {"id": "day10_local_graph", "wavelength_nm": 1550},
+            "nodes": [
+                {"id": "gc_in", "kind": "pic.grating_coupler", "params": {}},
+                {"id": "wg_1", "kind": "pic.waveguide", "params": {"length_um": 200.0}},
+                {"id": "ec_out", "kind": "pic.edge_coupler", "params": {}},
+            ],
+            "edges": [
+                {"from": "gc_in", "to": "wg_1", "kind": "optical"},
+                {"from": "wg_1", "to": "ec_out", "kind": "optical"},
+            ],
+        },
+    )
+    _write_json(
+        inputs / "ports.json",
+        {
+            "schema_version": "0.1",
+            "kind": "pic.ports",
+            "ports": [
+                {"node": "gc_in", "port": "out", "role": "out", "x_um": -20.0, "y_um": 0.0},
+                {"node": "wg_1", "port": "in", "role": "in", "x_um": 80.0, "y_um": 0.0},
+                {"node": "wg_1", "port": "out", "role": "out", "x_um": 120.0, "y_um": 0.0},
+                {"node": "ec_out", "port": "in", "role": "in", "x_um": 220.0, "y_um": 0.0},
+            ],
+        },
+    )
+    _write_json(
+        inputs / "routes.json",
+        {
+            "schema_version": "0.1",
+            "kind": "pic.routes",
+            "routes": [
+                {
+                    "route_id": "e1:gc_in.out->wg_1.in",
+                    "width_um": 0.5,
+                    "enclosure_um": 1.5,
+                    "bends": [{"radius_um": 10.0}],
+                    "coupling_coeff": 0.01,
+                    "points_um": [[-20.0, 0.0], [80.0, 0.0]],
+                    "source": {"edge": {"from": "gc_in", "from_port": "out", "to": "wg_1", "to_port": "in", "kind": "optical"}},
+                },
+                {
+                    "route_id": "e2:wg_1.out->ec_out.in",
+                    "width_um": 0.5,
+                    "enclosure_um": 1.5,
+                    "bends": [{"radius_um": 10.0}],
+                    "coupling_coeff": 0.02,
+                    "points_um": [[120.0, 0.0], [220.0, 0.0]],
+                    "source": {
+                        "edge": {
+                            "from": "wg_1",
+                            "from_port": "out",
+                            "to": "ec_out",
+                            "to_port": "in",
+                            "kind": "optical",
+                        }
+                    },
+                },
+            ],
+        },
+    )
+    _write_json(
+        run_dir / "pdk_manifest.json",
+        {
+            "name": "day10_local_pdk",
+            "version": "1",
+            "design_rules": {
+                "min_waveguide_width_um": 0.45,
+                "min_waveguide_gap_um": 0.2,
+                "min_bend_radius_um": 5.0,
+                "min_waveguide_enclosure_um": 1.0,
+            },
+            "pex_rules": {
+                "resistance_ohm_per_um": 0.02,
+                "capacitance_ff_per_um": 0.002,
+                "max_total_resistance_ohm": 5000.0,
+                "max_total_capacitance_ff": 10000.0,
+                "max_rc_delay_ps": 50000.0,
+                "max_coupling_coeff": 0.1,
+                "min_net_coverage_ratio": 1.0,
+            },
+        },
+    )
+    (inputs / "layout.gds").write_bytes(b"GDSII")
+    return run_dir
+
+
 def _run_day10(args: list[str]) -> subprocess.CompletedProcess[str]:
     script = REPO_ROOT / "scripts" / "run_day10_tapeout_rehearsal.py"
     return subprocess.run(
@@ -180,3 +282,43 @@ def test_day10_rehearsal_real_mode_missing_external_scripts_fails_fast(tmp_path:
     packet = json.loads(packet_path.read_text(encoding="utf-8"))
     assert packet["decision"] == "HOLD"
     assert packet["smoke_overall_status"] == "error"
+
+
+def test_day10_rehearsal_real_mode_can_use_local_smoke_backend_without_runner_config(tmp_path: Path) -> None:
+    packet_path = tmp_path / "day10_packet_real_local_go.json"
+    run_dir = _make_local_layout_run_dir(tmp_path)
+
+    completed = _run_day10(
+        [
+            "--mode",
+            "real",
+            "--output-json",
+            str(packet_path),
+            "--run-dir",
+            str(run_dir),
+            "--smoke-local-backend",
+        ]
+    )
+
+    combined_output = completed.stdout + completed.stderr
+    assert completed.returncode == 0, combined_output
+    assert packet_path.exists()
+
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    assert packet["decision"] == "GO"
+    assert packet["smoke_overall_status"] == "pass"
+    assert packet["tapeout_all_passed"] is True
+    assert packet["inputs"]["runner_config"] is None
+    assert packet["inputs"]["smoke_local_backend"] is True
+
+    smoke_step = next(step for step in packet.get("steps", []) if step.get("name") == "foundry_smoke")
+    assert smoke_step["passed"] is True
+    assert "--use-local-backend" in smoke_step.get("command", [])
+
+    artifacts = packet.get("artifacts", {})
+    smoke_report = json.loads(Path(artifacts["foundry_smoke_report_json"]).read_text(encoding="utf-8"))
+    assert smoke_report["mode"] == "local"
+    assert smoke_report["overall_status"] == "pass"
+    assert smoke_report["stages"]["drc"]["execution_backend"] == "local_rules"
+    assert smoke_report["stages"]["lvs"]["execution_backend"] == "local_lvs"
+    assert smoke_report["stages"]["pex"]["execution_backend"] == "local_pex"

@@ -24,10 +24,30 @@ STAGE_RUNNERS = {
     "pex": run_foundry_pex_sealed,
 }
 
+STAGE_LOCAL_BACKENDS = {
+    "drc": "local_rules",
+    "lvs": "local_lvs",
+    "pex": "local_pex",
+}
+
 STAGE_DEFAULT_CHECKS = {
     "drc": ("DRC.SMOKE.DEFAULT", "drc_smoke_default"),
     "lvs": ("LVS.SMOKE.DEFAULT", "lvs_smoke_default"),
     "pex": ("PEX.SMOKE.DEFAULT", "pex_smoke_default"),
+}
+
+STAGE_DRC_STUB_RULE_CHECKS = (
+    ("DRC.WG.MIN_WIDTH", "wg_min_width"),
+    ("DRC.WG.MIN_SPACING", "wg_min_spacing"),
+    ("DRC.WG.MIN_BEND_RADIUS", "wg_min_bend_radius"),
+    ("DRC.WG.MIN_ENCLOSURE", "wg_min_enclosure"),
+)
+
+RUN_DIR_CONTEXT_PATHS = {
+    "graph": (Path("inputs/graph.json"), Path("graph.json")),
+    "routes": (Path("inputs/routes.json"), Path("routes.json")),
+    "ports": (Path("inputs/ports.json"), Path("ports.json")),
+    "pdk": (Path("pdk_manifest.json"), Path("inputs/pdk_manifest.json"), Path("pdk.json")),
 }
 
 
@@ -57,6 +77,20 @@ def parse_args() -> argparse.Namespace:
         help="Optional local JSON file with stage generic_cli contracts",
     )
     parser.add_argument(
+        "--use-local-backend",
+        action="store_true",
+        help=(
+            "Use local sealed backends from layout run directory context "
+            "(drc=local_rules, lvs=local_lvs, pex=local_pex)"
+        ),
+    )
+    parser.add_argument(
+        "--run-dir",
+        type=Path,
+        default=None,
+        help="Layout run directory for --use-local-backend (defaults to current working directory)",
+    )
+    parser.add_argument(
         "--fail-stage",
         choices=["none", *STAGES],
         default="none",
@@ -81,8 +115,12 @@ def _is_truthy_env(value: Any) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _load_json_value(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _load_json_object(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = _load_json_value(path)
     if not isinstance(payload, dict):
         raise ValueError(f"expected JSON object at {path}")
     return payload
@@ -127,6 +165,84 @@ def _load_runner_config(path: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _resolve_run_dir(path: Path | None) -> Path:
+    if path is None:
+        return Path.cwd().resolve()
+    if path.is_absolute():
+        return path.resolve()
+    return (Path.cwd() / path).resolve()
+
+
+def _load_optional_run_context_json(run_dir: Path, rel_paths: tuple[Path, ...]) -> Any | None:
+    for rel_path in rel_paths:
+        candidate = (run_dir / rel_path).resolve()
+        if candidate.exists() and candidate.is_file():
+            return _load_json_value(candidate)
+    return None
+
+
+def _as_named_object(payload: Any, *, key: str) -> dict[str, Any] | None:
+    if isinstance(payload, dict):
+        return dict(payload)
+    if isinstance(payload, list):
+        return {key: payload}
+    return None
+
+
+def _extract_pdk_payload(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    nested = payload.get("pdk")
+    if isinstance(nested, dict):
+        return dict(nested)
+    return dict(payload)
+
+
+def _build_local_stage_requests(run_dir: Path) -> dict[str, dict[str, Any]]:
+    graph_raw = _load_optional_run_context_json(run_dir, RUN_DIR_CONTEXT_PATHS["graph"])
+    routes_raw = _load_optional_run_context_json(run_dir, RUN_DIR_CONTEXT_PATHS["routes"])
+    ports_raw = _load_optional_run_context_json(run_dir, RUN_DIR_CONTEXT_PATHS["ports"])
+    pdk_raw = _load_optional_run_context_json(run_dir, RUN_DIR_CONTEXT_PATHS["pdk"])
+
+    graph = dict(graph_raw) if isinstance(graph_raw, dict) else {}
+    routes_for_drc_pex: dict[str, Any] | list[Any]
+    if isinstance(routes_raw, dict):
+        routes_for_drc_pex = dict(routes_raw)
+    elif isinstance(routes_raw, list):
+        routes_for_drc_pex = list(routes_raw)
+    else:
+        routes_for_drc_pex = {}
+    routes_for_lvs = _as_named_object(routes_raw, key="routes") or {}
+    ports = _as_named_object(ports_raw, key="ports")
+    pdk = _extract_pdk_payload(pdk_raw)
+
+    drc_request: dict[str, Any] = {
+        "backend": STAGE_LOCAL_BACKENDS["drc"],
+        "routes": routes_for_drc_pex,
+    }
+    lvs_request: dict[str, Any] = {
+        "backend": STAGE_LOCAL_BACKENDS["lvs"],
+        "graph": graph,
+        "routes": routes_for_lvs,
+    }
+    pex_request: dict[str, Any] = {
+        "backend": STAGE_LOCAL_BACKENDS["pex"],
+        "graph": graph,
+        "routes": routes_for_drc_pex,
+    }
+    if ports is not None:
+        lvs_request["ports"] = ports
+    if pdk is not None:
+        drc_request["pdk"] = pdk
+        pex_request["pdk"] = pdk
+
+    return {
+        "drc": drc_request,
+        "lvs": lvs_request,
+        "pex": pex_request,
+    }
+
+
 def _normalize_summary(summary: dict[str, Any]) -> dict[str, Any]:
     counts_raw = summary.get("check_counts")
     counts = counts_raw if isinstance(counts_raw, dict) else {}
@@ -160,11 +276,21 @@ def _derive_overall_status(stages: dict[str, dict[str, Any]]) -> str:
 
 def _build_stub_generic_cli(stage: str, *, summary_path: Path, fail_stage: str, timeout_sec: float) -> dict[str, Any]:
     check_id, check_name = STAGE_DEFAULT_CHECKS[stage]
-    check_status = "violation" if stage == fail_stage else "clean"
+    checks: list[dict[str, str]]
+    if stage == "drc":
+        checks = [
+            {"id": rule_id, "name": rule_name, "status": "clean"}
+            for rule_id, rule_name in STAGE_DRC_STUB_RULE_CHECKS
+        ]
+        if stage == fail_stage:
+            checks[0]["status"] = "violation"
+    else:
+        check_status = "violation" if stage == fail_stage else "clean"
+        checks = [{"id": check_id, "name": check_name, "status": check_status}]
     script = (
         "import json, pathlib, sys; "
         "out = pathlib.Path(sys.argv[1]); "
-        f"payload = {{'checks':[{{'id':{check_id!r},'name':{check_name!r},'status':{check_status!r}}}]}}; "
+        f"payload = {{'checks':{checks!r}}}; "
         "out.write_text(json.dumps(payload), encoding='utf-8')"
     )
     return {
@@ -185,6 +311,8 @@ def _print_plan(
     deck_fingerprint: str,
     timeout_sec: float,
     runner_config: Path | None,
+    run_dir: Path | None,
+    use_local_backend: bool,
 ) -> None:
     print("[dry-run] foundry smoke plan")
     print(f"- mode: {mode}")
@@ -194,19 +322,20 @@ def _print_plan(
     print(f"- deck_fingerprint: {deck_fingerprint}")
     print(f"- timeout_sec: {timeout_sec}")
     print(f"- runner_config: {runner_config}")
+    print(f"- use_local_backend: {use_local_backend}")
+    print(f"- run_dir: {run_dir}")
     print(f"- stages: {', '.join(STAGES)}")
 
 
-def _run_stage(stage: str, *, deck_fingerprint: str, generic_cli_payload: dict[str, Any]) -> dict[str, Any]:
+def _run_stage(stage: str, *, deck_fingerprint: str, request_payload: dict[str, Any]) -> dict[str, Any]:
     if stage not in STAGE_RUNNERS:
         raise RuntimeError(f"unsupported stage: {stage}")
     runner = STAGE_RUNNERS[stage]
+    request = dict(request_payload)
+    if "deck_fingerprint" not in request:
+        request["deck_fingerprint"] = deck_fingerprint
     summary = runner(
-        {
-            "backend": "generic_cli",
-            "deck_fingerprint": deck_fingerprint,
-            "generic_cli": generic_cli_payload,
-        }
+        request
     )
     if not isinstance(summary, dict):
         raise RuntimeError(f"runner returned non-object summary for stage: {stage}")
@@ -230,17 +359,29 @@ def main() -> int:
         timeout_sec = 20.0
 
     runner_config_path: Path | None = None
+    run_dir_path: Path | None = None
     mode = "stub"
-    stage_payloads: dict[str, dict[str, Any]]
+    stage_payloads: dict[str, dict[str, Any]] = {}
+    stage_requests: dict[str, dict[str, Any]]
 
     try:
-        if args.runner_config is not None:
+        if bool(args.use_local_backend) and args.runner_config is not None:
+            raise ValueError("--use-local-backend cannot be combined with --runner-config")
+
+        if bool(args.use_local_backend):
+            run_dir_path = _resolve_run_dir(args.run_dir)
+            if not run_dir_path.exists() or not run_dir_path.is_dir():
+                raise FileNotFoundError(f"run-dir does not exist or is not a directory: {run_dir_path}")
+            stage_requests = _build_local_stage_requests(run_dir_path)
+            mode = "local"
+        elif args.runner_config is not None:
             runner_config_path = args.runner_config if args.runner_config.is_absolute() else (repo_root / args.runner_config)
             runner_config_path = runner_config_path.resolve()
             stage_payloads = _load_runner_config(runner_config_path)
             mode = "config"
+            stage_requests = {}
         else:
-            stage_payloads = {}
+            stage_requests = {}
     except Exception as exc:
         print(f"foundry_smoke error: {exc}")
         return 1
@@ -254,6 +395,8 @@ def main() -> int:
             deck_fingerprint=str(args.deck_fingerprint),
             timeout_sec=timeout_sec,
             runner_config=runner_config_path,
+            run_dir=run_dir_path,
+            use_local_backend=bool(args.use_local_backend),
         )
         return 0
 
@@ -270,20 +413,37 @@ def main() -> int:
                 fail_stage=fail_stage,
                 timeout_sec=timeout_sec,
             )
+    if mode in {"stub", "config"}:
+        stage_requests = {}
+        for stage in STAGES:
+            cli_payload = dict(stage_payloads.get(stage, {}))
+            if "timeout_s" not in cli_payload:
+                cli_payload["timeout_s"] = timeout_sec
+            stage_requests[stage] = {
+                "backend": "generic_cli",
+                "generic_cli": cli_payload,
+            }
 
     stage_summaries: dict[str, dict[str, Any]] = {}
     for stage in STAGES:
-        cli_payload = dict(stage_payloads.get(stage, {}))
-        if "timeout_s" not in cli_payload:
-            cli_payload["timeout_s"] = timeout_sec
+        stage_request = dict(stage_requests.get(stage, {}))
+        requested_backend = str(stage_request.get("backend") or "").strip().lower() or "generic_cli"
+        if requested_backend == "generic_cli":
+            raw_cli_payload = stage_request.get("generic_cli")
+            cli_payload = dict(raw_cli_payload) if isinstance(raw_cli_payload, dict) else {}
+            if "timeout_s" not in cli_payload:
+                cli_payload["timeout_s"] = timeout_sec
+            stage_request["generic_cli"] = cli_payload
+            stage_request["backend"] = "generic_cli"
+
         try:
-            summary = _run_stage(stage, deck_fingerprint=str(args.deck_fingerprint), generic_cli_payload=cli_payload)
+            summary = _run_stage(stage, deck_fingerprint=str(args.deck_fingerprint), request_payload=stage_request)
         except Exception as exc:
             print(f"foundry_smoke error: stage={stage} {exc}")
             summary = {
                 "run_id": "",
                 "status": "error",
-                "execution_backend": "generic_cli",
+                "execution_backend": requested_backend,
                 "check_counts": {"total": 0, "passed": 0, "failed": 0, "errored": 0},
                 "failed_check_ids": [],
                 "failed_check_names": [],
