@@ -14,20 +14,20 @@
         "secret_drc.deck"
       ],
       "expected": {
-        "status": "fail",
+        "status": "error",
         "check_counts": {
-          "total": 2,
+          "total": 4,
           "passed": 1,
           "failed": 1,
-          "errored": 0
+          "errored": 2
         },
         "failed_check_ids": [
-          "DRC.WG.MIN_GAP"
+          "DRC.WG.MIN_SPACING"
         ],
         "failed_check_names": [
-          "wg_min_gap"
+          "wg_min_spacing"
         ],
-        "error_code": null
+        "error_code": "mandatory_rule_results_incomplete"
       }
     },
     {
@@ -39,16 +39,16 @@
         "violation": "fail"
       },
       "expected": {
-        "status": "pass",
+        "status": "error",
         "check_counts": {
-          "total": 1,
+          "total": 4,
           "passed": 1,
           "failed": 0,
-          "errored": 0
+          "errored": 3
         },
         "failed_check_ids": [],
         "failed_check_names": [],
-        "error_code": null
+        "error_code": "mandatory_rule_results_incomplete"
       }
     },
     {
