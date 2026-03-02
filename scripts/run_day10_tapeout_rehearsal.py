@@ -520,26 +520,24 @@ def _derive_foundry_approval(
     smoke_report: dict[str, Any],
     tapeout_report: dict[str, Any],
     summaries: dict[str, dict[str, Any]],
+    include_gate_checks: bool = True,
 ) -> dict[str, Any]:
     smoke_status = str(smoke_report.get("overall_status") or "").strip().lower()
     if smoke_status not in {"pass", "fail", "error"}:
         smoke_status = "error" if smoke_status else "missing"
-    tapeout_all_passed = bool(tapeout_report.get("all_passed", False))
-
-    if smoke_status == "pass" and tapeout_all_passed:
-        return {"decision": "GO", "status": "pass", "failed_check_ids": []}
 
     failed_check_ids: list[str] = []
     for kind in STAGES:
         summary = summaries.get(kind) if isinstance(summaries.get(kind), dict) else {}
         failed_check_ids.extend(_failed_check_ids_from_summary(kind=kind, summary=summary))
-    failed_check_ids.extend(_tapeout_gate_failed_check_ids(tapeout_report))
+    if bool(include_gate_checks):
+        failed_check_ids.extend(_tapeout_gate_failed_check_ids(tapeout_report))
     if smoke_status != "pass":
         failed_check_ids.append(f"foundry_smoke.status_{smoke_status}")
     failed_check_ids = _unique_non_empty(failed_check_ids)
-    if not failed_check_ids:
-        failed_check_ids = ["tapeout_gate.all_passed_false"]
-    return {"decision": "HOLD", "status": "fail", "failed_check_ids": failed_check_ids}
+    if failed_check_ids:
+        return {"decision": "HOLD", "status": "fail", "failed_check_ids": failed_check_ids}
+    return {"decision": "GO", "status": "pass", "failed_check_ids": []}
 
 
 def _resolve_source_run_ids(summaries: dict[str, dict[str, Any]]) -> dict[str, str]:
@@ -563,11 +561,13 @@ def _to_foundry_approval_summary(
     smoke_report: dict[str, Any],
     tapeout_report: dict[str, Any],
     summaries: dict[str, dict[str, Any]],
+    include_gate_checks: bool = True,
 ) -> dict[str, Any]:
     decision_data = _derive_foundry_approval(
         smoke_report=smoke_report,
         tapeout_report=tapeout_report,
         summaries=summaries,
+        include_gate_checks=bool(include_gate_checks),
     )
     failed_check_ids = _unique_non_empty([str(v) for v in decision_data.get("failed_check_ids", []) if str(v).strip()])
     started_at = str(smoke_report.get("generated_at") or _SYNTHETIC_SMOKE_GENERATED_AT)
@@ -607,11 +607,13 @@ def _materialize_foundry_approval_summary(
     smoke_report: dict[str, Any],
     tapeout_report: dict[str, Any],
     summaries: dict[str, dict[str, Any]],
+    include_gate_checks: bool = True,
 ) -> tuple[str, dict[str, Any]]:
     payload = _to_foundry_approval_summary(
         smoke_report=smoke_report,
         tapeout_report=tapeout_report,
         summaries=summaries,
+        include_gate_checks=bool(include_gate_checks),
     )
     path = run_dir / "foundry_approval_sealed_summary.json"
     _write_json(path, payload)
@@ -779,9 +781,11 @@ def main() -> int:
         steps.append(smoke_step)
 
     materialized_paths: dict[str, str] = {}
+    summaries_for_approval: dict[str, dict[str, Any]] = {}
     try:
         smoke_report = _load_json_object(smoke_report_path)
         materialized_paths = _materialize_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
+        summaries_for_approval = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
         steps.append(
             {
                 "name": "materialize_foundry_summaries",
@@ -799,6 +803,34 @@ def main() -> int:
                 "error": str(exc),
             }
         )
+
+    if (not is_synthetic_mode) and summaries_for_approval:
+        try:
+            provisional_approval_path, _ = _materialize_foundry_approval_summary(
+                run_dir=run_dir,
+                smoke_report=smoke_report,
+                tapeout_report={},
+                summaries=summaries_for_approval,
+                include_gate_checks=False,
+            )
+            materialized_paths["foundry_approval"] = provisional_approval_path
+            steps.append(
+                {
+                    "name": "materialize_foundry_approval_summary_pre_gate",
+                    "passed": True,
+                    "duration_s": 0.0,
+                    "path": provisional_approval_path,
+                }
+            )
+        except Exception as exc:
+            steps.append(
+                {
+                    "name": "materialize_foundry_approval_summary_pre_gate",
+                    "passed": False,
+                    "duration_s": 0.0,
+                    "error": str(exc),
+                }
+            )
 
     tapeout_report: dict[str, Any] = {}
     if is_synthetic_mode:
@@ -851,12 +883,14 @@ def main() -> int:
 
     foundry_approval_summary: dict[str, Any] = {}
     try:
-        summaries_for_approval = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
+        if not summaries_for_approval:
+            summaries_for_approval = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
         foundry_approval_path, foundry_approval_summary = _materialize_foundry_approval_summary(
             run_dir=run_dir,
             smoke_report=smoke_report,
             tapeout_report=tapeout_report,
             summaries=summaries_for_approval,
+            include_gate_checks=True,
         )
         materialized_paths["foundry_approval"] = foundry_approval_path
         steps.append(

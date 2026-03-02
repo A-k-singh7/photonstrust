@@ -16,6 +16,7 @@ from typing import Any, Callable
 from photonstrust.benchmarks.schema import validate_instance
 from photonstrust.verification.waivers import load_and_validate_pic_waivers
 from photonstrust.workflow.schema import (
+    pic_foundry_approval_sealed_summary_schema_path,
     pic_foundry_drc_sealed_summary_schema_path,
     pic_foundry_lvs_sealed_summary_schema_path,
     pic_foundry_pex_sealed_summary_schema_path,
@@ -33,6 +34,7 @@ DEFAULT_FOUNDRY_SUMMARY_REL = {
     "drc": "foundry_drc_sealed_summary.json",
     "lvs": "foundry_lvs_sealed_summary.json",
     "pex": "foundry_pex_sealed_summary.json",
+    "foundry_approval": "foundry_approval_sealed_summary.json",
 }
 
 FOUNDRY_SCHEMA_PATHS = {
@@ -91,6 +93,11 @@ def parse_args() -> argparse.Namespace:
         "--pex-summary-rel",
         default=DEFAULT_FOUNDRY_SUMMARY_REL["pex"],
         help="Relative path under --run-dir for PEX sealed summary JSON",
+    )
+    parser.add_argument(
+        "--foundry-approval-summary-rel",
+        default=DEFAULT_FOUNDRY_SUMMARY_REL["foundry_approval"],
+        help="Relative path under --run-dir for foundry approval sealed summary JSON",
     )
     parser.add_argument(
         "--allow-waived-failures",
@@ -217,6 +224,83 @@ def _validate_foundry_summary(
         "status": status,
         "execution_backend": backend,
         "failed_check_ids": failed_ids,
+        "run_id": str(payload.get("run_id", "")).strip().lower(),
+    }
+
+
+def _validate_foundry_approval_summary(
+    *,
+    summary_path: Path,
+    source_rows: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    if not summary_path.exists() or not summary_path.is_file():
+        raise FileNotFoundError(str(summary_path))
+
+    payload = _load_json_object(summary_path)
+    validate_instance(payload, pic_foundry_approval_sealed_summary_schema_path())
+
+    decision = str(payload.get("decision", "")).strip().upper()
+    status = str(payload.get("status", "")).strip().lower()
+    if decision not in {"GO", "HOLD"}:
+        raise ValueError(f"invalid foundry approval decision: {decision!r}")
+    if status not in {"pass", "fail", "error"}:
+        raise ValueError(f"invalid foundry approval status: {status!r}")
+
+    failed_ids_raw = payload.get("failed_check_ids")
+    failed_names_raw = payload.get("failed_check_names")
+    failed_ids = [str(v).strip() for v in failed_ids_raw if str(v).strip()] if isinstance(failed_ids_raw, list) else []
+    failed_names = [str(v).strip() for v in failed_names_raw if str(v).strip()] if isinstance(failed_names_raw, list) else []
+    if len(failed_ids) != len(set(failed_ids)):
+        raise ValueError("foundry approval failed_check_ids has duplicates")
+    if len(failed_ids) != len(failed_names):
+        raise ValueError(
+            "foundry approval failed_check_ids/failed_check_names length mismatch "
+            f"({len(failed_ids)} vs {len(failed_names)})"
+        )
+
+    error_code_raw = payload.get("error_code")
+    error_code = str(error_code_raw).strip() if isinstance(error_code_raw, str) else ""
+    if decision == "GO" and status != "pass":
+        raise ValueError(f"foundry approval decision=GO requires status=pass (got {status})")
+    if decision == "HOLD" and status == "pass":
+        raise ValueError("foundry approval decision=HOLD cannot have status=pass")
+    if status == "pass":
+        if failed_ids:
+            raise ValueError("foundry approval status=pass cannot include failed_check_ids")
+        if error_code:
+            raise ValueError("foundry approval status=pass cannot include error_code")
+    elif not failed_ids and not error_code:
+        raise ValueError(f"foundry approval status={status} requires failed_check_ids or error_code")
+
+    source_run_ids = payload.get("source_run_ids")
+    if not isinstance(source_run_ids, dict):
+        raise ValueError("foundry approval source_run_ids must be an object")
+    for kind in ("drc", "lvs", "pex"):
+        source_row = source_rows.get(kind)
+        if not isinstance(source_row, dict):
+            raise ValueError(f"missing source row for foundry {kind}")
+        expected_run_id = str(source_row.get("run_id") or "").strip().lower()
+        observed_run_id = str(source_run_ids.get(kind) or "").strip().lower()
+        if expected_run_id != observed_run_id:
+            raise ValueError(
+                f"foundry approval source_run_ids[{kind!r}] mismatch "
+                f"(expected {expected_run_id!r}, got {observed_run_id!r})"
+            )
+
+    source_statuses = {
+        kind: str(source_rows.get(kind, {}).get("status") or "").strip().lower()
+        for kind in ("drc", "lvs", "pex")
+    }
+    if decision == "GO" and any(status_text != "pass" for status_text in source_statuses.values()):
+        raise ValueError("foundry approval decision=GO requires drc/lvs/pex statuses to be pass")
+
+    return {
+        "kind": "foundry_approval",
+        "path": str(summary_path),
+        "decision": decision,
+        "status": status,
+        "failed_check_ids": failed_ids,
+        "run_id": str(payload.get("run_id", "")).strip().lower(),
     }
 
 
@@ -241,6 +325,7 @@ def main() -> int:
         "drc": str(args.drc_summary_rel),
         "lvs": str(args.lvs_summary_rel),
         "pex": str(args.pex_summary_rel),
+        "foundry_approval": str(args.foundry_approval_summary_rel),
     }
 
     if args.dry_run:
@@ -257,6 +342,7 @@ def main() -> int:
             print(f"  - drc: {foundry_summary_rel['drc']}")
             print(f"  - lvs: {foundry_summary_rel['lvs']}")
             print(f"  - pex: {foundry_summary_rel['pex']}")
+            print(f"  - foundry_approval: {foundry_summary_rel['foundry_approval']}")
             print(f"- allow_waived_failures: {bool(args.allow_waived_failures)}")
             print(f"- require_non_mock_backend: {bool(args.require_non_mock_backend)}")
         print(f"- waiver_file: {waiver_file}")
@@ -340,6 +426,7 @@ def main() -> int:
             nonlocal waiver_result
 
             rows: list[dict[str, Any]] = []
+            source_rows: dict[str, dict[str, Any]] = {}
             failing_by_kind: dict[str, list[str]] = {}
             for kind in ("drc", "lvs", "pex"):
                 rel = foundry_summary_rel[kind]
@@ -350,10 +437,21 @@ def main() -> int:
                     require_non_mock_backend=bool(args.require_non_mock_backend),
                 )
                 rows.append(row)
+                source_rows[kind] = row
                 if row["status"] == "error":
                     raise RuntimeError(f"foundry {kind} status is error")
                 if row["status"] == "fail":
                     failing_by_kind[kind] = list(row.get("failed_check_ids") or [])
+
+            approval_row = _validate_foundry_approval_summary(
+                summary_path=(run_dir / foundry_summary_rel["foundry_approval"]).resolve(),
+                source_rows=source_rows,
+            )
+            rows.append(approval_row)
+            if approval_row["status"] == "error":
+                raise RuntimeError("foundry approval status is error")
+            if approval_row["status"] == "fail":
+                failing_by_kind["foundry_approval"] = list(approval_row.get("failed_check_ids") or [])
 
             waived: dict[str, list[str]] = {}
             unresolved: dict[str, list[str]] = {}

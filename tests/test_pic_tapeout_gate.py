@@ -100,6 +100,38 @@ def _write_foundry_summary(
     return path
 
 
+def _write_foundry_approval_summary(
+    run_dir: Path,
+    *,
+    decision: str,
+    status: str,
+    failed_ids: list[str] | None = None,
+    error_code: str | None = None,
+) -> Path:
+    failed_ids = list(failed_ids or [])
+    source_run_ids: dict[str, str] = {}
+    for kind in ("drc", "lvs", "pex"):
+        summary_path = run_dir / f"foundry_{kind}_sealed_summary.json"
+        payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        source_run_ids[kind] = str(payload.get("run_id") or "")
+
+    payload = {
+        "schema_version": "0.1",
+        "kind": "pic.foundry_approval_sealed_summary",
+        "run_id": "approval_run_001",
+        "started_at": "2026-02-21T00:00:00+00:00",
+        "finished_at": "2026-02-21T00:00:10+00:00",
+        "decision": str(decision),
+        "status": str(status),
+        "failed_check_ids": failed_ids,
+        "failed_check_names": [f"name_{v}" for v in failed_ids],
+        "source_run_ids": source_run_ids,
+        "deck_fingerprint": "sha256:testdeck",
+        "error_code": error_code,
+    }
+    return _write_payload(run_dir / "foundry_approval_sealed_summary.json", payload)
+
+
 def test_pic_tapeout_gate_dry_run() -> None:
     script = REPO_ROOT / "scripts" / "check_pic_tapeout_gate.py"
     completed = subprocess.run(
@@ -184,6 +216,7 @@ def test_pic_tapeout_gate_foundry_signoff_passes(tmp_path: Path) -> None:
     _write_foundry_summary(run_dir / "foundry_drc_sealed_summary.json", kind="drc", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+    _write_foundry_approval_summary(run_dir, decision="GO", status="pass")
 
     completed = subprocess.run(
         [
@@ -202,6 +235,29 @@ def test_pic_tapeout_gate_foundry_signoff_passes(tmp_path: Path) -> None:
     assert completed.returncode == 0, completed.stdout + completed.stderr
 
 
+def test_pic_tapeout_gate_foundry_signoff_fails_when_approval_summary_missing(tmp_path: Path) -> None:
+    script = REPO_ROOT / "scripts" / "check_pic_tapeout_gate.py"
+    run_dir = _create_synthetic_run_dir(tmp_path)
+    _write_foundry_summary(run_dir / "foundry_drc_sealed_summary.json", kind="drc", status="pass", backend="generic_cli")
+    _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
+    _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--run-dir",
+            str(run_dir),
+            "--require-foundry-signoff",
+        ],
+        cwd=str(REPO_ROOT),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 1
+
+
 def test_pic_tapeout_gate_foundry_signoff_fails_without_waiver(tmp_path: Path) -> None:
     script = REPO_ROOT / "scripts" / "check_pic_tapeout_gate.py"
     run_dir = _create_synthetic_run_dir(tmp_path)
@@ -214,6 +270,12 @@ def test_pic_tapeout_gate_foundry_signoff_fails_without_waiver(tmp_path: Path) -
     )
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+    _write_foundry_approval_summary(
+        run_dir,
+        decision="HOLD",
+        status="fail",
+        failed_ids=["DRC.WG.MIN_SPACING"],
+    )
 
     completed = subprocess.run(
         [
@@ -243,6 +305,12 @@ def test_pic_tapeout_gate_foundry_signoff_allows_waived_failures(tmp_path: Path)
     )
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+    _write_foundry_approval_summary(
+        run_dir,
+        decision="HOLD",
+        status="fail",
+        failed_ids=["DRC.WG.MIN_SPACING"],
+    )
 
     waiver_path = _write_payload(
         tmp_path / "waivers_foundry.json",
@@ -343,6 +411,12 @@ def test_pic_tapeout_gate_non_mock_enforced_even_with_waivers(tmp_path: Path) ->
         backend="mock",
     )
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+    _write_foundry_approval_summary(
+        run_dir,
+        decision="HOLD",
+        status="fail",
+        failed_ids=["DRC.WG.MIN_SPACING"],
+    )
 
     waiver_path = _write_payload(
         tmp_path / "waivers_non_mock.json",
@@ -395,6 +469,12 @@ def test_pic_tapeout_gate_fail_status_requires_failed_check_ids(tmp_path: Path) 
     )
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+    _write_foundry_approval_summary(
+        run_dir,
+        decision="HOLD",
+        status="fail",
+        failed_ids=["DRC.WG.MIN_SPACING"],
+    )
 
     waiver_path = _write_payload(
         tmp_path / "waivers_empty_fail_ids.json",
@@ -447,6 +527,12 @@ def test_pic_tapeout_gate_drc_failed_check_ids_must_match_failed_rule_results(tm
     )
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+    _write_foundry_approval_summary(
+        run_dir,
+        decision="HOLD",
+        status="fail",
+        failed_ids=["DRC.WG.MIN_SPACING"],
+    )
 
     completed = subprocess.run(
         [
@@ -479,6 +565,7 @@ def test_pic_tapeout_gate_drc_missing_rule_results_fails_closed(tmp_path: Path) 
 
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+    _write_foundry_approval_summary(run_dir, decision="GO", status="pass")
 
     completed = subprocess.run(
         [
