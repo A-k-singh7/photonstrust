@@ -36,6 +36,7 @@ jobs:
           test -f scripts/run_cv_quick_verify.py
           test -f scripts/run_day10_tapeout_rehearsal.py
           test -f scripts/build_tapeout_package.py
+          test -f scripts/materialize_local_tapeout_run.py
 
       - name: Run CV quick verify
         run: |
@@ -86,6 +87,17 @@ jobs:
             --run-dir results/day10_cv/run_pkg \
             --strict
 
+      - name: Run Day 10 tapeout rehearsal (real local bootstrap)
+        run: |
+          python scripts/run_day10_tapeout_rehearsal.py \
+            --mode real \
+            --smoke-local-backend \
+            --bootstrap-local-run-dir \
+            --allow-ci \
+            --output-json results/day10_cv_local/day10_decision_packet.json \
+            --run-dir results/day10_cv_local/run_pkg \
+            --strict
+
       - name: Validate Day 10 packet schema (CV artifact)
         run: |
           python - <<'PY'
@@ -114,6 +126,7 @@ jobs:
           name: cv-tapeout-artifacts
           path: |
             results/day10_cv/
+            results/day10_cv_local/
             results/tapeout_packages_cv/
 
   release-gate-final:

@@ -77,6 +77,7 @@ jobs:
           test -f scripts/build_tapeout_package.py
           test -f scripts/check_pic_tapeout_gate.py
           test -f scripts/run_foundry_smoke.py
+          test -f scripts/materialize_local_tapeout_run.py
 
       - name: Run tapeout lane unit tests
         run: |
@@ -98,6 +99,17 @@ jobs:
             --mode synthetic \
             --output-json results/day10_ci/day10_decision_packet.json \
             --run-dir results/day10_ci/run_pkg \
+            --strict
+
+      - name: Run Day 10 tapeout rehearsal (real local bootstrap strict)
+        run: |
+          python scripts/run_day10_tapeout_rehearsal.py \
+            --mode real \
+            --smoke-local-backend \
+            --bootstrap-local-run-dir \
+            --allow-ci \
+            --output-json results/day10_ci_local/day10_decision_packet.json \
+            --run-dir results/day10_ci_local/run_pkg \
             --strict
 
       - name: Validate Day 10 packet schema (CI artifact)
@@ -135,4 +147,5 @@ jobs:
           name: tapeout-gate-artifacts
           path: |
             results/day10_ci/
+            results/day10_ci_local/
             results/tapeout_packages_ci/

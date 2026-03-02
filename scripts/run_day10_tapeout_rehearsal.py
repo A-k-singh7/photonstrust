@@ -22,6 +22,7 @@ _REAL_MODE_REQUIRED_SCRIPTS = (
     Path("scripts/run_foundry_smoke.py"),
     Path("scripts/check_pic_tapeout_gate.py"),
 )
+_LOCAL_BOOTSTRAP_SCRIPT = Path("scripts/materialize_local_tapeout_run.py")
 _MANDATORY_DRC_RULE_IDS = (
     "DRC.WG.MIN_WIDTH",
     "DRC.WG.MIN_SPACING",
@@ -57,6 +58,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Real mode only: run foundry smoke with local backends "
             "(drc=local_rules, lvs=local_lvs, pex=local_pex) from --run-dir context"
+        ),
+    )
+    parser.add_argument(
+        "--bootstrap-local-run-dir",
+        action="store_true",
+        help=(
+            "Real mode + --smoke-local-backend only: materialize --run-dir by invoking "
+            "scripts/materialize_local_tapeout_run.py before smoke checks"
         ),
     )
     parser.add_argument(
@@ -98,6 +107,11 @@ def parse_args() -> argparse.Namespace:
         help="Per-stage timeout forwarded to foundry smoke",
     )
     parser.add_argument(
+        "--allow-ci",
+        action="store_true",
+        help="Forward --allow-ci to local bootstrap/smoke scripts",
+    )
+    parser.add_argument(
         "--fail-stage",
         choices=["none", *STAGES],
         default="none",
@@ -116,6 +130,10 @@ def parse_args() -> argparse.Namespace:
         parser.error("--runner-config is required in real mode unless --smoke-local-backend is set")
     if str(args.mode) == "real" and bool(args.smoke_local_backend) and args.runner_config is not None:
         parser.error("--runner-config cannot be combined with --smoke-local-backend")
+    if bool(args.bootstrap_local_run_dir) and str(args.mode) != "real":
+        parser.error("--bootstrap-local-run-dir requires --mode real")
+    if bool(args.bootstrap_local_run_dir) and not bool(args.smoke_local_backend):
+        parser.error("--bootstrap-local-run-dir requires --smoke-local-backend")
     if bool(args.allow_waived_failures) and args.waiver_file is None:
         parser.error("--allow-waived-failures requires --waiver-file")
 
@@ -146,9 +164,12 @@ def _create_synthetic_inputs(run_dir: Path) -> None:
     (inputs / "layout.gds").write_bytes(b"GDSII")
 
 
-def _missing_real_mode_scripts(repo_root: Path) -> list[Path]:
+def _missing_real_mode_scripts(repo_root: Path, *, include_bootstrap: bool) -> list[Path]:
     missing: list[Path] = []
-    for rel_path in _REAL_MODE_REQUIRED_SCRIPTS:
+    required_scripts = list(_REAL_MODE_REQUIRED_SCRIPTS)
+    if include_bootstrap:
+        required_scripts.append(_LOCAL_BOOTSTRAP_SCRIPT)
+    for rel_path in required_scripts:
         candidate = (repo_root / rel_path).resolve()
         if not candidate.exists() or not candidate.is_file():
             missing.append(candidate)
@@ -417,24 +438,27 @@ def main() -> int:
         print(f"- tapeout_report_path: {tapeout_report_path}")
         print(f"- runner_config: {runner_config}")
         print(f"- smoke_local_backend: {bool(args.smoke_local_backend)}")
+        print(f"- bootstrap_local_run_dir: {bool(args.bootstrap_local_run_dir)}")
         print(f"- waiver_file: {waiver_file}")
         print(f"- require_non_mock_backend: {bool(args.require_non_mock_backend)}")
         print(f"- allow_waived_failures: {bool(args.allow_waived_failures)}")
+        print(f"- allow_ci: {bool(args.allow_ci)}")
         print(f"- tapeout_package_output_root: {out_dir / 'tapeout_packages'}")
         print(f"- strict: {bool(args.strict)}")
         return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    bootstrap_used = bool(not is_synthetic_mode and args.smoke_local_backend and args.bootstrap_local_run_dir)
     if is_synthetic_mode:
         _create_synthetic_inputs(run_dir)
     else:
-        missing_scripts = _missing_real_mode_scripts(repo_root)
+        missing_scripts = _missing_real_mode_scripts(repo_root, include_bootstrap=bootstrap_used)
         if missing_scripts:
             print("day10 error: missing required external scripts for real mode:")
             for script_path in missing_scripts:
                 print(f"- {script_path}")
             return 2
-        if not run_dir.exists() or not run_dir.is_dir():
+        if not bootstrap_used and (not run_dir.exists() or not run_dir.is_dir()):
             print(f"day10 error: run_dir does not exist for real mode: {run_dir}")
             return 2
 
@@ -457,6 +481,20 @@ def main() -> int:
             }
         )
     else:
+        if bootstrap_used:
+            bootstrap_cmd = [
+                sys.executable,
+                str((repo_root / _LOCAL_BOOTSTRAP_SCRIPT).resolve()),
+                "--run-dir",
+                str(run_dir),
+            ]
+            if bool(args.allow_ci):
+                bootstrap_cmd.append("--allow-ci")
+            bootstrap_step = _run_command(bootstrap_cmd, cwd=repo_root)
+            bootstrap_step["name"] = "bootstrap_local_run_dir"
+            bootstrap_step["passed"] = bool(bootstrap_step.get("returncode") == 0)
+            steps.append(bootstrap_step)
+
         smoke_cmd = [
             sys.executable,
             str((repo_root / "scripts" / "run_foundry_smoke.py").resolve()),
@@ -468,6 +506,8 @@ def main() -> int:
             str(float(args.timeout_sec)),
             "--no-strict",
         ]
+        if bool(args.allow_ci):
+            smoke_cmd.append("--allow-ci")
         if bool(args.smoke_local_backend):
             smoke_cmd.extend(
                 [
@@ -634,6 +674,9 @@ def main() -> int:
             "timeout_sec": float(args.timeout_sec),
             "fail_stage": str(args.fail_stage),
             "smoke_local_backend": bool(args.smoke_local_backend),
+            "bootstrap_local_run_dir": bool(args.bootstrap_local_run_dir),
+            "bootstrap_local_run_dir_used": bool(bootstrap_used),
+            "allow_ci": bool(args.allow_ci),
         },
         "artifacts": {
             "foundry_smoke_report_json": str(smoke_report_path),
