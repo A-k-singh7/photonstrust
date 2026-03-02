@@ -6,15 +6,33 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
-import os
 from pathlib import Path
 import sys
 import tempfile
 from typing import Any
 
+from photonstrust.layout.pic.build_layout import build_pic_layout_artifacts
+from photonstrust.pdk import resolve_pdk_contract
+
 
 _PLACEHOLDER_GDS_BYTES = b"PHOTONTRUST_LOCAL_GDS_PLACEHOLDER_V1\n"
 _DETERMINISTIC_GDS_TIMESTAMP = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+_DEFAULT_PDK_REQUEST = {"name": "generic_silicon_photonics"}
+_LOCAL_DESIGN_RULE_FALLBACK = {
+    "min_waveguide_width_um": 0.45,
+    "min_waveguide_gap_um": 0.2,
+    "min_bend_radius_um": 5.0,
+    "min_waveguide_enclosure_um": 1.0,
+}
+_PEX_RULE_DEFAULTS = {
+    "resistance_ohm_per_um": 0.02,
+    "capacitance_ff_per_um": 0.002,
+    "max_total_resistance_ohm": 5000.0,
+    "max_total_capacitance_ff": 10000.0,
+    "max_rc_delay_ps": 50000.0,
+    "max_coupling_coeff": 0.1,
+    "min_net_coverage_ratio": 1.0,
+}
 
 _TEMPLATE_MINIMAL_CHAIN = {
     "schema_version": "0.1",
@@ -35,82 +53,6 @@ _TEMPLATE_MINIMAL_CHAIN = {
         {"from": "gc_in", "to": "wg_1", "kind": "optical"},
         {"from": "wg_1", "to": "ec_out", "kind": "optical"},
     ],
-}
-
-_PORTS_FIXTURE = {
-    "schema_version": "0.1",
-    "kind": "pic.ports",
-    "ports": [
-        {"node": "gc_in", "port": "out", "role": "out", "x_um": -20.0, "y_um": 0.0},
-        {"node": "wg_1", "port": "in", "role": "in", "x_um": 80.0, "y_um": 0.0},
-        {"node": "wg_1", "port": "out", "role": "out", "x_um": 120.0, "y_um": 0.0},
-        {"node": "ec_out", "port": "in", "role": "in", "x_um": 220.0, "y_um": 0.0},
-    ],
-}
-
-_ROUTES_FIXTURE = {
-    "schema_version": "0.1",
-    "kind": "pic.routes",
-    "routes": [
-        {
-            "route_id": "e1:gc_in.out->wg_1.in",
-            "width_um": 0.5,
-            "enclosure_um": 1.5,
-            "bends": [{"radius_um": 10.0}],
-            "coupling_coeff": 0.01,
-            "points_um": [[-20.0, 0.0], [80.0, 0.0]],
-            "source": {
-                "edge": {
-                    "from": "gc_in",
-                    "from_port": "out",
-                    "to": "wg_1",
-                    "to_port": "in",
-                    "kind": "optical",
-                }
-            },
-        },
-        {
-            "route_id": "e2:wg_1.out->ec_out.in",
-            "width_um": 0.5,
-            "enclosure_um": 1.5,
-            "bends": [{"radius_um": 10.0}],
-            "coupling_coeff": 0.02,
-            "points_um": [[120.0, 0.0], [220.0, 0.0]],
-            "source": {
-                "edge": {
-                    "from": "wg_1",
-                    "from_port": "out",
-                    "to": "ec_out",
-                    "to_port": "in",
-                    "kind": "optical",
-                }
-            },
-        },
-    ],
-}
-
-_PDK_MANIFEST_FIXTURE = {
-    "name": "local_smoke_pdk",
-    "version": "1",
-    "notes": [
-        "Synthetic non-proprietary local PDK fixture.",
-        "Values are deterministic smoke defaults only.",
-    ],
-    "design_rules": {
-        "min_waveguide_width_um": 0.45,
-        "min_waveguide_gap_um": 0.2,
-        "min_bend_radius_um": 5.0,
-        "min_waveguide_enclosure_um": 1.0,
-    },
-    "pex_rules": {
-        "resistance_ohm_per_um": 0.02,
-        "capacitance_ff_per_um": 0.002,
-        "max_total_resistance_ohm": 5000.0,
-        "max_total_capacitance_ff": 10000.0,
-        "max_rc_delay_ps": 50000.0,
-        "max_coupling_coeff": 0.1,
-        "min_net_coverage_ratio": 1.0,
-    },
 }
 
 
@@ -167,39 +109,19 @@ def _json_bytes(payload: dict[str, Any]) -> bytes:
     return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
-def _deterministic_layout_gds_bytes(warnings: list[str]) -> tuple[str, bytes]:
-    try:
-        import gdstk  # type: ignore
-    except Exception:
-        warnings.append("gdstk_unavailable_placeholder_layout_gds_written")
-        return "placeholder", _PLACEHOLDER_GDS_BYTES
+def _load_json_object(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"expected JSON object at {path}")
+    return payload
 
+
+def _safe_float(value: Any) -> float | None:
     try:
-        lib = gdstk.Library(unit=1e-6, precision=1e-9)
-        cell = lib.new_cell("PT_LOCAL_LAYOUT")
-        cell.add(gdstk.rectangle((0.0, 0.0), (100.0, 10.0), layer=1, datatype=0))
-        fd, tmp_name = tempfile.mkstemp(prefix="pt_local_layout_", suffix=".gds")
-        os.close(fd)
-        tmp_path = Path(tmp_name)
-        try:
-            lib.write_gds(str(tmp_path), timestamp=_DETERMINISTIC_GDS_TIMESTAMP)
-        except TypeError:
-            warnings.append("gdstk_no_timestamp_support_placeholder_layout_gds_written")
-            return "placeholder", _PLACEHOLDER_GDS_BYTES
-        payload = tmp_path.read_bytes()
-        if not payload:
-            warnings.append("gdstk_empty_output_placeholder_layout_gds_written")
-            return "placeholder", _PLACEHOLDER_GDS_BYTES
-        return "gdstk", payload
-    except Exception:
-        warnings.append("gdstk_write_failed_placeholder_layout_gds_written")
-        return "placeholder", _PLACEHOLDER_GDS_BYTES
-    finally:
-        try:
-            if "tmp_path" in locals() and isinstance(tmp_path, Path) and tmp_path.exists():
-                tmp_path.unlink()
-        except Exception:
-            pass
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed
 
 
 def _resolve_output_path(run_dir: Path, value: Path | None) -> Path | None:
@@ -208,6 +130,300 @@ def _resolve_output_path(run_dir: Path, value: Path | None) -> Path | None:
     if value.is_absolute():
         return value.resolve()
     return (run_dir / value).resolve()
+
+
+def _resolve_pdk_request(graph_payload: dict[str, Any]) -> dict[str, Any]:
+    raw = graph_payload.get("pdk")
+    if isinstance(raw, dict):
+        out: dict[str, Any] = {}
+        name = str(raw.get("name") or "").strip()
+        manifest_path = str(raw.get("manifest_path") or "").strip()
+        if name:
+            out["name"] = name
+        if manifest_path:
+            out["manifest_path"] = manifest_path
+        if out:
+            return out
+    return dict(_DEFAULT_PDK_REQUEST)
+
+
+def _merge_pex_rules(raw: Any) -> dict[str, float]:
+    source = raw if isinstance(raw, dict) else {}
+    out: dict[str, float] = {}
+    for key, default_value in _PEX_RULE_DEFAULTS.items():
+        value = _safe_float(source.get(key))
+        if value is None:
+            out[key] = float(default_value)
+            continue
+        if key.startswith("min_"):
+            out[key] = float(value) if value >= 0.0 else float(default_value)
+        else:
+            out[key] = float(value) if value > 0.0 else float(default_value)
+    return out
+
+
+def _build_pdk_manifest_payload(pdk_request: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
+    try:
+        contract = resolve_pdk_contract(pdk_request)
+        pdk_payload = contract.get("pdk") if isinstance(contract, dict) else {}
+        if not isinstance(pdk_payload, dict):
+            raise ValueError("pdk contract payload is invalid")
+        out = {
+            "name": str(pdk_payload.get("name") or "local_smoke_pdk"),
+            "version": str(pdk_payload.get("version") or "1"),
+            "design_rules": dict(pdk_payload.get("design_rules") or {}),
+            "notes": [str(v) for v in list(pdk_payload.get("notes") or []) if str(v).strip()],
+        }
+        if not out["design_rules"]:
+            out["design_rules"] = dict(_LOCAL_DESIGN_RULE_FALLBACK)
+            warnings.append("pdk_design_rules_missing_using_local_fallback")
+        out["pex_rules"] = _merge_pex_rules(pdk_payload.get("pex_rules"))
+        return out
+    except Exception:
+        warnings.append("pdk_resolve_failed_using_local_fallback")
+        return {
+            "name": "local_smoke_pdk",
+            "version": "1",
+            "notes": [
+                "Synthetic non-proprietary local PDK fallback fixture.",
+                "Values are deterministic smoke defaults only.",
+            ],
+            "design_rules": dict(_LOCAL_DESIGN_RULE_FALLBACK),
+            "pex_rules": dict(_PEX_RULE_DEFAULTS),
+        }
+
+
+def _fallback_sidecars_from_graph(graph_payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    nodes = graph_payload.get("nodes")
+    edges = graph_payload.get("edges")
+    node_ids: list[str] = []
+    if isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            node_id = str(node.get("id") or "").strip()
+            if node_id and node_id not in node_ids:
+                node_ids.append(node_id)
+    if isinstance(edges, list):
+        for edge in edges:
+            if not isinstance(edge, dict):
+                continue
+            left = str(edge.get("from") or "").strip()
+            right = str(edge.get("to") or "").strip()
+            if left and left not in node_ids:
+                node_ids.append(left)
+            if right and right not in node_ids:
+                node_ids.append(right)
+
+    pos_by_node: dict[str, tuple[float, float]] = {}
+    for idx, node_id in enumerate(node_ids):
+        pos_by_node[node_id] = (float(idx * 100.0), 0.0)
+
+    ports_rows: list[dict[str, Any]] = []
+    for node_id in sorted(node_ids, key=lambda t: t.lower()):
+        x, y = pos_by_node.get(node_id, (0.0, 0.0))
+        ports_rows.append({"node": node_id, "kind": "pic.component", "port": "in", "role": "in", "x_um": x - 10.0, "y_um": y})
+        ports_rows.append({"node": node_id, "kind": "pic.component", "port": "out", "role": "out", "x_um": x + 10.0, "y_um": y})
+
+    port_by_ref = {(str(p.get("node")), str(p.get("port"))): p for p in ports_rows}
+    routes_rows: list[dict[str, Any]] = []
+    if isinstance(edges, list):
+        for idx, edge in enumerate(edges):
+            if not isinstance(edge, dict):
+                continue
+            src = str(edge.get("from") or "").strip()
+            dst = str(edge.get("to") or "").strip()
+            if not src or not dst:
+                continue
+            from_port = str(edge.get("from_port") or "out").strip() or "out"
+            to_port = str(edge.get("to_port") or "in").strip() or "in"
+            src_port = port_by_ref.get((src, from_port))
+            dst_port = port_by_ref.get((dst, to_port))
+            if not isinstance(src_port, dict) or not isinstance(dst_port, dict):
+                continue
+            points_um = [
+                [float(src_port.get("x_um", 0.0)), float(src_port.get("y_um", 0.0))],
+                [float(dst_port.get("x_um", 0.0)), float(dst_port.get("y_um", 0.0))],
+            ]
+            routes_rows.append(
+                {
+                    "route_id": f"e{idx + 1}:{src}.{from_port}->{dst}.{to_port}",
+                    "width_um": 0.5,
+                    "points_um": points_um,
+                    "source": {
+                        "edge": {
+                            "from": src,
+                            "from_port": from_port,
+                            "to": dst,
+                            "to_port": to_port,
+                            "kind": edge.get("kind"),
+                        }
+                    },
+                }
+            )
+
+    ports_payload = {"schema_version": "0.1", "kind": "pic.ports", "ports": ports_rows}
+    routes_payload = {"schema_version": "0.1", "kind": "pic.routes", "routes": routes_rows}
+    return ports_payload, routes_payload
+
+
+def _generate_layout_sidecars(
+    *,
+    graph_payload: dict[str, Any],
+    pdk_request: dict[str, Any],
+    warnings: list[str],
+) -> tuple[dict[str, Any], dict[str, Any], str, bytes]:
+    settings = {
+        "cell_name": "PT_LOCAL_LAYOUT",
+        "waveguide_width_um": 0.5,
+        "gds_timestamp": _DETERMINISTIC_GDS_TIMESTAMP.isoformat(),
+        "gds_unit": 1e-6,
+        "gds_precision": 1e-9,
+        "port_marker_size_um": 1.0,
+    }
+    try:
+        with tempfile.TemporaryDirectory(prefix="pt_local_materialize_") as tmp_dir:
+            output_dir = Path(tmp_dir).resolve()
+            build_report = build_pic_layout_artifacts(
+                {
+                    "graph": graph_payload,
+                    "pdk": dict(pdk_request),
+                    "settings": settings,
+                },
+                output_dir=output_dir,
+            )
+            if isinstance(build_report, dict):
+                report_warnings = build_report.get("warnings")
+                if isinstance(report_warnings, list):
+                    warnings.extend(str(v) for v in report_warnings if str(v).strip())
+                artifacts = build_report.get("artifacts") if isinstance(build_report.get("artifacts"), dict) else {}
+            else:
+                artifacts = {}
+
+            ports_rel = str(artifacts.get("ports_json_path") or "ports.json")
+            routes_rel = str(artifacts.get("routes_json_path") or "routes.json")
+            ports_payload = _load_json_object((output_dir / ports_rel).resolve())
+            routes_payload = _load_json_object((output_dir / routes_rel).resolve())
+
+            gds_rel = artifacts.get("layout_gds_path")
+            if isinstance(gds_rel, str) and gds_rel.strip():
+                gds_path = (output_dir / gds_rel).resolve()
+                if gds_path.exists() and gds_path.is_file():
+                    return ports_payload, routes_payload, "gdstk", gds_path.read_bytes()
+
+            warnings.append("layout_pipeline_gds_missing_placeholder_layout_gds_written")
+            return ports_payload, routes_payload, "placeholder", _PLACEHOLDER_GDS_BYTES
+    except Exception:
+        warnings.append("layout_pipeline_failed_fallback_sidecars_used")
+        ports_payload, routes_payload = _fallback_sidecars_from_graph(graph_payload)
+        return ports_payload, routes_payload, "placeholder", _PLACEHOLDER_GDS_BYTES
+
+
+def _derive_required_enclosure_um(design_rules: dict[str, Any]) -> float:
+    for key in ("min_waveguide_enclosure_um", "min_enclosure_um", "waveguide_min_enclosure_um"):
+        value = _safe_float(design_rules.get(key))
+        if value is not None and value >= 0.0:
+            return float(value)
+    return 1.0
+
+
+def _derive_min_bend_radius_um(design_rules: dict[str, Any]) -> float:
+    for key in ("min_bend_radius_um", "min_waveguide_bend_radius_um", "min_radius_um"):
+        value = _safe_float(design_rules.get(key))
+        if value is not None and value > 0.0:
+            return float(value)
+    return 5.0
+
+
+def _enrich_routes_for_local_backend(
+    *,
+    routes_payload: dict[str, Any],
+    graph_payload: dict[str, Any],
+    design_rules: dict[str, Any],
+) -> dict[str, Any]:
+    raw_routes = routes_payload.get("routes")
+    route_rows = list(raw_routes) if isinstance(raw_routes, list) else []
+    raw_edges = graph_payload.get("edges")
+    graph_edges = list(raw_edges) if isinstance(raw_edges, list) else []
+
+    required_enclosure_um = _derive_required_enclosure_um(design_rules)
+    min_bend_radius_um = max(10.0, _derive_min_bend_radius_um(design_rules))
+
+    out_routes: list[dict[str, Any]] = []
+    for idx, raw in enumerate(route_rows):
+        if not isinstance(raw, dict):
+            continue
+        route = dict(raw)
+
+        width_um = _safe_float(route.get("width_um"))
+        if width_um is None or width_um <= 0.0:
+            route["width_um"] = 0.5
+        else:
+            route["width_um"] = float(width_um)
+
+        enclosure_um = _safe_float(route.get("enclosure_um"))
+        if enclosure_um is None or enclosure_um < required_enclosure_um:
+            route["enclosure_um"] = float(required_enclosure_um)
+        else:
+            route["enclosure_um"] = float(enclosure_um)
+
+        default_coupling = min(0.09, 0.01 * float(idx + 1))
+        coupling_coeff = _safe_float(route.get("coupling_coeff"))
+        if coupling_coeff is None or coupling_coeff <= 0.0 or coupling_coeff >= 0.1:
+            route["coupling_coeff"] = float(default_coupling)
+        else:
+            route["coupling_coeff"] = float(coupling_coeff)
+
+        # Keep local spacing checks deterministic and passable when the upstream
+        # builder does not emit explicit layer assignments.
+        raw_layer = route.get("layer")
+        if raw_layer is None:
+            route["layer"] = {"layer": int(idx + 1), "datatype": 0}
+
+        raw_bends = route.get("bends")
+        bends_out: list[dict[str, Any]] = []
+        if isinstance(raw_bends, list):
+            for bend in raw_bends:
+                if not isinstance(bend, dict):
+                    continue
+                radius_um = _safe_float(bend.get("radius_um"))
+                if radius_um is None or radius_um <= 0.0:
+                    continue
+                bends_out.append({"radius_um": float(radius_um)})
+        if not bends_out:
+            bends_out = [{"radius_um": float(min_bend_radius_um)}]
+        route["bends"] = bends_out
+
+        source = route.get("source")
+        source_edge = source.get("edge") if isinstance(source, dict) and isinstance(source.get("edge"), dict) else {}
+        graph_edge = graph_edges[idx] if idx < len(graph_edges) and isinstance(graph_edges[idx], dict) else {}
+        src = str(source_edge.get("from") or route.get("from") or graph_edge.get("from") or "").strip()
+        dst = str(source_edge.get("to") or route.get("to") or graph_edge.get("to") or "").strip()
+        from_port = str(source_edge.get("from_port") or route.get("from_port") or graph_edge.get("from_port") or "out").strip() or "out"
+        to_port = str(source_edge.get("to_port") or route.get("to_port") or graph_edge.get("to_port") or "in").strip() or "in"
+        if src and dst:
+            edge_payload: dict[str, Any] = {
+                "from": src,
+                "from_port": from_port,
+                "to": dst,
+                "to_port": to_port,
+            }
+            kind = source_edge.get("kind", graph_edge.get("kind"))
+            if kind is not None:
+                edge_payload["kind"] = kind
+            edge_id = source_edge.get("id", graph_edge.get("id"))
+            if edge_id is not None:
+                edge_payload["id"] = edge_id
+            route["source"] = {"edge": edge_payload}
+
+        out_routes.append(route)
+
+    out_routes.sort(key=lambda r: (str(r.get("route_id", "")).lower(), str(r.get("route_id", ""))))
+    return {
+        "schema_version": "0.1",
+        "kind": str(routes_payload.get("kind") or "pic.routes"),
+        "routes": out_routes,
+    }
 
 
 def _materialize(
@@ -219,6 +435,19 @@ def _materialize(
 ) -> tuple[dict[str, Any], int]:
     warnings: list[str] = []
     graph_payload = _resolve_graph_template(graph_template_ref)
+    pdk_request = _resolve_pdk_request(graph_payload)
+    pdk_manifest_payload = _build_pdk_manifest_payload(pdk_request, warnings)
+
+    ports_payload, routes_raw_payload, gds_mode, gds_expected = _generate_layout_sidecars(
+        graph_payload=graph_payload,
+        pdk_request=pdk_request,
+        warnings=warnings,
+    )
+    routes_payload = _enrich_routes_for_local_backend(
+        routes_payload=routes_raw_payload,
+        graph_payload=graph_payload,
+        design_rules=dict(pdk_manifest_payload.get("design_rules") or {}),
+    )
 
     inputs_dir = (run_dir / "inputs").resolve()
     graph_path = (inputs_dir / "graph.json").resolve()
@@ -229,9 +458,9 @@ def _materialize(
 
     expected_text_payloads: dict[Path, bytes] = {
         graph_path: _json_bytes(graph_payload),
-        ports_path: _json_bytes(_PORTS_FIXTURE),
-        routes_path: _json_bytes(_ROUTES_FIXTURE),
-        pdk_manifest_path: _json_bytes(_PDK_MANIFEST_FIXTURE),
+        ports_path: _json_bytes(ports_payload),
+        routes_path: _json_bytes(routes_payload),
+        pdk_manifest_path: _json_bytes(pdk_manifest_payload),
     }
 
     conflicted_files: list[str] = []
@@ -254,7 +483,6 @@ def _materialize(
         path.write_bytes(expected)
         written_files.append(rel)
 
-    gds_mode, gds_expected = _deterministic_layout_gds_bytes(warnings)
     if layout_path.exists():
         rel_layout = str(layout_path.relative_to(run_dir)).replace("\\", "/")
         existing_layout = layout_path.read_bytes()
@@ -286,7 +514,7 @@ def _materialize(
         "run_dir": str(run_dir),
         "graph_template": str(graph_template_ref),
         "force": bool(force),
-        "warnings": sorted(set(warnings), key=lambda t: t.lower()),
+        "warnings": sorted({str(v) for v in warnings if str(v).strip()}, key=lambda t: t.lower()),
         "gds_mode": gds_mode,
         "gds_placeholder_sha256_hint": "static:PHOTONTRUST_LOCAL_GDS_PLACEHOLDER_V1",
         "artifacts": {
@@ -303,9 +531,15 @@ def _materialize(
             "json_sort_keys": True,
             "json_trailing_newline": True,
             "graph_template_builtin_default": "minimal_chain",
-            "gds_bytes_len": int(len(gds_expected)) if gds_mode == "placeholder" else int(layout_path.stat().st_size),
+            "gds_bytes_len": int(len(gds_expected)),
         },
     }
+
+    if gds_mode == "placeholder":
+        report["warnings"] = sorted(
+            set(report["warnings"] + ["gdstk_unavailable_placeholder_layout_gds_written"]),
+            key=lambda t: t.lower(),
+        )
 
     if report_path is not None:
         report["report_path"] = str(report_path)
