@@ -15,6 +15,7 @@ from photonstrust.pic.signoff import build_pic_signoff_ladder
 from photonstrust.utils import hash_dict
 from photonstrust.verification.waivers import load_and_validate_pic_waivers
 from photonstrust.workflow.schema import (
+    pic_foundry_approval_sealed_summary_schema_path,
     pic_foundry_drc_sealed_summary_schema_path,
     pic_foundry_lvs_sealed_summary_schema_path,
     pic_foundry_pex_sealed_summary_schema_path,
@@ -39,11 +40,18 @@ _VERIFICATION_DEFAULTS = {
     "foundry_lvs_sealed_summary.json": Path("foundry_lvs_sealed_summary.json"),
     "foundry_pex_sealed_summary.json": Path("foundry_pex_sealed_summary.json"),
 }
+_OPTIONAL_VERIFICATION_DEFAULTS = {
+    "foundry_approval_sealed_summary.json": Path("foundry_approval_sealed_summary.json"),
+}
 
 _VERIFICATION_SCHEMAS: dict[str, tuple[str, Callable[[], Path]]] = {
     "foundry_drc_sealed_summary.json": ("pic.foundry_drc_sealed_summary", pic_foundry_drc_sealed_summary_schema_path),
     "foundry_lvs_sealed_summary.json": ("pic.foundry_lvs_sealed_summary", pic_foundry_lvs_sealed_summary_schema_path),
     "foundry_pex_sealed_summary.json": ("pic.foundry_pex_sealed_summary", pic_foundry_pex_sealed_summary_schema_path),
+    "foundry_approval_sealed_summary.json": (
+        "pic.foundry_approval_sealed_summary",
+        pic_foundry_approval_sealed_summary_schema_path,
+    ),
 }
 
 
@@ -64,6 +72,7 @@ def build_tapeout_package(
       - waivers_path: str explicit path to waivers JSON
       - allow_missing_signoff: bool (default False)
       - allow_stub_pex: bool (default False)
+      - require_foundry_approval: bool (default True)
     """
 
     if not isinstance(request, dict):
@@ -96,6 +105,7 @@ def build_tapeout_package(
         run_dir=run_dir,
         verification_dir=verification_dir,
         allow_stub_pex=bool(request.get("allow_stub_pex", False)),
+        require_foundry_approval=bool(request.get("require_foundry_approval", True)),
     )
     signoff_rel = _copy_signoff(
         request=request,
@@ -224,6 +234,7 @@ def _copy_verification(
     run_dir: Path,
     verification_dir: Path,
     allow_stub_pex: bool,
+    require_foundry_approval: bool,
 ) -> dict[str, str]:
     copied: dict[str, str] = {}
     for name, rel in _VERIFICATION_DEFAULTS.items():
@@ -250,6 +261,20 @@ def _copy_verification(
             dst.write_text(json.dumps(stub, indent=2), encoding="utf-8")
         else:
             raise FileNotFoundError(f"required verification artifact missing: {src}")
+        _validate_verification_artifact(path=dst, artifact_name=name)
+        copied[name] = str(dst.relative_to(verification_dir.parent)).replace("\\", "/")
+
+    for name, rel in _OPTIONAL_VERIFICATION_DEFAULTS.items():
+        src = (run_dir / rel).resolve()
+        dst = verification_dir / name
+        if src.exists() and src.is_file():
+            shutil.copy2(src, dst)
+        elif src.exists():
+            raise FileNotFoundError(f"verification artifact path is not a file: {src}")
+        elif require_foundry_approval:
+            raise FileNotFoundError(f"required verification artifact missing: {src}")
+        else:
+            continue
         _validate_verification_artifact(path=dst, artifact_name=name)
         copied[name] = str(dst.relative_to(verification_dir.parent)).replace("\\", "/")
     return copied
@@ -404,6 +429,10 @@ def _validate_verification_artifact(*, path: Path, artifact_name: str) -> None:
 
 
 def _validate_verification_content(*, payload: dict[str, Any], expected_kind: str, label: str) -> None:
+    if expected_kind == "pic.foundry_approval_sealed_summary":
+        _validate_foundry_approval_content(payload=payload, label=label)
+        return
+
     kind = str(payload.get("kind", "")).strip()
     if kind != expected_kind:
         raise ValueError(f"{label} has kind={kind!r}, expected {expected_kind!r}")
@@ -446,9 +475,54 @@ def _validate_verification_content(*, payload: dict[str, Any], expected_kind: st
         if failed <= 0 or not failed_ids:
             raise ValueError(f"{label} status=fail requires failed_check_ids and failed count > 0")
     elif status == "error":
-        error_code = str(payload.get("error_code", "")).strip()
+        raw_error_code = payload.get("error_code")
+        error_code = raw_error_code.strip() if isinstance(raw_error_code, str) else ""
         if errored <= 0 and not failed_ids and not error_code:
             raise ValueError(f"{label} status=error requires errored checks, failed checks, or error_code")
+    else:
+        raise ValueError(f"{label} has unsupported status={status!r}")
+
+
+def _validate_foundry_approval_content(*, payload: dict[str, Any], label: str) -> None:
+    kind = str(payload.get("kind", "")).strip()
+    expected_kind = "pic.foundry_approval_sealed_summary"
+    if kind != expected_kind:
+        raise ValueError(f"{label} has kind={kind!r}, expected {expected_kind!r}")
+
+    decision = str(payload.get("decision", "")).strip().upper()
+    status = str(payload.get("status", "")).strip().lower()
+    failed_ids = payload.get("failed_check_ids")
+    failed_names = payload.get("failed_check_names")
+
+    if not isinstance(failed_ids, list):
+        raise ValueError(f"{label} failed_check_ids must be an array")
+    if not isinstance(failed_names, list):
+        raise ValueError(f"{label} failed_check_names must be an array")
+    if len(failed_ids) != len(failed_names):
+        raise ValueError(
+            f"{label} has mismatched failed_check_ids/failed_check_names lengths: "
+            f"{len(failed_ids)} vs {len(failed_names)}"
+        )
+    if any((not isinstance(item, str) or not item.strip()) for item in failed_ids):
+        raise ValueError(f"{label} failed_check_ids entries must be non-empty strings")
+    if any((not isinstance(item, str) or not item.strip()) for item in failed_names):
+        raise ValueError(f"{label} failed_check_names entries must be non-empty strings")
+
+    if decision == "GO" and status != "pass":
+        raise ValueError(f"{label} has decision=GO but status={status!r}")
+    if decision == "HOLD" and status == "pass":
+        raise ValueError(f"{label} has decision=HOLD but status=pass")
+
+    raw_error_code = payload.get("error_code")
+    error_code = raw_error_code.strip() if isinstance(raw_error_code, str) else ""
+    if status == "pass":
+        if failed_ids:
+            raise ValueError(f"{label} status=pass cannot include failed checks")
+        if error_code:
+            raise ValueError(f"{label} status=pass cannot include error_code")
+    elif status in {"fail", "error"}:
+        if not failed_ids and not error_code:
+            raise ValueError(f"{label} status={status} requires failed checks or error_code")
     else:
         raise ValueError(f"{label} has unsupported status={status!r}")
 

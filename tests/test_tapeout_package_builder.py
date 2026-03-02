@@ -110,10 +110,32 @@ def _make_source_run(tmp_path: Path) -> Path:
             "error_code": None,
         },
     )
+    _write_json(
+        run_dir / "foundry_approval_sealed_summary.json",
+        {
+            "schema_version": "0.1",
+            "kind": "pic.foundry_approval_sealed_summary",
+            "run_id": "d" * 12,
+            "started_at": "2026-03-01T00:00:00+00:00",
+            "finished_at": "2026-03-01T00:00:00+00:00",
+            "decision": "GO",
+            "status": "pass",
+            "failed_check_ids": [],
+            "failed_check_names": [],
+            "source_run_ids": {
+                "drc": "a" * 12,
+                "lvs": "b" * 12,
+                "pex": "c" * 12,
+            },
+            "deck_fingerprint": "sha256:test",
+            "error_code": None,
+        },
+    )
 
     drc_summary = json.loads((run_dir / "foundry_drc_sealed_summary.json").read_text(encoding="utf-8"))
     lvs_summary = json.loads((run_dir / "foundry_lvs_sealed_summary.json").read_text(encoding="utf-8"))
     pex_summary = json.loads((run_dir / "foundry_pex_sealed_summary.json").read_text(encoding="utf-8"))
+    approval_summary = json.loads((run_dir / "foundry_approval_sealed_summary.json").read_text(encoding="utf-8"))
     signoff_report = build_pic_signoff_ladder(
         {
             "assembly_report": {
@@ -131,7 +153,10 @@ def _make_source_run(tmp_path: Path) -> Path:
             "drc_summary": drc_summary,
             "lvs_summary": lvs_summary,
             "pex_summary": pex_summary,
-            "foundry_approval": {"decision": "GO", "status": "GO"},
+            "foundry_approval": {
+                "decision": approval_summary["decision"],
+                "status": approval_summary["status"],
+            },
         }
     )["report"]
     _write_json(run_dir / "signoff_ladder.json", signoff_report)
@@ -160,6 +185,7 @@ def test_build_tapeout_package_creates_expected_structure(tmp_path: Path) -> Non
     assert (package_dir / "verification" / "foundry_drc_sealed_summary.json").exists()
     assert (package_dir / "verification" / "foundry_lvs_sealed_summary.json").exists()
     assert (package_dir / "verification" / "foundry_pex_sealed_summary.json").exists()
+    assert (package_dir / "verification" / "foundry_approval_sealed_summary.json").exists()
     assert (package_dir / "signoff" / "signoff_ladder.json").exists()
     assert (package_dir / "signoff" / "waivers.json").exists()
     assert (package_dir / "README.md").exists()
@@ -169,6 +195,7 @@ def test_build_tapeout_package_creates_expected_structure(tmp_path: Path) -> Non
     manifest_lines = (package_dir / "MANIFEST.sha256").read_text(encoding="utf-8").strip().splitlines()
     assert any("inputs/graph.json" in line for line in manifest_lines)
     assert any("verification/foundry_drc_sealed_summary.json" in line for line in manifest_lines)
+    assert any("verification/foundry_approval_sealed_summary.json" in line for line in manifest_lines)
     assert any("signoff/signoff_ladder.json" in line for line in manifest_lines)
 
 
@@ -296,6 +323,44 @@ def test_build_tapeout_package_allow_stub_pex_writes_valid_stub(tmp_path: Path) 
     assert stub["status"] == "error"
     assert stub["execution_backend"] == "mock"
     assert stub["error_code"] == "missing_source_artifact"
+
+
+def test_build_tapeout_package_requires_foundry_approval_by_default(tmp_path: Path) -> None:
+    run_dir = _make_source_run(tmp_path)
+    (run_dir / "foundry_approval_sealed_summary.json").unlink()
+
+    with pytest.raises(FileNotFoundError, match="required verification artifact missing"):
+        build_tapeout_package({"run_dir": str(run_dir), "output_root": str(tmp_path / "out")})
+
+
+def test_build_tapeout_package_can_skip_foundry_approval_when_not_required(tmp_path: Path) -> None:
+    run_dir = _make_source_run(tmp_path)
+    (run_dir / "foundry_approval_sealed_summary.json").unlink()
+
+    report = build_tapeout_package(
+        {
+            "run_dir": str(run_dir),
+            "output_root": str(tmp_path / "out"),
+            "require_foundry_approval": False,
+        }
+    )
+    package_dir = Path(report["package_dir"])
+
+    assert not (package_dir / "verification" / "foundry_approval_sealed_summary.json").exists()
+
+
+def test_build_tapeout_package_rejects_incoherent_foundry_approval_content(tmp_path: Path) -> None:
+    run_dir = _make_source_run(tmp_path)
+    approval_summary_path = run_dir / "foundry_approval_sealed_summary.json"
+    approval_summary = json.loads(approval_summary_path.read_text(encoding="utf-8"))
+    approval_summary["decision"] = "GO"
+    approval_summary["status"] = "fail"
+    approval_summary["failed_check_ids"] = ["FOUNDRY_APPROVAL.HOLD.001"]
+    approval_summary["failed_check_names"] = ["fixture hold mismatch"]
+    _write_json(approval_summary_path, approval_summary)
+
+    with pytest.raises(ValueError, match="decision=GO"):
+        build_tapeout_package({"run_dir": str(run_dir), "output_root": str(tmp_path / "out")})
 
 
 def test_build_tapeout_package_supports_absolute_override_paths(tmp_path: Path) -> None:
