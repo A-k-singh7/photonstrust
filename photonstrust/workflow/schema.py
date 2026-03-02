@@ -76,3 +76,7 @@ def day10_tapeout_rehearsal_packet_schema_path() -> Path:
 
 def pic_tapeout_gate_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.pic_tapeout_gate.v0.schema.json").resolve()
+
+
+def pic_qkd_certificate_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.pic_qkd_certificate.v0.schema.json").resolve()

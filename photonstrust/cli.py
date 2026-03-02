@@ -119,6 +119,23 @@ def main() -> None:
     card_diff.add_argument("rhs", help="Right-hand card JSON")
     card_diff.add_argument("--limit", type=int, default=200, help="Max number of changes to emit")
 
+    certify_parser = subparsers.add_parser("certify", help="Run PIC->QKD certification orchestrator")
+    certify_parser.add_argument("graph", help="Path to graph JSON or GraphSpec TOML")
+    certify_parser.add_argument("--pdk", default="generic_silicon_photonics", help="PDK name")
+    certify_parser.add_argument("--protocol", default="BB84_DECOY", help="QKD protocol name")
+    certify_parser.add_argument("--wavelength", type=float, default=1550.0, help="Wavelength in nm")
+    certify_parser.add_argument("--target-distance", type=float, default=50.0, help="Target distance in km")
+    certify_parser.add_argument(
+        "--distances",
+        nargs="+",
+        default=None,
+        help="Distance grid in km (space and/or comma separated values)",
+    )
+    certify_parser.add_argument("--output", default="results/certify", help="Output directory")
+    certify_parser.add_argument("--dry-run", action="store_true", help="Skip simulation and QKD sweep")
+    certify_parser.add_argument("--require-go", action="store_true", help="Exit non-zero if decision is HOLD")
+    certify_parser.add_argument("--signing-key", default=None, help="Optional Ed25519 private key PEM")
+
     args = parser.parse_args()
 
     if args.command == "fmt":
@@ -372,6 +389,30 @@ def main() -> None:
         card_parser.print_help()
         return
 
+    if args.command == "certify":
+        from photonstrust.pipeline.certify import run_certify
+
+        distances_km = _parse_float_values(args.distances, default=[0.0, 25.0, 50.0, 75.0, 100.0])
+        result = run_certify(
+            Path(args.graph),
+            pdk_name=str(args.pdk),
+            protocol=str(args.protocol),
+            wavelength_nm=float(args.wavelength),
+            target_distance_km=float(args.target_distance),
+            distances_km=distances_km,
+            output_dir=Path(args.output),
+            dry_run=bool(args.dry_run),
+            signing_key=Path(args.signing_key) if args.signing_key else None,
+        )
+        summary = {
+            "decision": str(result.get("decision") or "HOLD"),
+            "output_path": result.get("output_path"),
+        }
+        print(json.dumps(summary, indent=2))
+        if bool(args.require_go) and summary["decision"] != "GO":
+            raise SystemExit(1)
+        return
+
     if args.command != "run":
         parser.print_help()
         return
@@ -438,6 +479,20 @@ def _run_calibration(config: dict) -> dict:
     if calib_type == "memory":
         return fit_memory_params(obs, enforce_gates=enforce_gates, gate_thresholds=thresholds)
     raise ValueError(f"Unknown calibration type: {calib_type}")
+
+
+def _parse_float_values(raw_values: list[str] | None, *, default: list[float]) -> list[float]:
+    if not raw_values:
+        return list(default)
+
+    out: list[float] = []
+    for raw in raw_values:
+        chunks = [part.strip() for part in str(raw).split(",")]
+        for chunk in chunks:
+            if not chunk:
+                continue
+            out.append(float(chunk))
+    return out if out else list(default)
 
 
 def _write_json(path: Path, payload: dict) -> None:
