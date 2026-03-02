@@ -12,7 +12,7 @@ import tempfile
 from typing import Any
 
 from photonstrust.layout.pic.build_layout import build_pic_layout_artifacts
-from photonstrust.pdk import resolve_pdk_contract
+from photonstrust.pdk import get_pdk, load_pdk_manifest, resolve_pdk_contract
 
 
 _PLACEHOLDER_GDS_BYTES = b"PHOTONTRUST_LOCAL_GDS_PLACEHOLDER_V1\n"
@@ -33,6 +33,7 @@ _PEX_RULE_DEFAULTS = {
     "max_coupling_coeff": 0.1,
     "min_net_coverage_ratio": 1.0,
 }
+_DEFAULT_WAVEGUIDE_LAYER = {"layer": 1, "datatype": 0}
 
 _TEMPLATE_MINIMAL_CHAIN = {
     "schema_version": "0.1",
@@ -124,6 +125,129 @@ def _safe_float(value: Any) -> float | None:
     return parsed
 
 
+def _safe_int(value: Any) -> int | None:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed
+
+
+def _layer_spec_from_any(raw: Any) -> dict[str, int] | None:
+    if isinstance(raw, dict):
+        if "layer" in raw:
+            raw_layer = raw.get("layer")
+            nested = _layer_spec_from_any(raw_layer) if isinstance(raw_layer, dict) else None
+            if nested is not None:
+                datatype_value = _safe_int(raw.get("datatype"))
+                if datatype_value is not None:
+                    nested["datatype"] = datatype_value
+                return nested
+            layer_value = _safe_int(raw_layer)
+            if layer_value is not None:
+                datatype_value = _safe_int(raw.get("datatype"))
+                if datatype_value is None:
+                    datatype_value = _safe_int(raw.get("gds_datatype"))
+                return {"layer": int(layer_value), "datatype": int(datatype_value or 0)}
+
+        gds_layer_value = _safe_int(raw.get("gds_layer"))
+        if gds_layer_value is not None:
+            datatype_value = _safe_int(raw.get("gds_datatype"))
+            if datatype_value is None:
+                datatype_value = _safe_int(raw.get("datatype"))
+            return {"layer": int(gds_layer_value), "datatype": int(datatype_value or 0)}
+
+        for key in ("spec", "gds", "value", "geometry", "route_layer"):
+            nested = _layer_spec_from_any(raw.get(key))
+            if nested is not None:
+                return nested
+
+    if isinstance(raw, (list, tuple)) and len(raw) >= 1:
+        layer_value = _safe_int(raw[0])
+        datatype_value = _safe_int(raw[1]) if len(raw) > 1 else 0
+        if layer_value is not None:
+            return {"layer": int(layer_value), "datatype": int(datatype_value or 0)}
+
+    layer_value = _safe_int(raw)
+    if layer_value is not None:
+        return {"layer": int(layer_value), "datatype": 0}
+    return None
+
+
+def _layer_entry_names(value: Any) -> set[str]:
+    out: set[str] = set()
+    if not isinstance(value, dict):
+        return out
+    for key in ("name", "kind", "type", "role", "id", "layer_name"):
+        text = str(value.get(key) or "").strip().lower()
+        if text:
+            out.add(text)
+    return out
+
+
+def _iter_layer_stack_entries(layer_stack: Any) -> list[tuple[set[str], Any]]:
+    entries: list[tuple[set[str], Any]] = []
+    if isinstance(layer_stack, dict):
+        for key, value in layer_stack.items():
+            names = {str(key).strip().lower()} if str(key).strip() else set()
+            names.update(_layer_entry_names(value))
+            entries.append((names, value))
+        return entries
+    if isinstance(layer_stack, list):
+        for value in layer_stack:
+            entries.append((_layer_entry_names(value), value))
+    return entries
+
+
+def _extract_waveguide_layer_from_layer_stack(layer_stack: Any) -> dict[str, int] | None:
+    entries = _iter_layer_stack_entries(layer_stack)
+    if not entries:
+        return None
+
+    preferred_keys = {"waveguide", "wg", "core", "strip", "si", "si_core", "silicon_core"}
+    for names, value in entries:
+        if names.intersection(preferred_keys):
+            layer = _layer_spec_from_any(value)
+            if layer is not None:
+                return layer
+
+    for names, value in entries:
+        if any(("waveguide" in name) or name == "wg" or ("core" in name) or ("strip" in name) for name in names):
+            layer = _layer_spec_from_any(value)
+            if layer is not None:
+                return layer
+
+    for _, value in entries:
+        layer = _layer_spec_from_any(value)
+        if layer is not None:
+            return layer
+    return None
+
+
+def _resolve_layer_stack_for_request(pdk_request: dict[str, Any], warnings: list[str]) -> list[dict[str, Any]] | None:
+    manifest_path = str(pdk_request.get("manifest_path") or "").strip()
+    pdk_name = str(pdk_request.get("name") or "").strip()
+    try:
+        if manifest_path:
+            pdk_payload = load_pdk_manifest(manifest_path)
+        else:
+            pdk_payload = get_pdk(pdk_name or None)
+        raw_layer_stack = getattr(pdk_payload, "layer_stack", None)
+        if isinstance(raw_layer_stack, list):
+            return [dict(layer) for layer in raw_layer_stack if isinstance(layer, dict)]
+    except Exception:
+        warnings.append("pdk_layer_stack_resolve_failed")
+    return None
+
+
+def _resolve_canonical_waveguide_layer(pdk_manifest_payload: dict[str, Any]) -> dict[str, int]:
+    raw_layer_stack = pdk_manifest_payload.get("layer_stack")
+    resolved = _extract_waveguide_layer_from_layer_stack(raw_layer_stack)
+    if resolved is not None:
+        return {"layer": int(resolved["layer"]), "datatype": int(resolved["datatype"])}
+    return dict(_DEFAULT_WAVEGUIDE_LAYER)
+
+
 def _resolve_output_path(run_dir: Path, value: Path | None) -> Path | None:
     if value is None:
         return None
@@ -163,6 +287,7 @@ def _merge_pex_rules(raw: Any) -> dict[str, float]:
 
 
 def _build_pdk_manifest_payload(pdk_request: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
+    layer_stack = _resolve_layer_stack_for_request(pdk_request, warnings)
     try:
         contract = resolve_pdk_contract(pdk_request)
         pdk_payload = contract.get("pdk") if isinstance(contract, dict) else {}
@@ -178,10 +303,12 @@ def _build_pdk_manifest_payload(pdk_request: dict[str, Any], warnings: list[str]
             out["design_rules"] = dict(_LOCAL_DESIGN_RULE_FALLBACK)
             warnings.append("pdk_design_rules_missing_using_local_fallback")
         out["pex_rules"] = _merge_pex_rules(pdk_payload.get("pex_rules"))
+        if isinstance(layer_stack, list) and layer_stack:
+            out["layer_stack"] = layer_stack
         return out
     except Exception:
         warnings.append("pdk_resolve_failed_using_local_fallback")
-        return {
+        out = {
             "name": "local_smoke_pdk",
             "version": "1",
             "notes": [
@@ -191,6 +318,9 @@ def _build_pdk_manifest_payload(pdk_request: dict[str, Any], warnings: list[str]
             "design_rules": dict(_LOCAL_DESIGN_RULE_FALLBACK),
             "pex_rules": dict(_PEX_RULE_DEFAULTS),
         }
+        if isinstance(layer_stack, list) and layer_stack:
+            out["layer_stack"] = layer_stack
+        return out
 
 
 def _fallback_sidecars_from_graph(graph_payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -335,11 +465,48 @@ def _derive_min_bend_radius_um(design_rules: dict[str, Any]) -> float:
     return 5.0
 
 
+def _parse_xy_point(raw: Any) -> tuple[float, float] | None:
+    if isinstance(raw, (list, tuple)) and len(raw) >= 2:
+        x = _safe_float(raw[0])
+        y = _safe_float(raw[1])
+        if x is not None and y is not None:
+            return float(x), float(y)
+    if isinstance(raw, dict):
+        x = _safe_float(raw.get("x_um") if "x_um" in raw else raw.get("x"))
+        y = _safe_float(raw.get("y_um") if "y_um" in raw else raw.get("y"))
+        if x is not None and y is not None:
+            return float(x), float(y)
+    return None
+
+
+def _deterministic_jogged_points(raw_points: Any, *, route_index: int) -> list[list[float]] | None:
+    if route_index <= 0:
+        return None
+    if not isinstance(raw_points, list) or len(raw_points) != 2:
+        return None
+    p0 = _parse_xy_point(raw_points[0])
+    p1 = _parse_xy_point(raw_points[1])
+    if p0 is None or p1 is None:
+        return None
+
+    x0, y0 = p0
+    x1, y1 = p1
+    jog_um = float(2.0 * route_index)
+    if abs(y0 - y1) <= 1e-9:
+        y_jog = y0 + jog_um
+        return [[x0, y0], [x0, y_jog], [x1, y_jog], [x1, y1]]
+    if abs(x0 - x1) <= 1e-9:
+        x_jog = x0 + jog_um
+        return [[x0, y0], [x_jog, y0], [x_jog, y1], [x1, y1]]
+    return None
+
+
 def _enrich_routes_for_local_backend(
     *,
     routes_payload: dict[str, Any],
     graph_payload: dict[str, Any],
     design_rules: dict[str, Any],
+    canonical_waveguide_layer: dict[str, int],
 ) -> dict[str, Any]:
     raw_routes = routes_payload.get("routes")
     route_rows = list(raw_routes) if isinstance(raw_routes, list) else []
@@ -374,11 +541,15 @@ def _enrich_routes_for_local_backend(
         else:
             route["coupling_coeff"] = float(coupling_coeff)
 
-        # Keep local spacing checks deterministic and passable when the upstream
-        # builder does not emit explicit layer assignments.
-        raw_layer = route.get("layer")
-        if raw_layer is None:
-            route["layer"] = {"layer": int(idx + 1), "datatype": 0}
+        # Keep DRC local spacing checks deterministic with one canonical waveguide layer.
+        route["layer"] = {
+            "layer": int(canonical_waveguide_layer["layer"]),
+            "datatype": int(canonical_waveguide_layer["datatype"]),
+        }
+
+        jogged_points = _deterministic_jogged_points(route.get("points_um"), route_index=idx)
+        if jogged_points is not None:
+            route["points_um"] = jogged_points
 
         raw_bends = route.get("bends")
         bends_out: list[dict[str, Any]] = []
@@ -437,6 +608,7 @@ def _materialize(
     graph_payload = _resolve_graph_template(graph_template_ref)
     pdk_request = _resolve_pdk_request(graph_payload)
     pdk_manifest_payload = _build_pdk_manifest_payload(pdk_request, warnings)
+    canonical_waveguide_layer = _resolve_canonical_waveguide_layer(pdk_manifest_payload)
 
     ports_payload, routes_raw_payload, gds_mode, gds_expected = _generate_layout_sidecars(
         graph_payload=graph_payload,
@@ -447,6 +619,7 @@ def _materialize(
         routes_payload=routes_raw_payload,
         graph_payload=graph_payload,
         design_rules=dict(pdk_manifest_payload.get("design_rules") or {}),
+        canonical_waveguide_layer=canonical_waveguide_layer,
     )
 
     inputs_dir = (run_dir / "inputs").resolve()

@@ -67,6 +67,7 @@ def test_materialize_local_tapeout_run_success_and_smoke_compatible(tmp_path: Pa
     assert all(isinstance(row.get("bends"), list) and len(row.get("bends") or []) >= 1 for row in route_rows)
     assert all(float((row.get("bends") or [{}])[0].get("radius_um", 0.0)) >= 5.0 for row in route_rows)
     assert all(0.0 < float(row.get("coupling_coeff", 0.0)) < 0.1 for row in route_rows)
+    assert all(row.get("layer") == {"layer": 1, "datatype": 0} for row in route_rows)
 
     pdk_payload = json.loads(pdk_path.read_text(encoding="utf-8"))
     assert pdk_payload["name"] == "generic_silicon_photonics"
@@ -142,6 +143,74 @@ def test_materialize_local_tapeout_run_accepts_custom_graph_template_path(tmp_pa
     assert smoke.returncode == 0, smoke.stdout + smoke.stderr
     smoke_report = json.loads(smoke_output_json.read_text(encoding="utf-8"))
     assert smoke_report["overall_status"] == "pass"
+
+
+def test_materialize_local_tapeout_run_uses_canonical_waveguide_layer_from_pdk_layer_stack(tmp_path: Path) -> None:
+    pdk_manifest_path = tmp_path / "custom_with_layer_stack.pdk.json"
+    pdk_manifest_path.write_text(
+        json.dumps(
+            {
+                "name": "custom_with_layer_stack",
+                "version": "1",
+                "design_rules": {
+                    "min_waveguide_width_um": 0.45,
+                    "min_waveguide_gap_um": 0.2,
+                    "min_bend_radius_um": 5.0,
+                    "min_waveguide_enclosure_um": 1.0,
+                },
+                "layer_stack": [
+                    {"name": "metal1", "gds_layer": 10, "gds_datatype": 0},
+                    {"name": "waveguide_core", "gds_layer": 31, "gds_datatype": 7},
+                    {"name": "cladding", "gds_layer": 40, "gds_datatype": 0},
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    template_path = tmp_path / "graph_with_pdk_template.json"
+    template_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1",
+                "graph_id": "graph_with_layered_pdk",
+                "profile": "pic_circuit",
+                "circuit": {"id": "graph_with_layered_pdk", "wavelength_nm": 1550},
+                "pdk": {"manifest_path": str(pdk_manifest_path)},
+                "nodes": [
+                    {"id": "gc_in", "kind": "pic.grating_coupler", "params": {}},
+                    {"id": "wg_1", "kind": "pic.waveguide", "params": {"length_um": 200.0}},
+                    {"id": "ec_out", "kind": "pic.edge_coupler", "params": {}},
+                ],
+                "edges": [
+                    {"from": "gc_in", "to": "wg_1", "kind": "optical"},
+                    {"from": "wg_1", "to": "ec_out", "kind": "optical"},
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    run_dir = tmp_path / "run_pkg_layered"
+    completed = _run_materialize(
+        [
+            "--run-dir",
+            str(run_dir),
+            "--graph-template",
+            str(template_path),
+        ]
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    report = _parse_stdout_json(completed)
+    assert report["ok"] is True
+
+    routes_payload = json.loads((run_dir / "inputs" / "routes.json").read_text(encoding="utf-8"))
+    route_rows = routes_payload.get("routes")
+    assert isinstance(route_rows, list)
+    assert len(route_rows) == 2
+    assert all(row.get("layer") == {"layer": 31, "datatype": 7} for row in route_rows)
 
 
 def test_materialize_local_tapeout_run_is_idempotent_without_force(tmp_path: Path) -> None:
