@@ -420,12 +420,18 @@ def test_day10_rehearsal_real_mode_local_backend_hold_signoff_foundry_approval_u
     signoff = _load_json(signoff_path)
     assert signoff["kind"] == "pic.signoff_ladder"
 
-    foundry_approval_stage = next(row for row in signoff.get("ladder", []) if row.get("stage") == "foundry_approval")
-    assert str(foundry_approval_stage.get("status")) in {"hold", "fail"}
-    signoff_failure_ids = [str(v) for v in (foundry_approval_stage.get("failure_rule_ids") or []) if str(v).strip()]
-    assert signoff_failure_ids
-    assert "foundry_approval.synthetic_hold" not in signoff_failure_ids
-    assert set(smoke_failed_ids).issubset(set(signoff_failure_ids))
+    ladder = signoff.get("ladder", [])
+    drc_stage = next(row for row in ladder if row.get("stage") == "drc")
+    assert str(drc_stage.get("status")) == "fail"
+    drc_failure_ids = [str(v) for v in (drc_stage.get("failure_rule_ids") or []) if str(v).strip()]
+    assert drc_failure_ids
+    assert set(smoke_failed_ids).issubset(set(drc_failure_ids))
+
+    foundry_approval_stage = next(row for row in ladder if row.get("stage") == "foundry_approval")
+    assert str(foundry_approval_stage.get("status")) == "skipped"
+    assert list(foundry_approval_stage.get("failure_rule_ids") or []) == []
+    all_failure_ids = [str(v) for row in ladder if isinstance(row, dict) for v in (row.get("failure_rule_ids") or [])]
+    assert "foundry_approval.synthetic_hold" not in all_failure_ids
 
 
 def test_day10_rehearsal_real_mode_bootstrap_local_backend_end_to_end(tmp_path: Path) -> None:

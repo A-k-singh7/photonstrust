@@ -536,16 +536,6 @@ def _derive_foundry_approval(
     return {"decision": "hold", "status": "fail", "failed_check_ids": failed_check_ids}
 
 
-def _derive_stage_waiver_rule_ids(*, summaries: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
-    stage_waivers: dict[str, list[str]] = {}
-    for kind in STAGES:
-        summary = summaries.get(kind) if isinstance(summaries.get(kind), dict) else {}
-        failure_ids = _failed_check_ids_from_summary(kind=kind, summary=summary)
-        if failure_ids:
-            stage_waivers[kind] = failure_ids
-    return stage_waivers
-
-
 def _build_context_signoff_ladder(*, run_dir: Path, smoke_report: dict[str, Any], tapeout_report: dict[str, Any]) -> str:
     assembly_report = _load_or_derive_assembly_report(run_dir=run_dir)
     summaries = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
@@ -554,14 +544,9 @@ def _build_context_signoff_ladder(*, run_dir: Path, smoke_report: dict[str, Any]
         tapeout_report=tapeout_report,
         summaries=summaries,
     )
-    policy: dict[str, Any] = {"multi_stage": True}
-    stage_waivers = _derive_stage_waiver_rule_ids(summaries=summaries)
-    if stage_waivers:
-        policy["allow_waived_failures"] = True
-        policy["stage_waiver_rule_ids"] = stage_waivers
     request = {
         "assembly_report": assembly_report,
-        "policy": policy,
+        "policy": {"multi_stage": True},
         "drc_summary": summaries["drc"],
         "lvs_summary": summaries["lvs"],
         "pex_summary": summaries["pex"],
