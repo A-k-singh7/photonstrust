@@ -104,12 +104,24 @@ jobs:
           import json
           from pathlib import Path
           from photonstrust.benchmarks.schema import validate_instance
-          from photonstrust.workflow.schema import day10_tapeout_rehearsal_packet_schema_path
+          from photonstrust.workflow.schema import (
+              day10_tapeout_rehearsal_packet_schema_path,
+              pic_foundry_approval_sealed_summary_schema_path,
+          )
 
           packet_path = Path("results/day10_cv/day10_decision_packet.json")
           payload = json.loads(packet_path.read_text(encoding="utf-8"))
           validate_instance(payload, day10_tapeout_rehearsal_packet_schema_path())
           print(f"validated packet schema: {packet_path}")
+
+          for run_dir in (
+              Path("results/day10_cv/run_pkg"),
+              Path("results/day10_cv_local/run_pkg"),
+          ):
+              approval_path = run_dir / "foundry_approval_sealed_summary.json"
+              summary = json.loads(approval_path.read_text(encoding="utf-8"))
+              validate_instance(summary, pic_foundry_approval_sealed_summary_schema_path())
+              print(f"validated foundry approval summary: {approval_path}")
           PY
 
       - name: Build tapeout package
@@ -118,6 +130,21 @@ jobs:
             --run-dir results/day10_cv/run_pkg \
             --output-root results/tapeout_packages_cv \
             --report-path results/day10_cv/tapeout_package_report.json
+
+      - name: Validate package includes foundry approval summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report_path = Path("results/day10_cv/tapeout_package_report.json")
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          package_dir = Path(str(report["package_dir"]))
+          approval_path = package_dir / "verification" / "foundry_approval_sealed_summary.json"
+          if not approval_path.is_file():
+              raise SystemExit(f"missing packaged approval summary: {approval_path}")
+          print(f"packaged approval summary: {approval_path}")
+          PY
 
       - name: Upload tapeout artifacts
         if: always()
