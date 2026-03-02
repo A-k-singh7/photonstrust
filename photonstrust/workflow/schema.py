@@ -84,3 +84,7 @@ def pic_qkd_certificate_schema_path() -> Path:
 
 def etsi_qkd_compliance_report_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.etsi_qkd_compliance_report.v0.schema.json").resolve()
+
+
+def m3_checkpoint_report_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.m3_checkpoint_report.v0.schema.json").resolve()

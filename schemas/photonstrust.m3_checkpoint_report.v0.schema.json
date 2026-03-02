@@ -1,0 +1,332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.m3_checkpoint_report.v0.schema.json",
+  "title": "PhotonTrust M3 checkpoint report schema v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "inputs",
+    "qkd",
+    "repeater",
+    "summary",
+    "overall_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "photonstrust.m3_checkpoint_report"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qkd_config_path",
+        "repeater_config_path",
+        "output_dir",
+        "force_analytic_backend",
+        "perturbation_fraction"
+      ],
+      "properties": {
+        "qkd_config_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repeater_config_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_dir": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "force_analytic_backend": {
+          "type": "boolean"
+        },
+        "perturbation_fraction": {
+          "type": "number",
+          "minimum": 0.0
+        }
+      }
+    },
+    "qkd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_count",
+        "bands",
+        "status"
+      ],
+      "properties": {
+        "scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scenario_id",
+              "band",
+              "checks",
+              "status"
+            ],
+            "properties": {
+              "scenario_id": {
+                "type": "string"
+              },
+              "band": {
+                "type": "string"
+              },
+              "checks": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key_rate_non_increasing_over_distance",
+                  "qber_within_unit_interval",
+                  "reliability_card_generated"
+                ],
+                "properties": {
+                  "key_rate_non_increasing_over_distance": {
+                    "type": "object",
+                    "required": [
+                      "pass"
+                    ],
+                    "properties": {
+                      "pass": {
+                        "type": "boolean"
+                      },
+                      "max_positive_delta_bps": {
+                        "type": "number"
+                      },
+                      "distance_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": true
+                  },
+                  "qber_within_unit_interval": {
+                    "type": "object",
+                    "required": [
+                      "pass"
+                    ],
+                    "properties": {
+                      "pass": {
+                        "type": "boolean"
+                      },
+                      "qber_min": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "qber_max": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "distance_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": true
+                  },
+                  "reliability_card_generated": {
+                    "type": "object",
+                    "required": [
+                      "pass"
+                    ],
+                    "properties": {
+                      "pass": {
+                        "type": "boolean"
+                      },
+                      "card_schema_version": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "note": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "HOLD"
+                ]
+              }
+            }
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "HOLD"
+          ]
+        }
+      }
+    },
+    "repeater": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checks",
+        "distances",
+        "status"
+      ],
+      "properties": {
+        "checks": {
+          "type": "object",
+          "required": [
+            "optimization_runs_succeeded",
+            "perturbation_fraction",
+            "stability_threshold_ratio"
+          ],
+          "properties": {
+            "optimization_runs_succeeded": {
+              "type": "boolean"
+            },
+            "perturbation_fraction": {
+              "type": "number",
+              "minimum": 0.0
+            },
+            "stability_threshold_ratio": {
+              "type": "number",
+              "minimum": 0.0
+            },
+            "error": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "distances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "total_distance_km",
+              "base_best_spacing_km",
+              "minus_best_spacing_km",
+              "plus_best_spacing_km",
+              "drift_ratio",
+              "stable"
+            ],
+            "properties": {
+              "total_distance_km": {
+                "type": "number",
+                "minimum": 0.0
+              },
+              "base_best_spacing_km": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "minus_best_spacing_km": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "plus_best_spacing_km": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "drift_ratio": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0.0
+              },
+              "stable": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "HOLD"
+          ]
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qkd_pass_bands",
+        "qkd_total_bands",
+        "repeater_stable_distances",
+        "repeater_total_distances",
+        "all_qkd_checks_pass",
+        "repeater_stability_pass"
+      ],
+      "properties": {
+        "qkd_pass_bands": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qkd_total_bands": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repeater_stable_distances": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repeater_total_distances": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "all_qkd_checks_pass": {
+          "type": "boolean"
+        },
+        "repeater_stability_pass": {
+          "type": "boolean"
+        }
+      }
+    },
+    "overall_status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "HOLD"
+      ]
+    }
+  }
+}

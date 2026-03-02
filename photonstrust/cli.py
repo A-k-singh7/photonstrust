@@ -181,6 +181,51 @@ def main() -> None:
     compliance_check.add_argument("--signing-key", default=None, help="Optional Ed25519 private key PEM")
     compliance_check.add_argument("--strict", action="store_true", help="Exit with code 1 if any FAIL is present")
 
+    m3_parser = subparsers.add_parser("m3", help="M3 checkpoint orchestration tools")
+    m3_subparsers = m3_parser.add_subparsers(dest="m3_command")
+
+    m3_checkpoint = m3_subparsers.add_parser("checkpoint", help="Run M3 QKD + repeater checkpoint lane")
+    m3_checkpoint.add_argument(
+        "--qkd-config",
+        default="configs/demo1_default.yml",
+        help="Path to QKD config YAML",
+    )
+    m3_checkpoint.add_argument(
+        "--repeater-config",
+        default="configs/demo2_repeater_spacing.yml",
+        help="Path to repeater config YAML",
+    )
+    m3_checkpoint.add_argument(
+        "--output-dir",
+        default="results/m3_checkpoint",
+        help="Output directory for checkpoint artifacts",
+    )
+    force_group = m3_checkpoint.add_mutually_exclusive_group()
+    force_group.add_argument(
+        "--force-analytic",
+        dest="force_analytic",
+        action="store_true",
+        help="Force analytic backend execution (default)",
+    )
+    force_group.add_argument(
+        "--no-force-analytic",
+        dest="force_analytic",
+        action="store_false",
+        help="Allow non-analytic backend execution",
+    )
+    m3_checkpoint.set_defaults(force_analytic=True)
+    m3_checkpoint.add_argument(
+        "--perturbation-fraction",
+        type=float,
+        default=0.05,
+        help="Relative perturbation fraction used by checkpoint stability checks",
+    )
+    m3_checkpoint.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit with code 1 when overall_status is not PASS",
+    )
+
     args = parser.parse_args()
 
     if args.command == "fmt":
@@ -496,6 +541,41 @@ def main() -> None:
             raise SystemExit(1)
         return
 
+    if args.command == "m3":
+        if args.m3_command != "checkpoint":
+            m3_parser.print_help()
+            return
+
+        try:
+            from photonstrust.pipeline.m3_checkpoint import run_m3_checkpoint
+        except Exception as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": f"m3_checkpoint_api_unavailable: {exc}",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+            raise SystemExit(2)
+
+        output_dir = Path(args.output_dir)
+        result = run_m3_checkpoint(
+            qkd_config_path=Path(args.qkd_config),
+            repeater_config_path=Path(args.repeater_config),
+            output_dir=output_dir,
+            force_analytic_backend=bool(args.force_analytic),
+            perturbation_fraction=float(args.perturbation_fraction),
+        )
+
+        summary = _summarize_m3_checkpoint_result(result, output_dir=output_dir)
+        print(json.dumps(summary, separators=(",", ":"), sort_keys=True))
+        if bool(args.strict) and str(summary.get("overall_status") or "").strip().upper() != "PASS":
+            raise SystemExit(1)
+        return
+
     if args.command != "run":
         parser.print_help()
         return
@@ -594,6 +674,82 @@ def _parse_text_values(raw_values: list[str] | None) -> list[str] | None:
     return out or None
 
 
+def _summarize_m3_checkpoint_result(result: object, *, output_dir: Path) -> dict:
+    payload = result if isinstance(result, dict) else {}
+    overall_status = str(payload.get("overall_status") or payload.get("status") or "UNKNOWN").strip().upper()
+    qkd_status = None
+    repeater_status = None
+
+    qkd_pass_flags = payload.get("qkd_pass_flags")
+    if not isinstance(qkd_pass_flags, dict):
+        qkd_pass_flags = {}
+        qkd_section = payload.get("qkd")
+        if isinstance(qkd_section, dict):
+            status_raw = qkd_section.get("status")
+            if status_raw is not None:
+                qkd_status = str(status_raw).strip().upper()
+                qkd_pass_flags["status_pass"] = qkd_status == "PASS"
+
+            bands = qkd_section.get("bands")
+            if isinstance(bands, list):
+                for row in bands:
+                    if not isinstance(row, dict):
+                        continue
+                    scenario_id = str(row.get("scenario_id") or "").strip()
+                    band = str(row.get("band") or "").strip()
+                    if not scenario_id and not band:
+                        continue
+                    key = f"{scenario_id}:{band}".strip(":")
+                    qkd_pass_flags[key] = str(row.get("status") or "").strip().upper() == "PASS"
+
+    summary = payload.get("summary")
+    if isinstance(summary, dict):
+        all_qkd = summary.get("all_qkd_checks_pass")
+        if isinstance(all_qkd, bool):
+            qkd_pass_flags.setdefault("all_qkd_checks_pass", all_qkd)
+
+    repeater_stability = payload.get("repeater_stability")
+    if repeater_stability is None:
+        repeater_section = payload.get("repeater")
+        if isinstance(repeater_section, dict):
+            status_raw = repeater_section.get("status")
+            if status_raw is not None:
+                repeater_status = str(status_raw).strip().upper()
+
+            if "stability" in repeater_section:
+                repeater_stability = repeater_section.get("stability")
+            elif "stable" in repeater_section:
+                repeater_stability = repeater_section.get("stable")
+            elif "is_stable" in repeater_section:
+                repeater_stability = repeater_section.get("is_stable")
+            elif "distances" in repeater_section and isinstance(repeater_section.get("distances"), list):
+                distances = repeater_section.get("distances") or []
+                stable_flags = [bool(row.get("stable")) for row in distances if isinstance(row, dict)]
+                if stable_flags:
+                    repeater_stability = all(stable_flags)
+
+    if repeater_stability is None and isinstance(summary, dict):
+        stable_pass = summary.get("repeater_stability_pass")
+        if isinstance(stable_pass, bool):
+            repeater_stability = stable_pass
+
+    output_path_raw = payload.get("output_path")
+    if output_path_raw is None:
+        output_path_raw = payload.get("output_dir")
+    if output_path_raw is None and isinstance(payload.get("artifacts"), dict):
+        output_path_raw = payload["artifacts"].get("output_dir")
+    output_path = str(output_path_raw) if output_path_raw is not None else str(output_dir.resolve())
+
+    return {
+        "overall_status": overall_status,
+        "output_path": output_path,
+        "qkd_status": qkd_status,
+        "repeater_status": repeater_status,
+        "qkd_pass_flags": qkd_pass_flags,
+        "repeater_stability": repeater_stability,
+    }
+
+
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -601,3 +757,4 @@ def _write_json(path: Path, payload: dict) -> None:
 
 if __name__ == "__main__":
     main()
+

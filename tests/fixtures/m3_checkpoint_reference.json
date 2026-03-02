@@ -1,0 +1,153 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.m3_checkpoint_report",
+  "generated_at": "<GENERATED_AT>",
+  "inputs": {
+    "qkd_config_path": "configs/demo1_default.yml",
+    "repeater_config_path": "configs/demo2_repeater_spacing.yml",
+    "output_dir": "<OUTPUT_DIR>",
+    "force_analytic_backend": true,
+    "perturbation_fraction": 0.05
+  },
+  "qkd": {
+    "scenario_count": 4,
+    "bands": [
+      {
+        "scenario_id": "demo1_multiband",
+        "band": "c_1550",
+        "checks": {
+          "key_rate_non_increasing_over_distance": {
+            "pass": true,
+            "max_positive_delta_bps": 0.0,
+            "distance_count": 21
+          },
+          "qber_within_unit_interval": {
+            "pass": true,
+            "qber_min": 0.018538480038911,
+            "qber_max": 0.018653719883944,
+            "distance_count": 21
+          },
+          "reliability_card_generated": {
+            "pass": true,
+            "card_schema_version": "1.0",
+            "note": null
+          }
+        },
+        "status": "PASS"
+      },
+      {
+        "scenario_id": "demo1_multiband",
+        "band": "nir_795",
+        "checks": {
+          "key_rate_non_increasing_over_distance": {
+            "pass": true,
+            "max_positive_delta_bps": 0.0,
+            "distance_count": 21
+          },
+          "qber_within_unit_interval": {
+            "pass": true,
+            "qber_min": 0.018529112904066,
+            "qber_max": 0.5,
+            "distance_count": 21
+          },
+          "reliability_card_generated": {
+            "pass": true,
+            "card_schema_version": "1.0",
+            "note": null
+          }
+        },
+        "status": "PASS"
+      },
+      {
+        "scenario_id": "demo1_multiband",
+        "band": "nir_850",
+        "checks": {
+          "key_rate_non_increasing_over_distance": {
+            "pass": true,
+            "max_positive_delta_bps": 0.0,
+            "distance_count": 21
+          },
+          "qber_within_unit_interval": {
+            "pass": true,
+            "qber_min": 0.01853159803272,
+            "qber_max": 0.5,
+            "distance_count": 21
+          },
+          "reliability_card_generated": {
+            "pass": true,
+            "card_schema_version": "1.0",
+            "note": null
+          }
+        },
+        "status": "PASS"
+      },
+      {
+        "scenario_id": "demo1_multiband",
+        "band": "o_1310",
+        "checks": {
+          "key_rate_non_increasing_over_distance": {
+            "pass": true,
+            "max_positive_delta_bps": 0.0,
+            "distance_count": 21
+          },
+          "qber_within_unit_interval": {
+            "pass": true,
+            "qber_min": 0.018531946037432,
+            "qber_max": 0.020119593674339,
+            "distance_count": 21
+          },
+          "reliability_card_generated": {
+            "pass": true,
+            "card_schema_version": "1.0",
+            "note": null
+          }
+        },
+        "status": "PASS"
+      }
+    ],
+    "status": "PASS"
+  },
+  "repeater": {
+    "checks": {
+      "optimization_runs_succeeded": true,
+      "perturbation_fraction": 0.05,
+      "stability_threshold_ratio": 0.3
+    },
+    "distances": [
+      {
+        "total_distance_km": 100.0,
+        "base_best_spacing_km": 10.0,
+        "minus_best_spacing_km": 10.0,
+        "plus_best_spacing_km": 10.0,
+        "drift_ratio": 0.0,
+        "stable": true
+      },
+      {
+        "total_distance_km": 300.0,
+        "base_best_spacing_km": 10.0,
+        "minus_best_spacing_km": 10.0,
+        "plus_best_spacing_km": 10.0,
+        "drift_ratio": 0.0,
+        "stable": true
+      },
+      {
+        "total_distance_km": 500.0,
+        "base_best_spacing_km": 10.0,
+        "minus_best_spacing_km": 10.0,
+        "plus_best_spacing_km": 10.0,
+        "drift_ratio": 0.0,
+        "stable": true
+      }
+    ],
+    "status": "PASS"
+  },
+  "summary": {
+    "qkd_pass_bands": 4,
+    "qkd_total_bands": 4,
+    "repeater_stable_distances": 3,
+    "repeater_total_distances": 3,
+    "all_qkd_checks_pass": true,
+    "repeater_stability_pass": true
+  },
+  "overall_status": "PASS"
+}
