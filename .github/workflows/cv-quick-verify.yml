@@ -72,6 +72,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,pic,api,layout]"
 
+      - name: Run tapeout schema smoke tests
+        run: |
+          python -m pytest -q \
+            tests/test_pic_tapeout_gate_schema.py \
+            tests/test_day10_tapeout_rehearsal_packet_schema.py
+
       - name: Run Day 10 tapeout rehearsal
         run: |
           python scripts/run_day10_tapeout_rehearsal.py \
@@ -79,6 +85,20 @@ jobs:
             --output-json results/day10_cv/day10_decision_packet.json \
             --run-dir results/day10_cv/run_pkg \
             --strict
+
+      - name: Validate Day 10 packet schema (CV artifact)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from photonstrust.benchmarks.schema import validate_instance
+          from photonstrust.workflow.schema import day10_tapeout_rehearsal_packet_schema_path
+
+          packet_path = Path("results/day10_cv/day10_decision_packet.json")
+          payload = json.loads(packet_path.read_text(encoding="utf-8"))
+          validate_instance(payload, day10_tapeout_rehearsal_packet_schema_path())
+          print(f"validated packet schema: {packet_path}")
+          PY
 
       - name: Build tapeout package
         run: |

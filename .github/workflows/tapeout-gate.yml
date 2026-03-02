@@ -3,6 +3,8 @@ name: tapeout-gate
 on:
   push:
     paths:
+      - ".github/workflows/tapeout-gate.yml"
+      - ".github/workflows/cv-quick-verify.yml"
       - "graphs/**"
       - "configs/**"
       - "photonstrust/pic/**"
@@ -13,8 +15,16 @@ on:
       - "scripts/build_tapeout_package.py"
       - "schemas/photonstrust.pic_*"
       - "schemas/photonstrust.day10_tapeout_rehearsal_packet.v0.schema.json"
+      - "tests/test_foundry_drc_sealed_runner.py"
+      - "tests/test_pic_tapeout_gate.py"
+      - "tests/test_pic_tapeout_gate_schema.py"
+      - "tests/test_day10_tapeout_rehearsal.py"
+      - "tests/test_day10_tapeout_rehearsal_packet_schema.py"
+      - "tests/test_tapeout_package_builder.py"
   pull_request:
     paths:
+      - ".github/workflows/tapeout-gate.yml"
+      - ".github/workflows/cv-quick-verify.yml"
       - "graphs/**"
       - "configs/**"
       - "photonstrust/pic/**"
@@ -25,6 +35,12 @@ on:
       - "scripts/build_tapeout_package.py"
       - "schemas/photonstrust.pic_*"
       - "schemas/photonstrust.day10_tapeout_rehearsal_packet.v0.schema.json"
+      - "tests/test_foundry_drc_sealed_runner.py"
+      - "tests/test_pic_tapeout_gate.py"
+      - "tests/test_pic_tapeout_gate_schema.py"
+      - "tests/test_day10_tapeout_rehearsal.py"
+      - "tests/test_day10_tapeout_rehearsal_packet_schema.py"
+      - "tests/test_tapeout_package_builder.py"
   workflow_dispatch:
 
 permissions:
@@ -70,6 +86,10 @@ jobs:
             tests/test_foundry_lvs_pex_sealed_runner.py \
             tests/test_pic_signoff_core.py \
             tests/test_pic_tapeout_gate.py \
+            tests/test_pic_tapeout_gate_schema.py \
+            tests/test_day10_tapeout_rehearsal_packet_schema.py \
+            tests/test_day10_tapeout_rehearsal.py::test_day10_rehearsal_synthetic_pass_emits_go_packet \
+            tests/test_day10_tapeout_rehearsal.py::test_day10_rehearsal_synthetic_fail_returns_hold_in_strict_mode \
             tests/test_tapeout_package_builder.py
 
       - name: Run Day 10 tapeout rehearsal (synthetic strict)
@@ -79,6 +99,20 @@ jobs:
             --output-json results/day10_ci/day10_decision_packet.json \
             --run-dir results/day10_ci/run_pkg \
             --strict
+
+      - name: Validate Day 10 packet schema (CI artifact)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from photonstrust.benchmarks.schema import validate_instance
+          from photonstrust.workflow.schema import day10_tapeout_rehearsal_packet_schema_path
+
+          packet_path = Path("results/day10_ci/day10_decision_packet.json")
+          payload = json.loads(packet_path.read_text(encoding="utf-8"))
+          validate_instance(payload, day10_tapeout_rehearsal_packet_schema_path())
+          print(f"validated packet schema: {packet_path}")
+          PY
 
       - name: Build deterministic tapeout package
         run: |
