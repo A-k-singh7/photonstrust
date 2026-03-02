@@ -227,6 +227,27 @@ def main() -> None:
         help="Exit with code 1 when overall_status is not PASS",
     )
 
+    satellite_chain_parser = subparsers.add_parser(
+        "satellite-chain",
+        help="Run satellite-to-ground PIC digital twin chain",
+    )
+    satellite_chain_parser.add_argument("config", help="Path to satellite chain YAML config")
+    satellite_chain_parser.add_argument(
+        "--output",
+        default="results/satellite_chain",
+        help="Output directory for chain artifacts",
+    )
+    satellite_chain_parser.add_argument(
+        "--signing-key",
+        default=None,
+        help="Optional Ed25519 private key PEM used to sign the certificate",
+    )
+    satellite_chain_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit with code 1 if the satellite chain decision is HOLD",
+    )
+
     sweep_parser = subparsers.add_parser("sweep", help="Run PIC process-corner sweep")
     sweep_parser.add_argument("graph_path", help="Path to PIC graph JSON")
     sweep_parser.add_argument("--pdk", default="generic_sip_corners", help="PDK name")
@@ -580,6 +601,40 @@ def main() -> None:
         }
         print(json.dumps(output, separators=(",", ":"), sort_keys=True))
         if bool(result.get("strict_violation")):
+            raise SystemExit(1)
+        return
+
+    if args.command == "satellite-chain":
+        try:
+            from photonstrust.pipeline.satellite_chain import run_satellite_chain
+        except Exception as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": f"satellite_chain_api_unavailable: {exc}",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+            raise SystemExit(2)
+
+        try:
+            chain_config = load_config(args.config)
+        except ConfigSchemaVersionError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(2) from exc
+
+        output_dir = Path(args.output) if args.output else None
+        result = run_satellite_chain(
+            chain_config,
+            output_dir=output_dir,
+            signing_key=Path(args.signing_key) if args.signing_key else None,
+        )
+        summary = _summarize_satellite_chain_result(result, output_dir=output_dir)
+        print(json.dumps(summary, separators=(",", ":"), sort_keys=True))
+        if bool(args.strict) and str(summary.get("decision") or "").strip().upper() != "GO":
             raise SystemExit(1)
         return
 
@@ -978,6 +1033,34 @@ def _summarize_corner_sweep_result(result: object, *, output_dir: Path) -> dict:
         "worst_case_key_rate_bps": worst_case_key_rate_bps,
         "worst_corner": worst_corner,
         "yield_above_threshold": yield_above_threshold,
+    }
+
+
+def _summarize_satellite_chain_result(result: object, *, output_dir: Path) -> dict:
+    payload = result if isinstance(result, dict) else {}
+    cert = payload.get("certificate") if isinstance(payload.get("certificate"), dict) else {}
+    signoff = cert.get("signoff") if isinstance(cert.get("signoff"), dict) else {}
+    pass_section = cert.get("pass") if isinstance(cert.get("pass"), dict) else {}
+
+    decision = signoff.get("decision")
+    if decision is None:
+        decision = payload.get("decision")
+    if decision is None:
+        decision = "HOLD"
+
+    key_bits = pass_section.get("key_bits_accumulated")
+    mean_rate = pass_section.get("mean_key_rate_bps")
+
+    output_path_raw = payload.get("output_path")
+    if output_path_raw is None:
+        output_path_raw = cert.get("output_path")
+    output_path = str(output_path_raw) if output_path_raw is not None else str(output_dir.resolve())
+
+    return {
+        "decision": str(decision).strip().upper(),
+        "key_bits_accumulated": key_bits,
+        "mean_key_rate_bps": mean_rate,
+        "output_path": output_path,
     }
 
 

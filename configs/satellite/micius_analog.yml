@@ -1,0 +1,51 @@
+﻿schema_version: "0.1"
+
+satellite_qkd_chain:
+  id: micius_analog
+  description: Micius-like entanglement pass analog with large ground aperture
+
+  satellite:
+    altitude_km: 500.0
+    orbit_inclination_deg: 97.0
+    transmit_power_dbm: 30.0
+    tx_aperture_m: 0.30
+    wavelength_nm: 850.0
+    source_type: bbm92_spdc
+    mu_signal: 0.08
+    mu_decoy: 0.00
+    rep_rate_mhz: 100.0
+    source_qber_contribution: 0.010
+
+  atmosphere:
+    model: effective_thickness
+    extinction_db_per_km: 0.04
+    effective_thickness_km: 20.0
+    turbulence_scintillation_index: 0.12
+    pointing_jitter_urad: 1.2
+
+  ground_station:
+    latitude_deg: 36.0
+    rx_aperture_m: 1.20
+    telescope_efficiency: 0.85
+    fibre_coupling_efficiency: 0.55
+    eta_chip: 0.90
+    detector_type: snspd
+    detector_pde: 0.70
+    detector_dcr_cps: 100.0
+    detector_jitter_ps_fwhm: 60.0
+    coincidence_window_ps: 400.0
+    bandpass_filter_nm: 0.5
+
+  pass_geometry:
+    elevation_min_deg: 20.0
+    dt_s: 5.0
+    day_night: night
+
+  protocol: BBM92
+  target_security_epsilon: 1.0e-10
+
+  output:
+    key_per_pass: true
+    annual_estimate: true
+    clear_sky_probability: 0.70
+    sign_certificate: false

@@ -1,0 +1,52 @@
+﻿schema_version: "0.1"
+
+satellite_qkd_chain:
+  id: eagle1_analog_snspd
+  description: EAGLE-1 analog downlink for Berlin ground station (SNSPD upgrade)
+
+  satellite:
+    altitude_km: 600.0
+    orbit_inclination_deg: 70.0
+    transmit_power_dbm: 27.0
+    tx_aperture_m: 0.15
+    wavelength_nm: 785.0
+    source_type: bb84_wcp
+    mu_signal: 0.50
+    mu_decoy: 0.10
+    rep_rate_mhz: 100.0
+    source_qber_contribution: 0.005
+
+  atmosphere:
+    model: effective_thickness
+    extinction_db_per_km: 0.05
+    effective_thickness_km: 20.0
+    turbulence_scintillation_index: 0.15
+    pointing_jitter_urad: 2.0
+
+  ground_station:
+    latitude_deg: 52.5
+    rx_aperture_m: 0.40
+    telescope_efficiency: 0.80
+    fibre_coupling_efficiency: 0.45
+    eta_chip: 0.65
+    pic_pdk: aim_photonics_300nm_sin
+    detector_type: snspd
+    detector_pde: 0.85
+    detector_dcr_cps: 10.0
+    detector_jitter_ps_fwhm: 50.0
+    coincidence_window_ps: 400.0
+    bandpass_filter_nm: 0.5
+
+  pass_geometry:
+    elevation_min_deg: 15.0
+    dt_s: 5.0
+    day_night: night
+
+  protocol: BB84_decoy
+  target_security_epsilon: 1.0e-10
+
+  output:
+    key_per_pass: true
+    annual_estimate: true
+    clear_sky_probability: 0.40
+    sign_certificate: false

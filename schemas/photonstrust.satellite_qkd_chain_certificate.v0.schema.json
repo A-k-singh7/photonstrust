@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.satellite_qkd_chain_certificate.v0.schema.json",
+  "title": "PhotonTrust Satellite QKD Chain Certificate v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "run_id",
+    "generated_at",
+    "mission",
+    "ground_station",
+    "pass",
+    "signoff"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "satellite_qkd_chain_certificate"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mission": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "ground_station": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "latitude_deg",
+        "eta_chip",
+        "eta_ground_terminal"
+      ],
+      "properties": {
+        "latitude_deg": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "pic_cert_run_id": {
+          "type": ["string", "null"]
+        },
+        "eta_chip": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "eta_ground_terminal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "altitude_km",
+        "elevation_min_deg",
+        "pass_duration_s",
+        "samples_evaluated",
+        "samples_with_positive_key_rate",
+        "key_bits_accumulated",
+        "mean_key_rate_bps",
+        "peak_key_rate_bps",
+        "peak_elevation_deg"
+      ],
+      "properties": {
+        "altitude_km": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "elevation_min_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 90
+        },
+        "pass_duration_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "samples_evaluated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "samples_with_positive_key_rate": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "key_bits_accumulated": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mean_key_rate_bps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peak_key_rate_bps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peak_elevation_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 90
+        }
+      }
+    },
+    "annual_estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passes_per_day",
+        "clear_sky_probability",
+        "key_bits_per_year",
+        "key_mbits_per_year"
+      ],
+      "properties": {
+        "passes_per_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "clear_sky_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "key_bits_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "key_mbits_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "signoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "key_rate_positive_at_zenith",
+        "annual_key_above_1mbit"
+      ],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": ["GO", "HOLD"]
+        },
+        "key_rate_positive_at_zenith": {
+          "type": "boolean"
+        },
+        "annual_key_above_1mbit": {
+          "type": "boolean"
+        }
+      }
+    },
+    "signature": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

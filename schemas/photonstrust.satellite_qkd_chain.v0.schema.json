@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.satellite_qkd_chain.v0.schema.json",
+  "title": "PhotonTrust Satellite QKD Chain Config v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "satellite_qkd_chain"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "satellite_qkd_chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "satellite",
+        "atmosphere",
+        "ground_station",
+        "pass_geometry",
+        "protocol"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "satellite": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "altitude_km",
+            "orbit_inclination_deg",
+            "tx_aperture_m",
+            "wavelength_nm",
+            "source_type",
+            "rep_rate_mhz"
+          ],
+          "properties": {
+            "altitude_km": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "orbit_inclination_deg": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 180
+            },
+            "transmit_power_dbm": {
+              "type": "number"
+            },
+            "tx_aperture_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "wavelength_nm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "source_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "mu_signal": {
+              "type": "number"
+            },
+            "mu_decoy": {
+              "type": "number"
+            },
+            "rep_rate_mhz": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "source_qber_contribution": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.5
+            }
+          }
+        },
+        "atmosphere": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "extinction_db_per_km",
+            "effective_thickness_km",
+            "turbulence_scintillation_index",
+            "pointing_jitter_urad"
+          ],
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "extinction_db_per_km": {
+              "type": "number",
+              "minimum": 0
+            },
+            "effective_thickness_km": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "turbulence_scintillation_index": {
+              "type": "number",
+              "minimum": 0
+            },
+            "pointing_jitter_urad": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "ground_station": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "latitude_deg",
+            "rx_aperture_m",
+            "telescope_efficiency",
+            "fibre_coupling_efficiency",
+            "detector_type",
+            "detector_pde",
+            "detector_dcr_cps",
+            "detector_jitter_ps_fwhm",
+            "coincidence_window_ps"
+          ],
+          "properties": {
+            "latitude_deg": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "rx_aperture_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "telescope_efficiency": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "fibre_coupling_efficiency": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "fiber_coupling_efficiency": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "pic_graph_path": {
+              "type": "string"
+            },
+            "pic_pdk": {
+              "type": "string"
+            },
+            "eta_chip": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "detector_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "detector_pde": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "detector_dcr_cps": {
+              "type": "number",
+              "minimum": 0
+            },
+            "detector_jitter_ps_fwhm": {
+              "type": "number",
+              "minimum": 0
+            },
+            "coincidence_window_ps": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "bandpass_filter_nm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "clear_sky_probability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "pass_geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "elevation_min_deg",
+            "dt_s",
+            "day_night"
+          ],
+          "properties": {
+            "elevation_min_deg": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 90
+            },
+            "dt_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "day_night": {
+              "type": "string",
+              "enum": ["day", "night"]
+            }
+          }
+        },
+        "protocol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_security_epsilon": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "output": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "key_per_pass": {
+              "type": "boolean"
+            },
+            "annual_estimate": {
+              "type": "boolean"
+            },
+            "clear_sky_probability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "sign_certificate": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

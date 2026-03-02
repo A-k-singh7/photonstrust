@@ -92,3 +92,11 @@ def m3_checkpoint_report_schema_path() -> Path:
 
 def pic_corner_sweep_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.pic_corner_sweep.v0.schema.json").resolve()
+
+
+def satellite_qkd_chain_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.satellite_qkd_chain.v0.schema.json").resolve()
+
+
+def satellite_qkd_chain_certificate_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.satellite_qkd_chain_certificate.v0.schema.json").resolve()

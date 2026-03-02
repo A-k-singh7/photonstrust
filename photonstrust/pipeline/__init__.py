@@ -7,6 +7,7 @@ from .pic_qkd_bridge import (
     extract_eta_chip_channels,
     pdk_coupler_efficiency,
 )
+from .satellite_chain import run_satellite_chain
 
 __all__ = [
     "build_qkd_scenario_from_pic",
@@ -14,4 +15,5 @@ __all__ = [
     "extract_eta_chip_channels",
     "pdk_coupler_efficiency",
     "run_certify",
+    "run_satellite_chain",
 ]
