@@ -77,6 +77,7 @@ def build_pic_layout_artifacts(
     raw_settings = request.get("settings") if isinstance(request.get("settings"), dict) else None
     settings = normalize_layout_settings(raw_settings)
     if isinstance(raw_settings, dict):
+        settings["cell_name"] = _resolve_top_cell_name_alias(raw_settings, default=str(settings.get("cell_name", "TOP")))
         # Forward deterministic/advanced writer knobs without changing v0.1 defaults.
         for key in ("gds_timestamp", "timestamp", "gds_unit", "gds_precision", "port_marker_size_um"):
             if key in raw_settings:
@@ -339,6 +340,16 @@ def _gdstk_version_or_none() -> str | None:
         return str(getattr(gdstk, "__version__", None) or "unknown")
     except Exception:
         return None
+
+
+def _resolve_top_cell_name_alias(raw_settings: dict[str, Any], *, default: str) -> str:
+    for key in ("cell_name", "top_cell_name", "top_cell"):
+        if key not in raw_settings:
+            continue
+        value = str(raw_settings.get(key) or "").strip()
+        if value:
+            return value
+    return str(default or "TOP").strip() or "TOP"
 
 
 def _emit_gds(

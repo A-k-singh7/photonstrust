@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 import re
 from datetime import datetime
@@ -35,7 +36,7 @@ def write_gds(
     label_layer = _normalize_layer_spec(s.get("label_layer"), default_layer=10, default_datatype=0)
 
     label_prefix = str(s.get("label_prefix", "PTPORT") or "PTPORT").strip() or "PTPORT"
-    cell_name = str(s.get("cell_name") or s.get("top_cell_name") or "TOP").strip() or "TOP"
+    cell_name = _resolve_top_cell_name(s)
     unit = _as_positive_float(s.get("gds_unit"), 1e-6)
     precision = _as_positive_float(s.get("gds_precision"), 1e-9)
 
@@ -103,23 +104,57 @@ def _extract_waveguide_layer_from_pdk(pdk: Any) -> dict[str, int] | None:
     if not isinstance(pdk, Mapping):
         return None
     layer_stack = pdk.get("layer_stack")
-    if not isinstance(layer_stack, Mapping):
+    entries = _iter_layer_stack_entries(layer_stack)
+    if not entries:
         return None
 
-    preferred_keys = ("waveguide", "wg", "core", "strip", "si")
-    for key in preferred_keys:
-        if key in layer_stack:
-            layer = _layer_spec_from_any(layer_stack.get(key))
-            if layer is not None:
-                return layer
-
-    for key, value in layer_stack.items():
-        key_s = str(key).strip().lower()
-        if "waveguide" in key_s or key_s == "wg" or "core" in key_s or "strip" in key_s:
+    preferred_keys = {"waveguide", "wg", "core", "strip", "si", "si_core", "silicon_core"}
+    for names, value in entries:
+        if any(name in preferred_keys for name in names):
             layer = _layer_spec_from_any(value)
             if layer is not None:
                 return layer
+
+    for names, value in entries:
+        if any(("waveguide" in name) or name == "wg" or ("core" in name) or ("strip" in name) for name in names):
+            layer = _layer_spec_from_any(value)
+            if layer is not None:
+                return layer
+
+    for _names, value in entries:
+        layer = _layer_spec_from_any(value)
+        if layer is not None:
+            return layer
     return None
+
+
+def _iter_layer_stack_entries(layer_stack: Any) -> list[tuple[set[str], Any]]:
+    entries: list[tuple[set[str], Any]] = []
+    if isinstance(layer_stack, Mapping):
+        for key, value in layer_stack.items():
+            names = {str(key).strip().lower()}
+            names.update(_layer_entry_names(value))
+            entries.append((names, value))
+        return entries
+    if isinstance(layer_stack, list):
+        for value in layer_stack:
+            entries.append((_layer_entry_names(value), value))
+        return entries
+    return entries
+
+
+def _layer_entry_names(value: Any) -> set[str]:
+    out: set[str] = set()
+    if not isinstance(value, Mapping):
+        return out
+    for key in ("name", "kind", "type", "role", "id", "layer_name"):
+        raw = value.get(key)
+        if raw is None:
+            continue
+        text = str(raw).strip().lower()
+        if text:
+            out.add(text)
+    return out
 
 
 def _normalize_layer_spec(raw: Any, *, default_layer: int, default_datatype: int) -> dict[str, int]:
@@ -327,7 +362,8 @@ def _add_component_geometry(
 
         comp_cell = comp_cells[kind]
         try:
-            top.add(gdstk.Reference(comp_cell, (x0, y0)))
+            ref_kwargs = _resolve_reference_transform(node)
+            top.add(gdstk.Reference(comp_cell, (x0, y0), **ref_kwargs))
         except Exception:
             top.add(
                 gdstk.rectangle(
@@ -426,6 +462,115 @@ def _default_waveguide_width_um(pdk: Any, settings: dict[str, Any]) -> float:
     return 0.5
 
 
+def _resolve_top_cell_name(settings: Mapping[str, Any]) -> str:
+    for key in ("cell_name", "top_cell_name", "top_cell"):
+        raw = settings.get(key)
+        if raw is None:
+            continue
+        name = str(raw).strip()
+        if name:
+            return name
+    return "TOP"
+
+
+def _resolve_reference_transform(node: Mapping[str, Any]) -> dict[str, Any]:
+    rotation_rad: float | None = None
+    rotation_deg: float | None = None
+    x_reflection: bool | None = None
+
+    params = node.get("params")
+    node_orientation = node.get("orientation")
+    node_placement = node.get("placement")
+    params_orientation = params.get("orientation") if isinstance(params, Mapping) else None
+    params_placement = params.get("placement") if isinstance(params, Mapping) else None
+
+    for source in (params, params_orientation, params_placement, node, node_orientation, node_placement):
+        r_rad, r_deg, x_ref = _extract_transform_fields(source)
+        if r_rad is not None:
+            rotation_rad = r_rad
+        if r_deg is not None:
+            rotation_deg = r_deg
+        if x_ref is not None:
+            x_reflection = x_ref
+
+    transform: dict[str, Any] = {}
+    if rotation_deg is not None:
+        transform["rotation"] = math.radians(rotation_deg)
+    elif rotation_rad is not None:
+        if abs(rotation_rad) > 2.0 * math.pi + 1e-6:
+            transform["rotation"] = math.radians(rotation_rad)
+        else:
+            transform["rotation"] = rotation_rad
+    if x_reflection is not None:
+        transform["x_reflection"] = bool(x_reflection)
+    return transform
+
+
+def _extract_transform_fields(raw: Any) -> tuple[float | None, float | None, bool | None]:
+    rotation_rad: float | None = None
+    rotation_deg: float | None = None
+    x_reflection: bool | None = None
+
+    if isinstance(raw, Mapping):
+        if "rotation" in raw:
+            rotation_rad = _as_optional_float(raw.get("rotation"))
+        if "rotation_deg" in raw:
+            rotation_deg = _as_optional_float(raw.get("rotation_deg"))
+        if "x_reflection" in raw:
+            x_reflection = _as_optional_bool(raw.get("x_reflection"))
+        if "mirror" in raw:
+            x_reflection = _as_optional_bool(raw.get("mirror"))
+        if "mirrored" in raw:
+            x_reflection = _as_optional_bool(raw.get("mirrored"))
+        if "orientation" in raw:
+            o_rad, o_deg, o_reflect = _extract_transform_fields(raw.get("orientation"))
+            if o_rad is not None:
+                rotation_rad = o_rad
+            if o_deg is not None:
+                rotation_deg = o_deg
+            if o_reflect is not None:
+                x_reflection = o_reflect
+        return rotation_rad, rotation_deg, x_reflection
+
+    if isinstance(raw, str):
+        token = raw.strip().upper()
+        if not token:
+            return None, None, None
+        match = re.match(r"^R\s*([+-]?\d+(?:\.\d+)?)$", token)
+        if match:
+            return None, float(match.group(1)), None
+        if token in {"MX", "MIRROR", "MIRROR_X", "X_REFLECTION", "XREFLECTION", "FLIPX", "X_FLIP"}:
+            return None, None, True
+        if token in {"NO_MIRROR", "NO_MIRROR_X", "NO_X_REFLECTION"}:
+            return None, None, False
+        return None, None, None
+
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        return None, float(raw), None
+    return None, None, None
+
+
+def _as_optional_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _as_optional_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return bool(value)
+    if isinstance(value, str):
+        key = value.strip().lower()
+        if key in {"1", "true", "t", "yes", "y", "on"}:
+            return True
+        if key in {"0", "false", "f", "no", "n", "off"}:
+            return False
+    return None
+
+
 def _resolve_timestamp(*, timestamp: Any, settings: dict[str, Any]) -> datetime | None:
     if timestamp is not None:
         return _coerce_timestamp(timestamp)
@@ -483,4 +628,3 @@ def _unique_cell_name(base: str, used_names: set[str]) -> str:
         if cand not in used_names:
             return cand
         idx += 1
-

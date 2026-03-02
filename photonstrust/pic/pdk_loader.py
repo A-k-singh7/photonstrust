@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from photonstrust.pdk.models import LoadedPDK, PDKRequest
+if TYPE_CHECKING:
+    from photonstrust.pdk.models import LoadedPDK, PDKRequest
 
 
 DEFAULT_PDK_NAME = "generic_silicon_photonics"
@@ -16,6 +17,8 @@ _PDK_NAME_ALIASES: dict[str, str] = {
     "generic": "generic_silicon_photonics",
     "generic_silicon_photonics": "generic_silicon_photonics",
     "generic_sip": "generic_silicon_photonics",
+    "siepic": "generic_silicon_photonics",
+    "ebeam": "generic_silicon_photonics",
     "aim": "aim_photonics",
     "aim_photonics": "aim_photonics",
 }
@@ -78,13 +81,17 @@ def _read_manifest(path: Path) -> dict[str, Any]:
 def _load_from_manifest_path(
     path: Path,
     *,
-    request: PDKRequest,
-) -> LoadedPDK:
+    request: "PDKRequest",
+) -> "LoadedPDK":
+    from photonstrust.pdk.models import LoadedPDK
+
     payload = _read_manifest(path)
     return LoadedPDK.from_manifest(payload, request=request, source_manifest=path.resolve())
 
 
-def _load_builtin(name: str, *, requested_name: str | None) -> LoadedPDK:
+def _load_builtin(name: str, *, requested_name: str | None) -> "LoadedPDK":
+    from photonstrust.pdk.models import LoadedPDK, PDKRequest
+
     payload = _BUILTIN_PDK_MANIFESTS.get(name)
     if payload is None:
         if requested_name is not None:
@@ -99,6 +106,8 @@ def _load_builtin(name: str, *, requested_name: str | None) -> LoadedPDK:
 
 def load_pdk(name: str | None = None, manifest_path: str | None = None) -> LoadedPDK:
     """Load a PDK using precedence: manifest_path > name > configs/pdks/<name> > built-in."""
+
+    from photonstrust.pdk.models import PDKRequest
 
     request = PDKRequest.from_values(name=name, manifest_path=manifest_path)
     if request.manifest_path is not None:

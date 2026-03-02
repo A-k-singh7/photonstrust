@@ -84,6 +84,7 @@ def build_pic_signoff_ladder(
         ladder.append(stage_with_chain)
 
     _validate_deterministic_ladder_structure(ladder)
+    _validate_stage_semantics(ladder)
 
     final_decision = _derive_final_decision(ladder)
 
@@ -492,8 +493,12 @@ def verify_pic_signoff_hash_chain(report: dict[str, Any]) -> bool:
     chip_assembly_hash = str(inputs.get("chip_assembly_hash", "")).strip().lower()
     if not _is_lower_hex(chip_assembly_hash, min_len=64, max_len=64):
         raise ValueError("report.inputs.chip_assembly_hash must be a 64-char lowercase hex hash")
+    policy_hash = str(inputs.get("policy_hash", "")).strip().lower()
+    if not _is_lower_hex(policy_hash, min_len=64, max_len=64):
+        raise ValueError("report.inputs.policy_hash must be a 64-char lowercase hex hash")
 
     ladder = _validate_deterministic_ladder_structure(report.get("ladder"))
+    _validate_stage_semantics(ladder)
     expected_prev_hash = chip_assembly_hash
 
     for i, stage in enumerate(ladder):
@@ -519,6 +524,16 @@ def verify_pic_signoff_hash_chain(report: dict[str, Any]) -> bool:
         raise ValueError("report.evidence_chain_root must be a 64-char lowercase hex hash")
     if evidence_chain_root != expected_prev_hash:
         raise ValueError("report.evidence_chain_root does not match final stage hash")
+
+    final_decision = report.get("final_decision")
+    if not isinstance(final_decision, dict):
+        raise TypeError("report.final_decision must be an object")
+    decision = str(final_decision.get("decision", "")).strip().upper()
+    if decision not in {"GO", "HOLD"}:
+        raise ValueError("report.final_decision.decision must be GO or HOLD")
+    expected_decision = _derive_final_decision(ladder)["decision"]
+    if decision != expected_decision:
+        raise ValueError("report.final_decision.decision does not match ladder state")
 
     return True
 
@@ -547,6 +562,77 @@ def _validate_deterministic_ladder_structure(ladder: Any) -> list[dict[str, Any]
         rows.append(raw)
 
     return rows
+
+
+def _validate_stage_semantics(ladder: list[dict[str, Any]]) -> None:
+    blocking_seen = False
+    blocking_stage = ""
+    for i, row in enumerate(ladder):
+        row_path = f"report.ladder[{i}]"
+        stage = str(row.get("stage", "")).strip().lower()
+        status = str(row.get("status", "")).strip().lower()
+        if status not in {"pass", "fail", "hold", "waived", "skipped", "error"}:
+            raise ValueError(f"{row_path}.status is invalid: {status or 'missing'}")
+
+        evidence_hashes = _validated_evidence_hashes(row.get("evidence_hashes"), row_path=row_path)
+        failure_rule_ids = _validated_rule_ids(row.get("failure_rule_ids"), row_path=row_path, field="failure_rule_ids")
+        waived_rule_ids = _validated_rule_ids(row.get("waived_rule_ids"), row_path=row_path, field="waived_rule_ids")
+
+        if i == 0 and status == "skipped":
+            raise ValueError(f"{row_path}.status cannot be skipped")
+        if i == 0 and not evidence_hashes:
+            raise ValueError(f"{row_path}.evidence_hashes must include chip assembly evidence")
+
+        if blocking_seen and status != "skipped":
+            raise ValueError(f"{row_path}.status must be skipped because prior stage {blocking_stage} is blocking")
+
+        if status == "pass":
+            if failure_rule_ids or waived_rule_ids:
+                raise ValueError(f"{row_path} pass stage cannot include failure or waived rule IDs")
+        elif status == "waived":
+            if not failure_rule_ids or not waived_rule_ids:
+                raise ValueError(f"{row_path} waived stage must include failure and waived rule IDs")
+            failure_norm = {item.strip().lower() for item in failure_rule_ids}
+            waived_norm = {item.strip().lower() for item in waived_rule_ids}
+            if failure_norm != waived_norm:
+                raise ValueError(f"{row_path} waived_rule_ids must match failure_rule_ids for waived stage")
+        elif status in {"fail", "error", "hold"}:
+            if not failure_rule_ids:
+                raise ValueError(f"{row_path} {status} stage must include failure_rule_ids")
+            if waived_rule_ids:
+                raise ValueError(f"{row_path} {status} stage must not include waived_rule_ids")
+        elif status == "skipped":
+            if evidence_hashes or failure_rule_ids or waived_rule_ids:
+                raise ValueError(f"{row_path} skipped stage must not include evidence or rule IDs")
+
+        if status in {"fail", "error", "hold", "skipped"}:
+            blocking_seen = True
+            blocking_stage = stage or f"index {i}"
+
+
+def _validated_evidence_hashes(value: Any, *, row_path: str) -> list[str]:
+    if not isinstance(value, list):
+        raise TypeError(f"{row_path}.evidence_hashes must be an array")
+    out: list[str] = []
+    for idx, item in enumerate(value):
+        if not isinstance(item, str):
+            raise TypeError(f"{row_path}.evidence_hashes[{idx}] must be a string")
+        item_norm = item.strip().lower()
+        if not _is_lower_hex(item_norm, min_len=64, max_len=64):
+            raise ValueError(f"{row_path}.evidence_hashes[{idx}] must be a 64-char lowercase hex hash")
+        out.append(item_norm)
+    return out
+
+
+def _validated_rule_ids(value: Any, *, row_path: str, field: str) -> list[str]:
+    if not isinstance(value, list):
+        raise TypeError(f"{row_path}.{field} must be an array")
+    out: list[str] = []
+    for idx, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError(f"{row_path}.{field}[{idx}] must be a non-empty string")
+        out.append(item.strip())
+    return out
 
 
 def _stage_hash_payload(*, stage: dict[str, Any], prev_stage_hash: str) -> dict[str, Any]:

@@ -254,6 +254,20 @@ class LoadedPDK:
             for idx, raw in enumerate(raw_cells):
                 if isinstance(raw, Mapping):
                     cells.append(PDKComponentCell.from_mapping(raw, fallback_name=f"cell_{idx}"))
+        elif isinstance(raw_cells, Mapping):
+            for idx, (name_hint, raw) in enumerate(raw_cells.items()):
+                fallback_name = _coerce_optional_text(name_hint) or f"cell_{idx}"
+                if isinstance(raw, Mapping):
+                    raw_mapping = dict(raw)
+                    raw_mapping.setdefault("name", fallback_name)
+                    cells.append(PDKComponentCell.from_mapping(raw_mapping, fallback_name=fallback_name))
+                elif isinstance(raw, str):
+                    cells.append(
+                        PDKComponentCell.from_mapping(
+                            {"name": fallback_name, "cell": raw},
+                            fallback_name=fallback_name,
+                        )
+                    )
 
         interop = PDKInterop.from_mapping(payload.get("interop"))
 

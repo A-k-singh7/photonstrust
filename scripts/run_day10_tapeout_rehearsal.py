@@ -22,6 +22,12 @@ _REAL_MODE_REQUIRED_SCRIPTS = (
     Path("scripts/run_foundry_smoke.py"),
     Path("scripts/check_pic_tapeout_gate.py"),
 )
+_MANDATORY_DRC_RULE_IDS = (
+    "DRC.WG.MIN_WIDTH",
+    "DRC.WG.MIN_SPACING",
+    "DRC.WG.MIN_BEND_RADIUS",
+    "DRC.WG.MIN_ENCLOSURE",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -259,7 +265,7 @@ def _to_foundry_summary(
     if status not in {"pass", "fail", "error"}:
         status = "error"
 
-    return {
+    payload = {
         "schema_version": "0.1",
         "kind": f"pic.foundry_{kind}_sealed_summary",
         "run_id": str(stage.get("run_id") or f"day10_{kind}_run"),
@@ -277,6 +283,40 @@ def _to_foundry_summary(
         "failed_check_names": [str(v) for v in failed_names if str(v).strip()],
         "deck_fingerprint": smoke_report.get("deck_fingerprint"),
         "error_code": stage.get("error_code"),
+    }
+    if kind == "drc":
+        payload["rule_results"] = _canonical_drc_rule_results(status=status, failed_check_ids=failed_ids)
+    return payload
+
+
+def _canonical_drc_rule_results(*, status: str, failed_check_ids: list[Any]) -> dict[str, dict[str, Any]]:
+    failed_ids_set = {str(v).strip() for v in failed_check_ids if str(v).strip()}
+    failed_rule_ids = [rule_id for rule_id in _MANDATORY_DRC_RULE_IDS if rule_id in failed_ids_set]
+    if status == "fail" and not failed_rule_ids:
+        failed_rule_ids = [_MANDATORY_DRC_RULE_IDS[0]]
+    failed_rule_ids_set = set(failed_rule_ids)
+
+    if status == "error":
+        return {
+            rule_id: {
+                "status": "error",
+                "required_um": None,
+                "observed_um": None,
+                "violation_count": 0,
+                "entity_refs": [],
+            }
+            for rule_id in _MANDATORY_DRC_RULE_IDS
+        }
+
+    return {
+        rule_id: {
+            "status": "fail" if rule_id in failed_rule_ids_set else "pass",
+            "required_um": None,
+            "observed_um": None,
+            "violation_count": 1 if rule_id in failed_rule_ids_set else 0,
+            "entity_refs": [],
+        }
+        for rule_id in _MANDATORY_DRC_RULE_IDS
     }
 
 

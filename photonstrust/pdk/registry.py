@@ -12,7 +12,6 @@ from photonstrust.pdk.adapters import (
     validate_pdk_adapter_contract,
 )
 from photonstrust.pdk.models import LoadedPDK
-from photonstrust.pic.pdk_loader import load_pdk as runtime_load_pdk
 
 
 @dataclass(frozen=True)
@@ -58,17 +57,24 @@ def _to_registry_pdk(loaded: LoadedPDK) -> PDK:
     )
 
 
+def _runtime_load_pdk(*, name: str | None, manifest_path: str | None) -> LoadedPDK:
+    # Lazily import runtime loader to avoid package-level circular import edges.
+    from photonstrust.pic.pdk_loader import load_pdk
+
+    return load_pdk(name=name, manifest_path=manifest_path)
+
+
 def get_pdk(name: str | None) -> PDK:
     """Return a PDK by name, including alias and runtime-config resolution."""
 
-    loaded = runtime_load_pdk(name=name, manifest_path=None)
+    loaded = _runtime_load_pdk(name=name, manifest_path=None)
     return _to_registry_pdk(loaded)
 
 
 def load_pdk_manifest(path: str | Path) -> PDK:
     """Load a PDK manifest from a JSON file."""
 
-    loaded = runtime_load_pdk(name=None, manifest_path=str(path))
+    loaded = _runtime_load_pdk(name=None, manifest_path=str(path))
     return _to_registry_pdk(loaded)
 
 
@@ -92,7 +98,7 @@ class RegistryPDKAdapter(PDKPayloadResolver):
         if manifest_path == "":
             manifest_path = None
 
-        loaded = runtime_load_pdk(name=name, manifest_path=manifest_path)
+        loaded = _runtime_load_pdk(name=name, manifest_path=manifest_path)
         pdk = _to_registry_pdk(loaded)
         capabilities = loaded.capabilities_payload()
 

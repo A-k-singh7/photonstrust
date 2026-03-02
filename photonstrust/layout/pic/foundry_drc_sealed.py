@@ -39,10 +39,17 @@ _LOCAL_DRC_REQUIRED_RULE_KEYS: dict[str, tuple[str, ...]] = {
     "DRC.WG.MIN_BEND_RADIUS": ("min_bend_radius_um", "min_waveguide_bend_radius_um", "min_radius_um"),
     "DRC.WG.MIN_ENCLOSURE": ("min_waveguide_enclosure_um", "min_enclosure_um", "waveguide_min_enclosure_um"),
 }
+_LOCAL_DRC_RULE_IDS: tuple[str, ...] = tuple(rule_id for rule_id, _ in _LOCAL_DRC_RULES)
+_LOCAL_DRC_RULE_ID_ALIASES: dict[str, str] = {
+    "DRC.WG.MIN_GAP": "DRC.WG.MIN_SPACING",
+    "DRC.BEND.MIN_RADIUS": "DRC.WG.MIN_BEND_RADIUS",
+}
 _GENERIC_CLI_EMPTY_CHECKS_ERROR_CODE = "generic_cli_empty_checks"
 _GENERIC_CLI_STATUS_CHECKS_CONFLICT_ERROR_CODE = "generic_cli_status_checks_conflict"
 _GENERIC_CLI_SUMMARY_JSON_REQUIRED_ERROR_CODE = "generic_cli_summary_json_required"
 _LOCAL_RULES_MISSING_PDK_RULES_ERROR_CODE = "local_rules_missing_required_pdk_rules"
+_MANDATORY_RULE_RESULTS_INCOMPLETE_ERROR_CODE = "mandatory_rule_results_incomplete"
+_MANDATORY_RULE_RESULTS_UNKNOWN_FAILED_CHECKS_ERROR_CODE = "mandatory_rule_results_unknown_failed_checks"
 
 
 def _utc_now_iso() -> str:
@@ -158,6 +165,74 @@ def _safe_float(value: Any) -> float | None:
 def _sorted_unique_strings(values: list[str]) -> list[str]:
     cleaned = {_clean_text(v) for v in values if _clean_text(v)}
     return sorted(cleaned, key=lambda t: (t.lower(), t))
+
+
+def _canonical_local_rule_id(value: Any) -> str | None:
+    raw_rule_id = _clean_text(value)
+    if not raw_rule_id:
+        return None
+
+    upper_rule_id = raw_rule_id.upper()
+    for canonical_rule_id in _LOCAL_DRC_RULE_IDS:
+        if canonical_rule_id.upper() == upper_rule_id:
+            return canonical_rule_id
+    return _LOCAL_DRC_RULE_ID_ALIASES.get(upper_rule_id)
+
+
+def _merged_check_status(current_status: str | None, incoming_status: str) -> str:
+    incoming = _normalize_status(incoming_status, default="error")
+    if current_status is None:
+        return incoming
+
+    current = _normalize_status(current_status, default="error")
+    if "error" in {current, incoming}:
+        return "error"
+    if "fail" in {current, incoming}:
+        return "fail"
+    return "pass"
+
+
+def _rule_results_from_checks(
+    checks: list[dict[str, str]],
+) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
+    rule_status_by_id: dict[str, str | None] = {rule_id: None for rule_id in _LOCAL_DRC_RULE_IDS}
+    fail_count_by_id: dict[str, int] = {rule_id: 0 for rule_id in _LOCAL_DRC_RULE_IDS}
+    unknown_failed_check_ids: list[str] = []
+
+    for raw_check in checks:
+        check_id = _clean_text(raw_check.get("id")) if isinstance(raw_check, dict) else ""
+        check_status = _normalize_status(raw_check.get("status") if isinstance(raw_check, dict) else None, default="error")
+        canonical_rule_id = _canonical_local_rule_id(check_id)
+        if canonical_rule_id is None:
+            if check_status in {"fail", "error"}:
+                unknown_failed_check_ids.append(check_id or "unknown_check")
+            continue
+
+        current_status = rule_status_by_id.get(canonical_rule_id)
+        rule_status_by_id[canonical_rule_id] = _merged_check_status(current_status, check_status)
+        if check_status == "fail":
+            fail_count_by_id[canonical_rule_id] = int(fail_count_by_id.get(canonical_rule_id, 0)) + 1
+
+    missing_rule_ids: list[str] = []
+    rule_results: dict[str, dict[str, Any]] = {}
+    for rule_id in _LOCAL_DRC_RULE_IDS:
+        status = rule_status_by_id.get(rule_id)
+        if status is None:
+            missing_rule_ids.append(rule_id)
+            status = "error"
+        rule_results[rule_id] = _rule_result(
+            status=status,
+            required_um=None,
+            observed_um=None,
+            violation_count=int(fail_count_by_id.get(rule_id, 0)) if status == "fail" else 0,
+            entity_refs=[],
+        )
+
+    return (
+        rule_results,
+        sorted(missing_rule_ids, key=lambda t: (t.lower(), t)),
+        _sorted_unique_strings(unknown_failed_check_ids),
+    )
 
 
 def _extract_local_routes_payload(req: dict[str, Any]) -> list[Any] | None:
@@ -746,14 +821,29 @@ def _evaluate_local_rule_results(req: dict[str, Any]) -> tuple[dict[str, dict[st
 
 
 def _normalize_rule_results(raw_rule_results: Any) -> dict[str, dict[str, Any]]:
-    rule_results: dict[str, dict[str, Any]] = {}
-    if not isinstance(raw_rule_results, dict):
-        return rule_results
+    by_rule_id: dict[str, dict[str, Any]] = {}
+    if isinstance(raw_rule_results, dict):
+        for raw_rule_id, raw_result in raw_rule_results.items():
+            canonical_rule_id = _canonical_local_rule_id(raw_rule_id)
+            if canonical_rule_id is None or not isinstance(raw_result, dict):
+                continue
+            if canonical_rule_id in by_rule_id:
+                continue
+            by_rule_id[canonical_rule_id] = raw_result
 
-    for rule_id, _ in _LOCAL_DRC_RULES:
-        raw_result = raw_rule_results.get(rule_id)
+    rule_results: dict[str, dict[str, Any]] = {}
+    for rule_id in _LOCAL_DRC_RULE_IDS:
+        raw_result = by_rule_id.get(rule_id)
         if not isinstance(raw_result, dict):
+            rule_results[rule_id] = _rule_result(
+                status="error",
+                required_um=None,
+                observed_um=None,
+                violation_count=0,
+                entity_refs=[],
+            )
             continue
+
         raw_refs = raw_result.get("entity_refs")
         refs = [str(ref) for ref in raw_refs] if isinstance(raw_refs, list) else []
         try:
@@ -880,6 +970,8 @@ def run_foundry_drc_sealed(
     backend_error_code: str | None = None
     checks: list[dict[str, str]] = []
     rule_results: dict[str, dict[str, Any]] = {}
+    missing_mandatory_rule_ids: list[str] = []
+    unknown_failed_check_ids: list[str] = []
     status: str
 
     if requested_backend == "mock":
@@ -932,6 +1024,23 @@ def run_foundry_drc_sealed(
         checks = []
         status = "error"
         backend_error_code = "backend_unavailable"
+
+    if requested_backend not in {"local_rules", "local"}:
+        rule_results, missing_mandatory_rule_ids, unknown_failed_check_ids = _rule_results_from_checks(checks)
+        if missing_mandatory_rule_ids and backend_error_code is None:
+            backend_error_code = _MANDATORY_RULE_RESULTS_INCOMPLETE_ERROR_CODE
+        if unknown_failed_check_ids and backend_error_code is None:
+            backend_error_code = _MANDATORY_RULE_RESULTS_UNKNOWN_FAILED_CHECKS_ERROR_CODE
+        if missing_mandatory_rule_ids or unknown_failed_check_ids:
+            status = "error"
+
+    rule_results = _normalize_rule_results(rule_results)
+    checks = _checks_from_rule_results(rule_results)
+    rule_status = _derived_status(checks)
+    if status == "error" or rule_status == "error":
+        status = "error"
+    else:
+        status = rule_status
 
     passed = sum(1 for c in checks if c["status"] == "pass")
     failed = sum(1 for c in checks if c["status"] == "fail")

@@ -41,6 +41,13 @@ FOUNDRY_SCHEMA_PATHS = {
     "pex": pic_foundry_pex_sealed_summary_schema_path,
 }
 
+_MANDATORY_DRC_RULE_IDS = (
+    "DRC.WG.MIN_WIDTH",
+    "DRC.WG.MIN_SPACING",
+    "DRC.WG.MIN_BEND_RADIUS",
+    "DRC.WG.MIN_ENCLOSURE",
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run PhotonTrust PIC tapeout package gate")
@@ -168,8 +175,41 @@ def _validate_foundry_summary(
 
     failed_ids_raw = payload.get("failed_check_ids")
     failed_ids = [str(v).strip() for v in failed_ids_raw if str(v).strip()] if isinstance(failed_ids_raw, list) else []
+    if len(failed_ids) != len(set(failed_ids)):
+        raise ValueError(f"foundry {kind} failed_check_ids has duplicates")
     if status == "fail" and not failed_ids:
         raise ValueError(f"foundry {kind} status is fail but failed_check_ids is empty")
+    if kind == "drc":
+        raw_rule_results = payload.get("rule_results")
+        if not isinstance(raw_rule_results, dict):
+            raise ValueError("foundry drc rule_results must be an object")
+
+        missing_rule_ids = [rule_id for rule_id in _MANDATORY_DRC_RULE_IDS if rule_id not in raw_rule_results]
+        if missing_rule_ids:
+            raise ValueError(f"foundry drc missing mandatory rule_results: {missing_rule_ids}")
+
+        failed_rule_result_ids: list[str] = []
+        for rule_id in _MANDATORY_DRC_RULE_IDS:
+            raw_result = raw_rule_results.get(rule_id)
+            if not isinstance(raw_result, dict):
+                raise ValueError(f"foundry drc rule_results[{rule_id!r}] must be an object")
+            rule_status = str(raw_result.get("status", "")).strip().lower()
+            if rule_status not in {"pass", "fail", "error"}:
+                raise ValueError(f"foundry drc rule_results[{rule_id!r}].status is invalid: {rule_status!r}")
+            if rule_status == "fail":
+                failed_rule_result_ids.append(rule_id)
+
+        failed_ids_set = sorted(set(failed_ids), key=lambda t: (t.lower(), t))
+        failed_rule_result_ids = sorted(failed_rule_result_ids, key=lambda t: (t.lower(), t))
+        if failed_ids_set != failed_rule_result_ids:
+            raise ValueError(
+                "foundry drc failed_check_ids must match failed rule_results "
+                f"(failed_check_ids={failed_ids_set}, failed_rule_results={failed_rule_result_ids})"
+            )
+        if status == "pass" and failed_rule_result_ids:
+            raise ValueError("foundry drc status is pass but rule_results contain failed rules")
+        if status == "fail" and not failed_rule_result_ids:
+            raise ValueError("foundry drc status is fail but rule_results has no failed rules")
 
     return {
         "kind": kind,

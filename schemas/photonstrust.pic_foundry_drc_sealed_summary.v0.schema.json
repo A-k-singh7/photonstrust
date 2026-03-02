@@ -15,6 +15,7 @@
     "check_counts",
     "failed_check_ids",
     "failed_check_names",
+    "rule_results",
     "deck_fingerprint",
     "error_code"
   ],
@@ -48,6 +49,12 @@
     "rule_results": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "DRC.WG.MIN_WIDTH",
+        "DRC.WG.MIN_SPACING",
+        "DRC.WG.MIN_BEND_RADIUS",
+        "DRC.WG.MIN_ENCLOSURE"
+      ],
       "properties": {
         "DRC.WG.MIN_WIDTH": { "$ref": "#/$defs/rule_result" },
         "DRC.WG.MIN_SPACING": { "$ref": "#/$defs/rule_result" },
