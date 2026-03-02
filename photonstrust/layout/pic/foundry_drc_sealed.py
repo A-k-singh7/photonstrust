@@ -372,6 +372,34 @@ def _normalize_points_um(raw_points: Any) -> list[tuple[float, float]]:
     return points
 
 
+def _route_endpoint_refs(raw_route: dict[str, Any]) -> set[tuple[str, str]]:
+    refs: set[tuple[str, str]] = set()
+
+    source = raw_route.get("source")
+    edge = source.get("edge") if isinstance(source, dict) and isinstance(source.get("edge"), dict) else {}
+
+    from_node = _clean_text(edge.get("from") if isinstance(edge, dict) else None) or _clean_text(raw_route.get("from"))
+    to_node = _clean_text(edge.get("to") if isinstance(edge, dict) else None) or _clean_text(raw_route.get("to"))
+    from_port = _clean_text(edge.get("from_port") if isinstance(edge, dict) else None) or _clean_text(raw_route.get("from_port"))
+    to_port = _clean_text(edge.get("to_port") if isinstance(edge, dict) else None) or _clean_text(raw_route.get("to_port"))
+
+    if from_node and from_port:
+        refs.add((from_node, from_port))
+    if to_node and to_port:
+        refs.add((to_node, to_port))
+    return refs
+
+
+def _route_endpoint_points(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    if not points:
+        return []
+    if len(points) == 1:
+        return [points[0]]
+    if points[0] == points[-1]:
+        return [points[0]]
+    return [points[0], points[-1]]
+
+
 def _polyline_segments(points: list[tuple[float, float]]) -> list[tuple[tuple[float, float], tuple[float, float]]]:
     segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
     for i in range(len(points) - 1):
@@ -381,6 +409,32 @@ def _polyline_segments(points: list[tuple[float, float]]) -> list[tuple[tuple[fl
             continue
         segments.append((p0, p1))
     return segments
+
+
+def _points_equal_um(a: tuple[float, float], b: tuple[float, float], *, eps: float = 1e-9) -> bool:
+    return abs(a[0] - b[0]) <= eps and abs(a[1] - b[1]) <= eps
+
+
+def _routes_topologically_connected(route_a: dict[str, Any], route_b: dict[str, Any]) -> bool:
+    refs_a_raw = route_a.get("endpoint_refs")
+    refs_b_raw = route_b.get("endpoint_refs")
+    refs_a = set(refs_a_raw) if isinstance(refs_a_raw, set) else set()
+    refs_b = set(refs_b_raw) if isinstance(refs_b_raw, set) else set()
+    if refs_a and refs_b and refs_a.intersection(refs_b):
+        return True
+
+    endpoints_a = route_a.get("endpoint_points") if isinstance(route_a.get("endpoint_points"), list) else []
+    endpoints_b = route_b.get("endpoint_points") if isinstance(route_b.get("endpoint_points"), list) else []
+    for point_a in endpoints_a:
+        if not isinstance(point_a, tuple) or len(point_a) != 2:
+            continue
+        for point_b in endpoints_b:
+            if not isinstance(point_b, tuple) or len(point_b) != 2:
+                continue
+            if _points_equal_um(point_a, point_b):
+                return True
+
+    return False
 
 
 def _orientation(a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]) -> float:
@@ -561,6 +615,8 @@ def _normalize_local_routes(raw_routes: list[Any]) -> list[dict[str, Any]]:
                 "enclosure_um": _route_enclosure_um(raw_route),
                 "segments": _polyline_segments(points),
                 "bend_radii_um": _collect_route_bend_radii_um(raw_route, points),
+                "endpoint_refs": _route_endpoint_refs(raw_route),
+                "endpoint_points": _route_endpoint_points(points),
             }
         )
 
@@ -666,6 +722,9 @@ def _evaluate_local_min_spacing(routes: list[dict[str, Any]], required_um: float
                 missing_pair_width = True
                 continue
             compared_pairs += 1
+
+            if _routes_topologically_connected(route_a, route_b):
+                continue
 
             w_a = float(width_a)
             w_b = float(width_b)

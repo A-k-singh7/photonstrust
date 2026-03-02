@@ -411,6 +411,96 @@ def test_foundry_drc_sealed_local_spacing_errors_when_width_unknown() -> None:
     assert rule_results["DRC.WG.MIN_SPACING"]["status"] == "error"
 
 
+def test_foundry_drc_sealed_local_spacing_ignores_connected_same_layer_segments() -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "local_rules",
+            "routes": {
+                "routes": [
+                    {
+                        "route_id": "seg_a",
+                        "layer": {"layer": 1, "datatype": 0},
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 0.0], [10.0, 0.0]],
+                        "bends": [{"radius_um": 8.0}],
+                        "source": {"edge": {"from": "gc_in", "from_port": "out", "to": "wg_1", "to_port": "in", "kind": "optical"}},
+                    },
+                    {
+                        "route_id": "seg_b",
+                        "layer": {"layer": 1, "datatype": 0},
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[10.0, 0.0], [20.0, 0.0]],
+                        "bends": [{"radius_um": 8.0}],
+                        "source": {"edge": {"from": "wg_1", "from_port": "out", "to": "ec_out", "to_port": "in", "kind": "optical"}},
+                    },
+                ]
+            },
+            "pdk": {
+                "design_rules": {
+                    "min_waveguide_width_um": 0.45,
+                    "min_waveguide_spacing_um": 0.20,
+                    "min_bend_radius_um": 5.0,
+                    "min_waveguide_enclosure_um": 1.0,
+                }
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["status"] == "pass"
+    assert report["failed_check_ids"] == []
+    spacing = (report.get("rule_results") or {}).get("DRC.WG.MIN_SPACING") or {}
+    assert spacing.get("status") == "pass"
+
+
+def test_foundry_drc_sealed_local_spacing_still_fails_for_distinct_nearby_routes() -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "local_rules",
+            "routes": {
+                "routes": [
+                    {
+                        "route_id": "near_a",
+                        "layer": {"layer": 1, "datatype": 0},
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 0.0], [20.0, 0.0]],
+                        "bends": [{"radius_um": 8.0}],
+                        "source": {"edge": {"from": "gc_in", "from_port": "out", "to": "wg_1", "to_port": "in", "kind": "optical"}},
+                    },
+                    {
+                        "route_id": "near_b",
+                        "layer": {"layer": 1, "datatype": 0},
+                        "width_um": 0.50,
+                        "enclosure_um": 1.20,
+                        "points_um": [[0.0, 0.30], [20.0, 0.30]],
+                        "bends": [{"radius_um": 8.0}],
+                        "source": {"edge": {"from": "gc_aux", "from_port": "out", "to": "wg_aux", "to_port": "in", "kind": "optical"}},
+                    },
+                ]
+            },
+            "pdk": {
+                "design_rules": {
+                    "min_waveguide_width_um": 0.45,
+                    "min_waveguide_spacing_um": 0.20,
+                    "min_bend_radius_um": 5.0,
+                    "min_waveguide_enclosure_um": 1.0,
+                }
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["status"] == "fail"
+    assert "DRC.WG.MIN_SPACING" in report["failed_check_ids"]
+    spacing = (report.get("rule_results") or {}).get("DRC.WG.MIN_SPACING") or {}
+    assert spacing.get("status") == "fail"
+
+
 def test_foundry_drc_sealed_local_bend_radius_errors_without_evidence() -> None:
     report = run_foundry_drc_sealed(
         {
