@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "kind": "satellite_qkd_chain_certificate",
+  "run_id": "<RUN_ID>",
+  "generated_at": "<GENERATED_AT>",
+  "mission": "eagle1_analog_berlin",
+  "inputs": {
+    "config_hash": "8ed474bf2fe95f762fee6e58a020ff2e62bc2b995a966fa6cc9b989dd25c6a8e",
+    "protocol": "BB84_decoy",
+    "output_dir": "<OUTPUT_DIR>",
+    "signing_key": null
+  },
+  "ground_station": {
+    "latitude_deg": 52.5,
+    "pic_cert_run_id": null,
+    "eta_chip": 0.65,
+    "eta_ground_terminal": 0.160035325463855
+  },
+  "pass": {
+    "altitude_km": 600.0,
+    "elevation_min_deg": 15.0,
+    "pass_duration_s": 420.0,
+    "samples_evaluated": 84,
+    "samples_with_positive_key_rate": 69,
+    "key_bits_accumulated": 348977.87174166145,
+    "mean_key_rate_bps": 830.8996946230035,
+    "peak_key_rate_bps": 2298.0907009609978,
+    "peak_elevation_deg": 89.62551770036197
+  },
+  "annual_estimate": {
+    "passes_per_day": 3.691775991406375,
+    "clear_sky_probability": 0.4,
+    "key_bits_per_year": 188098826.75048205,
+    "key_mbits_per_year": 188.09882675048206,
+    "notes": "Annual estimate assumes independent pass yield and clear-sky fraction."
+  },
+  "signoff": {
+    "decision": "GO",
+    "key_rate_positive_at_zenith": true,
+    "annual_key_above_1mbit": true
+  },
+  "signature": null,
+  "artifacts": {
+    "orbit_pass_id": "eagle1_analog_berlin",
+    "orbit_case_id": "median",
+    "pic_certificate_path": null
+  }
+}

@@ -1,0 +1,95 @@
+name: satellite-chain
+
+on:
+  push:
+    paths:
+      - ".github/workflows/satellite-chain.yml"
+      - "configs/satellite/**"
+      - "photonstrust/orbit/**"
+      - "photonstrust/pipeline/satellite_chain.py"
+      - "photonstrust/workflow/schema.py"
+      - "schemas/photonstrust.satellite_qkd_chain*.json"
+      - "scripts/run_satellite_chain_demo.py"
+      - "scripts/generate_satellite_chain_reference.py"
+      - "tests/test_satellite_chain*.py"
+      - "tests/test_satellite_geometry.py"
+      - "tests/fixtures/satellite_chain_reference.json"
+  pull_request:
+    paths:
+      - ".github/workflows/satellite-chain.yml"
+      - "configs/satellite/**"
+      - "photonstrust/orbit/**"
+      - "photonstrust/pipeline/satellite_chain.py"
+      - "photonstrust/workflow/schema.py"
+      - "schemas/photonstrust.satellite_qkd_chain*.json"
+      - "scripts/run_satellite_chain_demo.py"
+      - "scripts/generate_satellite_chain_reference.py"
+      - "tests/test_satellite_chain*.py"
+      - "tests/test_satellite_geometry.py"
+      - "tests/fixtures/satellite_chain_reference.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: satellite-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  satellite-chain:
+    name: Satellite Chain Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run M5 unit tests
+        run: |
+          python -m pytest -q \
+            tests/test_satellite_geometry.py \
+            tests/test_satellite_chain_schema.py \
+            tests/test_satellite_chain_pipeline.py \
+            tests/test_satellite_chain_cli.py \
+            tests/test_satellite_chain_reference.py
+
+      - name: Run satellite-chain scenarios
+        run: |
+          python -m photonstrust.cli satellite-chain configs/satellite/eagle1_analog_berlin.yml --output results/satellite_chain_ci/berlin
+          python -m photonstrust.cli satellite-chain configs/satellite/eagle1_analog_snspd.yml --output results/satellite_chain_ci/snspd
+          python -m photonstrust.cli satellite-chain configs/satellite/micius_analog.yml --output results/satellite_chain_ci/micius
+
+      - name: Validate generated certificates against schema
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from photonstrust.benchmarks.schema import validate_instance
+          from photonstrust.workflow.schema import satellite_qkd_chain_certificate_schema_path
+
+          schema_path = satellite_qkd_chain_certificate_schema_path()
+          for name in ("berlin", "snspd", "micius"):
+              cert_path = Path(f"results/satellite_chain_ci/{name}/satellite_qkd_chain_certificate.json")
+              payload = json.loads(cert_path.read_text(encoding="utf-8"))
+              validate_instance(payload, schema_path)
+              print(f"validated: {cert_path}")
+          PY
+
+      - name: Upload satellite-chain artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: satellite-chain-artifacts
+          path: |
+            results/satellite_chain_ci/
