@@ -12,6 +12,7 @@ from photonstrust.evidence.signing import sign_bytes_ed25519
 from photonstrust.orbit import annual_pass_count, generate_elevation_profile, simulate_orbit_pass
 from photonstrust.pdk.registry import get_pdk
 from photonstrust.pipeline.certify import run_certify
+from photonstrust.pipeline.satellite_chain_accel import accumulate_key_bits
 from photonstrust.pipeline.pic_qkd_bridge import pdk_coupler_efficiency
 from photonstrust.utils import hash_dict
 from photonstrust.workflow.schema import (
@@ -44,8 +45,12 @@ def run_satellite_chain(
     eta_chip, pic_cert_meta = _resolve_eta_chip(sat_cfg=sat_cfg, output_dir=out_root)
     orbit_cfg, eta_ground_terminal = _build_orbit_pass_config(sat_cfg=sat_cfg, eta_chip=eta_chip)
     orbit_result = simulate_orbit_pass(orbit_cfg)
+    compute_cfg = sat_cfg.get("compute")
+    if not isinstance(compute_cfg, dict):
+        compute_cfg = {}
+    accumulate_backend = str(compute_cfg.get("accumulate_backend") or "numpy").strip().lower() or "numpy"
 
-    pass_metrics = _accumulate_pass_metrics(orbit_result)
+    pass_metrics = _accumulate_pass_metrics(orbit_result, accumulate_backend=accumulate_backend)
     annual = _estimate_annual_yield(sat_cfg=sat_cfg, pass_metrics=pass_metrics)
     signoff = _build_signoff(pass_metrics=pass_metrics, annual=annual)
 
@@ -58,6 +63,7 @@ def run_satellite_chain(
         "inputs": {
             "config_hash": hash_dict(config),
             "protocol": str(sat_cfg.get("protocol") or "BB84_decoy"),
+            "accumulate_backend": accumulate_backend,
             "output_dir": str(out_root) if out_root is not None else None,
             "signing_key": str(Path(signing_key).expanduser().resolve()) if signing_key is not None else None,
         },
@@ -256,7 +262,11 @@ def _build_orbit_pass_config(*, sat_cfg: dict[str, Any], eta_chip: float) -> tup
     return orbit_cfg, float(eta_ground_terminal)
 
 
-def _accumulate_pass_metrics(orbit_result: dict[str, Any]) -> dict[str, Any]:
+def _accumulate_pass_metrics(
+    orbit_result: dict[str, Any],
+    *,
+    accumulate_backend: str = "numpy",
+) -> dict[str, Any]:
     dt_s = float(orbit_result.get("dt_s") or 1.0)
     cases = orbit_result.get("cases")
     case_rows = list(cases) if isinstance(cases, list) else []
@@ -294,7 +304,13 @@ def _accumulate_pass_metrics(orbit_result: dict[str, Any]) -> dict[str, Any]:
         key_rates.append(max(0.0, float(key)))
         elevations.append(max(0.0, float(el)))
 
-    total_key_bits = float(sum(key_rates) * dt_s)
+    total_key_bits = float(
+        accumulate_key_bits(
+            key_rates,
+            dt_s,
+            backend=str(accumulate_backend or "numpy"),
+        )
+    )
     pass_duration_s = float(len(key_rates) * dt_s)
     mean_key_rate = float(total_key_bits / pass_duration_s) if pass_duration_s > 0.0 else 0.0
     peak_key = float(max(key_rates)) if key_rates else 0.0

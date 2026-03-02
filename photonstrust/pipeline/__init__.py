@@ -8,6 +8,8 @@ from .pic_qkd_bridge import (
     pdk_coupler_efficiency,
 )
 from .satellite_chain import run_satellite_chain
+from .satellite_chain_optuna import optimize_satellite_chain_config
+from .satellite_chain_sweep import run_satellite_chain_sweep
 
 __all__ = [
     "build_qkd_scenario_from_pic",
@@ -16,4 +18,6 @@ __all__ = [
     "pdk_coupler_efficiency",
     "run_certify",
     "run_satellite_chain",
+    "run_satellite_chain_sweep",
+    "optimize_satellite_chain_config",
 ]

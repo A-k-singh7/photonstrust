@@ -7,6 +7,7 @@
   "inputs": {
     "config_hash": "8ed474bf2fe95f762fee6e58a020ff2e62bc2b995a966fa6cc9b989dd25c6a8e",
     "protocol": "BB84_decoy",
+    "accumulate_backend": "numpy",
     "output_dir": "<OUTPUT_DIR>",
     "signing_key": null
   },

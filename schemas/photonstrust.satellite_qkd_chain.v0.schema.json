@@ -225,6 +225,16 @@
           "type": "string",
           "minLength": 1
         },
+        "compute": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "accumulate_backend": {
+              "type": "string",
+              "enum": ["numpy", "jax", "auto"]
+            }
+          }
+        },
         "target_security_epsilon": {
           "type": "number",
           "exclusiveMinimum": 0

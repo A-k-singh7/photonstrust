@@ -41,6 +41,8 @@ qiskit = ["qiskit>=1.0"]
 api = ["fastapi>=0.110", "uvicorn>=0.29"]
 layout = ["gdstk>=0.9"]
 signing = ["cryptography>=42.0"]
+optuna = ["optuna>=3.6"]
+ray = ["ray>=2.10"]
 
 [project.scripts]
 photonstrust = "photonstrust.cli:main"
