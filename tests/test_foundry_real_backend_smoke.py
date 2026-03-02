@@ -132,6 +132,26 @@ def _run_smoke(
     )
 
 
+def _run_materialize_local_tapeout(
+    args: list[str],
+    *,
+    env: dict[str, str] | None = None,
+    cwd: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
+    script = REPO_ROOT / "scripts" / "materialize_local_tapeout_run.py"
+    run_env = os.environ.copy()
+    if env:
+        run_env.update(env)
+    return subprocess.run(
+        [sys.executable, str(script), *args],
+        cwd=str(cwd or REPO_ROOT),
+        check=False,
+        capture_output=True,
+        text=True,
+        env=run_env,
+    )
+
+
 def test_foundry_smoke_dry_run_prints_plan(tmp_path: Path) -> None:
     output_json = tmp_path / "dry_run_report.json"
     completed = _run_smoke(["--dry-run", "--output-json", str(output_json)])
@@ -221,6 +241,66 @@ def test_foundry_smoke_local_backend_from_run_dir_context_without_runner_config(
     assert report["stages"]["pex"]["execution_backend"] == "local_pex"
     for stage in ("drc", "lvs", "pex"):
         assert report["stages"][stage]["status"] == "pass"
+
+
+def test_foundry_smoke_local_backend_from_materialized_run_dir_has_required_enrichment(tmp_path: Path) -> None:
+    run_dir = tmp_path / "materialized_run"
+    materialize_report = tmp_path / "materialize_report.json"
+
+    materialized = _run_materialize_local_tapeout(
+        [
+            "--run-dir",
+            str(run_dir),
+            "--report-path",
+            str(materialize_report),
+            "--allow-ci",
+        ]
+    )
+    assert materialized.returncode == 0, materialized.stdout + materialized.stderr
+    assert materialize_report.exists()
+
+    report_payload = json.loads(materialize_report.read_text(encoding="utf-8"))
+    assert report_payload.get("ok") is True
+    artifacts = report_payload.get("artifacts") if isinstance(report_payload.get("artifacts"), dict) else {}
+    assert artifacts.get("routes_json") == "inputs/routes.json"
+
+    routes_payload = json.loads((run_dir / "inputs" / "routes.json").read_text(encoding="utf-8"))
+    routes = routes_payload.get("routes") if isinstance(routes_payload.get("routes"), list) else []
+    assert routes, "expected non-empty routes in materialized run-dir"
+    for route in routes:
+        assert isinstance(route.get("enclosure_um"), (int, float))
+        assert float(route["enclosure_um"]) > 0.0
+        assert isinstance(route.get("coupling_coeff"), (int, float))
+        source = route.get("source")
+        assert isinstance(source, dict)
+        edge = source.get("edge")
+        assert isinstance(edge, dict)
+        for key in ("from", "from_port", "to", "to_port", "kind"):
+            assert str(edge.get(key, "")).strip()
+
+    output_json = tmp_path / "local_materialized_backend_report.json"
+    completed = _run_smoke(
+        [
+            "--use-local-backend",
+            "--run-dir",
+            str(run_dir),
+            "--allow-ci",
+            "--output-json",
+            str(output_json),
+        ]
+    )
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert output_json.exists()
+
+    smoke_report = json.loads(output_json.read_text(encoding="utf-8"))
+    assert smoke_report["mode"] == "local"
+    assert smoke_report["overall_status"] == "pass"
+    assert smoke_report["stages"]["drc"]["execution_backend"] == "local_rules"
+    assert smoke_report["stages"]["lvs"]["execution_backend"] == "local_lvs"
+    assert smoke_report["stages"]["pex"]["execution_backend"] == "local_pex"
+    for stage in ("drc", "lvs", "pex"):
+        assert smoke_report["stages"][stage]["status"] == "pass"
 
 
 def test_foundry_smoke_report_does_not_include_command_or_env_leakage(tmp_path: Path) -> None:
