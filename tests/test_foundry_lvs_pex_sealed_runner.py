@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 
 from photonstrust.benchmarks.schema import validate_instance
+import photonstrust.layout.pic.foundry_lvs_sealed as foundry_lvs_sealed_module
 from photonstrust.layout.pic.build_layout import build_pic_layout_artifacts
 from photonstrust.layout.pic.foundry_lvs_sealed import run_foundry_lvs_sealed
 from photonstrust.layout.pic.foundry_pex_sealed import run_foundry_pex_sealed
@@ -231,6 +232,70 @@ def test_foundry_lvs_sealed_local_alias_fail_reports_deterministic_checks(tmp_pa
     assert report["check_counts"] == {"total": 4, "passed": 2, "failed": 2, "errored": 0}
     assert report["failed_check_ids"] == ["LVS.NET.MISSING", "LVS.PORT.UNCONNECTED"]
     assert report["failed_check_names"] == ["missing_connections", "unconnected_ports"]
+
+
+def test_foundry_lvs_sealed_local_lvs_extra_fail_reports_deterministic_checks(monkeypatch) -> None:
+    def _fake_compare(**_: object) -> dict:
+        return {
+            "mismatches": {
+                "missing_connections": [],
+                "extra_connections": [{"route_id": "extra_route"}],
+                "port_mapping_mismatches": [],
+                "unconnected_ports": [],
+            }
+        }
+
+    monkeypatch.setattr(foundry_lvs_sealed_module, "compare_schematic_vs_routes", _fake_compare)
+
+    report = run_foundry_lvs_sealed(
+        {
+            "backend": "local_lvs",
+            "deck_fingerprint": "sha256:lvs_local_extra",
+            "graph": _local_lvs_demo_graph(),
+            "routes": {"routes": []},
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_lvs_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_lvs"
+    assert report["status"] == "fail"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 4, "passed": 3, "failed": 1, "errored": 0}
+    assert report["failed_check_ids"] == ["LVS.NET.EXTRA"]
+    assert report["failed_check_names"] == ["extra_connections"]
+
+
+def test_foundry_lvs_sealed_local_lvs_port_mapping_fail_reports_deterministic_checks(monkeypatch) -> None:
+    def _fake_compare(**_: object) -> dict:
+        return {
+            "mismatches": {
+                "missing_connections": [],
+                "extra_connections": [],
+                "port_mapping_mismatches": [{"reason": "direction_mismatch"}],
+                "unconnected_ports": [],
+            }
+        }
+
+    monkeypatch.setattr(foundry_lvs_sealed_module, "compare_schematic_vs_routes", _fake_compare)
+
+    report = run_foundry_lvs_sealed(
+        {
+            "backend": "local_lvs",
+            "deck_fingerprint": "sha256:lvs_local_port_map",
+            "graph": _local_lvs_demo_graph(),
+            "routes": {"routes": []},
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_lvs_sealed_summary_schema_path())
+    assert report["execution_backend"] == "local_lvs"
+    assert report["status"] == "fail"
+    assert report["error_code"] is None
+    assert report["check_counts"] == {"total": 4, "passed": 3, "failed": 1, "errored": 0}
+    assert report["failed_check_ids"] == ["LVS.PORT.MAPPING"]
+    assert report["failed_check_names"] == ["port_mapping_mismatches"]
 
 
 def test_foundry_pex_sealed_error_for_unsupported_backend_and_schema() -> None:

@@ -12,6 +12,26 @@ from photonstrust.workflow.schema import (
     pic_tapeout_gate_schema_path,
 )
 
+_MANDATORY_DRC_RULE_IDS = (
+    "DRC.WG.MIN_WIDTH",
+    "DRC.WG.MIN_SPACING",
+    "DRC.WG.MIN_BEND_RADIUS",
+    "DRC.WG.MIN_ENCLOSURE",
+)
+
+
+def _minimal_drc_rule_results() -> dict:
+    return {
+        rule_id: {
+            "status": "pass",
+            "required_um": None,
+            "observed_um": None,
+            "violation_count": 0,
+            "entity_refs": [],
+        }
+        for rule_id in _MANDATORY_DRC_RULE_IDS
+    }
+
 
 def _minimal_pic_tapeout_gate_report() -> dict:
     return {
@@ -33,7 +53,7 @@ def _minimal_pic_tapeout_gate_report() -> dict:
 
 
 def _minimal_foundry_summary(*, kind: str, execution_backend: str, run_id: str = "phase57_01") -> dict:
-    return {
+    summary = {
         "schema_version": "0.1",
         "kind": kind,
         "run_id": run_id,
@@ -52,6 +72,9 @@ def _minimal_foundry_summary(*, kind: str, execution_backend: str, run_id: str =
         "deck_fingerprint": "sha256:foundry_summary",
         "error_code": None,
     }
+    if kind == "pic.foundry_drc_sealed_summary":
+        summary["rule_results"] = _minimal_drc_rule_results()
+    return summary
 
 
 _FOUNDRY_SCHEMA_CASES = (
@@ -117,3 +140,21 @@ def test_foundry_sealed_summary_schemas_reject_unsupported_execution_backend(
 
     with pytest.raises(SchemaValidationError):
         validate_instance(bad, schema_path_fn())
+
+
+def test_drc_summary_schema_rejects_missing_rule_results() -> None:
+    summary = _minimal_foundry_summary(kind="pic.foundry_drc_sealed_summary", execution_backend="mock")
+    bad = copy.deepcopy(summary)
+    bad.pop("rule_results")
+
+    with pytest.raises(SchemaValidationError):
+        validate_instance(bad, pic_foundry_drc_sealed_summary_schema_path())
+
+
+def test_drc_summary_schema_rejects_incomplete_rule_results() -> None:
+    summary = _minimal_foundry_summary(kind="pic.foundry_drc_sealed_summary", execution_backend="mock")
+    bad = copy.deepcopy(summary)
+    bad["rule_results"].pop("DRC.WG.MIN_ENCLOSURE")
+
+    with pytest.raises(SchemaValidationError):
+        validate_instance(bad, pic_foundry_drc_sealed_summary_schema_path())

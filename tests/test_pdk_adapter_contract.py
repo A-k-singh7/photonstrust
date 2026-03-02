@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,6 +10,7 @@ from jsonschema import validate
 
 from photonstrust.pdk import (
     get_pdk,
+    load_pdk_manifest,
     pdk_capability_matrix,
     resolve_pdk_contract,
     validate_pdk_adapter_contract,
@@ -46,6 +49,33 @@ def test_resolve_pdk_contract_by_manifest_path_uses_fixture_capabilities():
     assert contract["capabilities"]["supports_spice_export"] is False
 
 
+def test_resolve_pdk_contract_prefers_manifest_path_over_name(tmp_path: Path):
+    manifest_path = tmp_path / "override_manifest.json"
+    manifest_payload = {
+        "name": "override_pdk",
+        "version": "42",
+        "design_rules": {"min_waveguide_width_um": 0.33},
+        "notes": ["manifest path should win over name"],
+        "capabilities": {
+            "supports_layout": True,
+            "supports_performance_drc": True,
+            "supports_lvs_lite_signoff": False,
+            "supports_spice_export": False,
+        },
+    }
+    manifest_path.write_text(json.dumps(manifest_payload), encoding="utf-8")
+
+    contract = resolve_pdk_contract({"name": "aim", "manifest_path": str(manifest_path)})
+    validate(instance=contract, schema=_contract_schema())
+
+    assert contract["request"]["name"] == "aim"
+    assert contract["request"]["manifest_path"] == str(manifest_path)
+    assert contract["pdk"]["name"] == "override_pdk"
+    assert contract["pdk"]["version"] == "42"
+    assert contract["capabilities"]["supports_lvs_lite_signoff"] is False
+    assert contract["capabilities"]["supports_spice_export"] is False
+
+
 def test_pdk_capability_matrix_mixed_requests():
     rows = pdk_capability_matrix(
         [
@@ -70,6 +100,17 @@ def test_resolve_pdk_contract_supports_aim_alias_names():
     assert contract["capabilities"]["supports_lvs_lite_signoff"] is True
 
 
+@pytest.mark.parametrize("alias_name", ["siepic", "ebeam"])
+def test_resolve_pdk_contract_supports_siepic_alias_names(alias_name: str):
+    contract = resolve_pdk_contract({"name": alias_name})
+    validate(instance=contract, schema=_contract_schema())
+
+    assert contract["request"]["name"] == alias_name
+    assert contract["request"]["manifest_path"] is None
+    assert contract["pdk"]["name"] == "generic_silicon_photonics"
+    assert contract["pdk"]["version"] == "0.1"
+
+
 def test_get_pdk_alias_includes_richer_optional_payload():
     pdk = get_pdk("aim_photonics")
 
@@ -87,6 +128,71 @@ def test_resolve_pdk_contract_from_runtime_config_manifest_path():
     assert contract["pdk"]["name"] == "aim_photonics"
     assert contract["request"]["name"] is None
     assert contract["request"]["manifest_path"] == str(manifest_path)
+
+
+def test_load_pdk_manifest_accepts_component_cells_dict(tmp_path: Path):
+    manifest_path = tmp_path / "dict_cells_manifest.json"
+    manifest_payload = {
+        "name": "dict_cells_pdk",
+        "version": "1",
+        "design_rules": {"min_waveguide_width_um": 0.40},
+        "notes": ["component cells defined as object map"],
+        "component_cells": {
+            "grating_coupler_te": {
+                "library": "siepic",
+                "cell": "GC_TE",
+                "ports": ["o1", "o2"],
+            },
+            "mmi_2x2": "MMI_2X2",
+        },
+    }
+    manifest_path.write_text(json.dumps(manifest_payload), encoding="utf-8")
+
+    pdk = load_pdk_manifest(manifest_path)
+
+    assert pdk.component_cells is not None
+    assert [cell["name"] for cell in pdk.component_cells] == ["grating_coupler_te", "mmi_2x2"]
+    assert pdk.component_cells[0]["library"] == "siepic"
+    assert pdk.component_cells[0]["cell"] == "GC_TE"
+    assert pdk.component_cells[1]["cell"] == "MMI_2X2"
+
+
+@pytest.mark.parametrize(
+    ("first_import", "second_import"),
+    [
+        ("photonstrust.pic.pdk_loader", "photonstrust.pdk.registry"),
+        ("photonstrust.pdk.registry", "photonstrust.pic.pdk_loader"),
+    ],
+)
+def test_pdk_loader_and_registry_import_order_is_safe(
+    first_import: str,
+    second_import: str,
+):
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (
+        f"import importlib; "
+        f"importlib.import_module({first_import!r}); "
+        f"importlib.import_module({second_import!r}); "
+        "from photonstrust.pic.pdk_loader import load_pdk; "
+        "from photonstrust.pdk.registry import get_pdk; "
+        "assert load_pdk('generic').identity.name == 'generic_silicon_photonics'; "
+        "assert get_pdk('aim').name == 'aim_photonics'; "
+        "print('ok')"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, (
+        f"import order failed: {first_import} -> {second_import}\n"
+        f"stdout:\n{result.stdout}\n"
+        f"stderr:\n{result.stderr}"
+    )
+    assert result.stdout.strip() == "ok"
 
 
 def test_validate_pdk_adapter_contract_rejects_missing_pdk_name():

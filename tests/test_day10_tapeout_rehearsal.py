@@ -8,6 +8,12 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SYNTHETIC_SMOKE_GENERATED_AT = "2026-03-01T00:00:00+00:00"
+_MANDATORY_DRC_RULE_IDS = (
+    "DRC.WG.MIN_WIDTH",
+    "DRC.WG.MIN_SPACING",
+    "DRC.WG.MIN_BEND_RADIUS",
+    "DRC.WG.MIN_ENCLOSURE",
+)
 
 
 def _run_day10(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -69,6 +75,10 @@ def test_day10_rehearsal_synthetic_pass_emits_go_packet(tmp_path: Path) -> None:
     assert Path(foundry_paths["drc"]).exists()
     assert Path(foundry_paths["lvs"]).exists()
     assert Path(foundry_paths["pex"]).exists()
+    drc_summary = json.loads(Path(foundry_paths["drc"]).read_text(encoding="utf-8"))
+    rule_results = drc_summary.get("rule_results")
+    assert isinstance(rule_results, dict)
+    assert sorted(rule_results.keys()) == sorted(_MANDATORY_DRC_RULE_IDS)
     tapeout_package = artifacts.get("tapeout_package", {})
     assert isinstance(tapeout_package, dict)
     assert Path(tapeout_package["package_dir"]).exists()

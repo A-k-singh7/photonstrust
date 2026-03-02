@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from jsonschema import validate
 
+from photonstrust.layout import gds_write as gds_write_mod
 from photonstrust.layout.pic.build_layout import build_pic_layout_artifacts
 from photonstrust.verification.lvs_lite import run_pic_lvs_lite
 
@@ -35,6 +38,75 @@ def _demo_pic_graph() -> dict:
             {"id": "e1", "from": "wg1", "from_port": "out", "to": "ps1", "to_port": "in", "kind": "optical"},
         ],
     }
+
+
+def _make_fake_gdstk_module() -> SimpleNamespace:
+    fake = SimpleNamespace(last_library=None, last_write=None)
+
+    class FlexPath:
+        def __init__(self, points, width, *, simple_path, layer, datatype):
+            self.points = list(points)
+            self.width = float(width)
+            self.simple_path = bool(simple_path)
+            self.layer = int(layer)
+            self.datatype = int(datatype)
+
+    class Label:
+        def __init__(self, text, origin, *, layer, texttype):
+            self.text = str(text)
+            self.origin = tuple(origin)
+            self.layer = int(layer)
+            self.texttype = int(texttype)
+
+    class Reference:
+        def __init__(self, cell, origin, rotation=None, magnification=1.0, x_reflection=False):
+            self.cell = cell
+            self.cell_name = str(getattr(cell, "name", "") or "")
+            self.origin = tuple(origin)
+            self.rotation = rotation
+            self.magnification = float(magnification)
+            self.x_reflection = bool(x_reflection)
+
+    class Cell:
+        def __init__(self, name):
+            self.name = str(name)
+            self.elements = []
+
+        def add(self, *items):
+            self.elements.extend(list(items))
+
+    class Library:
+        def __init__(self, *, unit, precision):
+            self.unit = float(unit)
+            self.precision = float(precision)
+            self.cells = []
+            fake.last_library = self
+
+        def add(self, *cells):
+            self.cells.extend(list(cells))
+
+        def write_gds(self, path, timestamp=None):
+            out = Path(path)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_bytes(b"FAKE_GDS")
+            fake.last_write = {"path": out, "timestamp": timestamp}
+
+    def rectangle(a, b, *, layer, datatype):
+        return {
+            "type": "rectangle",
+            "a": tuple(a),
+            "b": tuple(b),
+            "layer": int(layer),
+            "datatype": int(datatype),
+        }
+
+    fake.FlexPath = FlexPath
+    fake.Label = Label
+    fake.Reference = Reference
+    fake.Cell = Cell
+    fake.Library = Library
+    fake.rectangle = rectangle
+    return fake
 
 
 def test_pic_layout_build_report_schema_and_lvs_lite_pass(tmp_path: Path):
@@ -166,3 +238,94 @@ def test_pic_layout_build_gds_is_deterministic_with_settings_timestamp(tmp_path:
     assert rep_a["summary"]["gds_emitted"] is True
     assert rep_b["summary"]["gds_emitted"] is True
     assert (out_a / "layout.gds").read_bytes() == (out_b / "layout.gds").read_bytes()
+
+
+def test_write_gds_routes_use_pdk_list_layer_stack_waveguide_layer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    fake_gdstk = _make_fake_gdstk_module()
+    monkeypatch.setattr(gds_write_mod, "_import_gdstk", lambda: fake_gdstk)
+
+    netlist = {
+        "nodes": [
+            {"id": "wg1", "kind": "pic.waveguide", "params": {}},
+            {"id": "ps1", "kind": "pic.phase_shifter", "params": {}},
+        ],
+        "edges": [],
+    }
+    pdk = {
+        "layer_stack": [
+            {"name": "metal1", "gds_layer": 60, "gds_datatype": 0},
+            {"name": "si_core", "gds_layer": 37, "gds_datatype": 9},
+        ]
+    }
+    routes = {"routes": [{"route_id": "r1", "width_um": 0.5, "points_um": [[0.0, 0.0], [20.0, 0.0]]}]}
+
+    gds_write_mod.write_gds(
+        netlist=netlist,
+        pdk=pdk,
+        output_path=tmp_path / "list_stack_layer.gds",
+        routes=routes,
+        ports={"ports": []},
+        settings={"cell_name": "PT_TEST_TOP"},
+    )
+
+    assert fake_gdstk.last_library is not None
+    top = next(cell for cell in fake_gdstk.last_library.cells if cell.name == "PT_TEST_TOP")
+    route_shape = next(shape for shape in top.elements if isinstance(shape, fake_gdstk.FlexPath))
+    assert route_shape.layer == 37
+    assert route_shape.datatype == 9
+
+
+def test_write_gds_applies_reference_orientation_from_node_params(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    fake_gdstk = _make_fake_gdstk_module()
+    monkeypatch.setattr(gds_write_mod, "_import_gdstk", lambda: fake_gdstk)
+
+    netlist = {
+        "nodes": [
+            {
+                "id": "ps1",
+                "kind": "pic.phase_shifter",
+                "params": {"rotation_deg": 90.0, "mirror": True},
+            }
+        ],
+        "edges": [],
+    }
+
+    gds_write_mod.write_gds(
+        netlist=netlist,
+        pdk={},
+        output_path=tmp_path / "orientation_ref.gds",
+        routes={"routes": []},
+        ports={"ports": []},
+        settings={"cell_name": "PT_TOP", "_node_positions_um": {"ps1": [12.0, 7.5]}},
+    )
+
+    assert fake_gdstk.last_library is not None
+    top = next(cell for cell in fake_gdstk.last_library.cells if cell.name == "PT_TOP")
+    refs = [shape for shape in top.elements if isinstance(shape, fake_gdstk.Reference)]
+    assert len(refs) == 1
+    assert refs[0].origin == (12.0, 7.5)
+    assert refs[0].x_reflection is True
+    assert refs[0].rotation == pytest.approx(math.pi / 2.0)
+
+
+def test_pic_layout_build_top_cell_alias_precedence_is_deterministic(tmp_path: Path):
+    graph = _demo_pic_graph()
+
+    report_alias = build_pic_layout_artifacts(
+        {"graph": graph, "settings": {"top_cell": "PT_TOP", "top_cell_name": "PT_TOP_NAME"}},
+        tmp_path / "alias_only",
+    )
+    assert report_alias["settings"]["cell_name"] == "PT_TOP_NAME"
+
+    report_canonical = build_pic_layout_artifacts(
+        {
+            "graph": graph,
+            "settings": {
+                "cell_name": "PT_CELL_NAME",
+                "top_cell_name": "PT_TOP_NAME",
+                "top_cell": "PT_TOP",
+            },
+        },
+        tmp_path / "canonical_wins",
+    )
+    assert report_canonical["settings"]["cell_name"] == "PT_CELL_NAME"

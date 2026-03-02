@@ -8,6 +8,13 @@ from photonstrust.benchmarks.schema import validate_instance
 from photonstrust.layout.pic.foundry_drc_sealed import run_foundry_drc_sealed
 from photonstrust.workflow.schema import pic_foundry_drc_sealed_summary_schema_path
 
+_MANDATORY_DRC_RULE_IDS = (
+    "DRC.WG.MIN_WIDTH",
+    "DRC.WG.MIN_SPACING",
+    "DRC.WG.MIN_BEND_RADIUS",
+    "DRC.WG.MIN_ENCLOSURE",
+)
+
 
 def _fixed_clock() -> str:
     return "2026-02-16T12:00:00+00:00"
@@ -22,6 +29,11 @@ def _assert_no_leakage(payload: dict, *, forbidden_values: list[str]) -> None:
         assert value not in serialized
 
 
+def _assert_mandatory_rule_results_keys(report: dict) -> None:
+    rule_results = report.get("rule_results") if isinstance(report.get("rule_results"), dict) else {}
+    assert sorted(rule_results.keys()) == sorted(_MANDATORY_DRC_RULE_IDS)
+
+
 def test_foundry_drc_sealed_mock_pass_schema_and_counts() -> None:
     report = run_foundry_drc_sealed(
         {
@@ -32,6 +44,8 @@ def test_foundry_drc_sealed_mock_pass_schema_and_counts() -> None:
                 "checks": [
                     {"id": "DRC.WG.MIN_WIDTH", "name": "wg_min_width", "status": "pass"},
                     {"id": "DRC.WG.MIN_GAP", "name": "wg_min_gap", "status": "pass"},
+                    {"id": "DRC.WG.MIN_BEND_RADIUS", "name": "wg_min_bend_radius", "status": "pass"},
+                    {"id": "DRC.WG.MIN_ENCLOSURE", "name": "wg_min_enclosure", "status": "pass"},
                 ]
             },
             "deck_path": "/secret/foundry/proprietary.drc",
@@ -42,9 +56,10 @@ def test_foundry_drc_sealed_mock_pass_schema_and_counts() -> None:
 
     validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
     assert report["status"] == "pass"
-    assert report["check_counts"] == {"total": 2, "passed": 2, "failed": 0, "errored": 0}
+    assert report["check_counts"] == {"total": 4, "passed": 4, "failed": 0, "errored": 0}
     assert report["failed_check_ids"] == []
     assert report["failed_check_names"] == []
+    _assert_mandatory_rule_results_keys(report)
     _assert_no_leakage(
         report,
         forbidden_values=["/secret/foundry/proprietary.drc", "WIDTH >= 0.5um"],
@@ -61,6 +76,7 @@ def test_foundry_drc_sealed_mock_fail_schema_and_failed_lists() -> None:
                     {"id": "DRC.WG.MIN_WIDTH", "name": "wg_min_width", "status": "fail"},
                     {"id": "DRC.WG.MIN_GAP", "name": "wg_min_gap", "status": "pass"},
                     {"id": "DRC.BEND.MIN_RADIUS", "name": "bend_min_radius", "status": "fail"},
+                    {"id": "DRC.WG.MIN_ENCLOSURE", "name": "wg_min_enclosure", "status": "pass"},
                 ]
             },
             "deck_content": "proprietary deck lines here",
@@ -70,10 +86,32 @@ def test_foundry_drc_sealed_mock_fail_schema_and_failed_lists() -> None:
 
     validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
     assert report["status"] == "fail"
-    assert report["check_counts"] == {"total": 3, "passed": 1, "failed": 2, "errored": 0}
-    assert report["failed_check_ids"] == ["DRC.BEND.MIN_RADIUS", "DRC.WG.MIN_WIDTH"]
-    assert report["failed_check_names"] == ["bend_min_radius", "wg_min_width"]
+    assert report["check_counts"] == {"total": 4, "passed": 2, "failed": 2, "errored": 0}
+    assert report["failed_check_ids"] == ["DRC.WG.MIN_BEND_RADIUS", "DRC.WG.MIN_WIDTH"]
+    assert report["failed_check_names"] == ["wg_min_bend_radius", "wg_min_width"]
+    _assert_mandatory_rule_results_keys(report)
     _assert_no_leakage(report, forbidden_values=["proprietary deck lines here"])
+
+
+def test_foundry_drc_sealed_mock_missing_mandatory_rule_results_fails_closed() -> None:
+    report = run_foundry_drc_sealed(
+        {
+            "backend": "mock",
+            "mock_result": {
+                "checks": [
+                    {"id": "DRC.WG.MIN_WIDTH", "name": "wg_min_width", "status": "pass"},
+                    {"id": "DRC.WG.MIN_SPACING", "name": "wg_min_spacing", "status": "pass"},
+                ]
+            },
+        },
+        now_fn=_fixed_clock,
+    )
+
+    validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
+    assert report["status"] == "error"
+    assert report["error_code"] == "mandatory_rule_results_incomplete"
+    assert report["check_counts"] == {"total": 4, "passed": 2, "failed": 0, "errored": 2}
+    _assert_mandatory_rule_results_keys(report)
 
 
 def test_foundry_drc_sealed_error_for_unsupported_backend_and_deterministic_id() -> None:
@@ -88,7 +126,8 @@ def test_foundry_drc_sealed_error_for_unsupported_backend_and_deterministic_id()
     validate_instance(report_a, pic_foundry_drc_sealed_summary_schema_path())
     assert report_a["status"] == "error"
     assert report_a["error_code"] == "backend_unavailable"
-    assert report_a["check_counts"] == {"total": 0, "passed": 0, "failed": 0, "errored": 0}
+    assert report_a["check_counts"] == {"total": 4, "passed": 0, "failed": 0, "errored": 4}
+    _assert_mandatory_rule_results_keys(report_a)
     assert report_a["run_id"] == report_b["run_id"]
     _assert_no_leakage(report_a, forbidden_values=["top_secret_rule_set"])
 
@@ -111,7 +150,9 @@ def test_foundry_drc_sealed_generic_cli_success_with_summary_json(tmp_path: Path
                         "mode = os.environ.get('PT_DRC_MODE', ''); "
                         "checks = ["
                         "{'id':'DRC.WG.MIN_WIDTH','name':'wg_min_width','status':'clean'},"
-                        "{'id':'DRC.WG.MIN_GAP','name':'wg_min_gap','status':'violation'}"
+                        "{'id':'DRC.WG.MIN_GAP','name':'wg_min_gap','status':'violation'},"
+                        "{'id':'DRC.WG.MIN_BEND_RADIUS','name':'wg_min_bend_radius','status':'clean'},"
+                        "{'id':'DRC.WG.MIN_ENCLOSURE','name':'wg_min_enclosure','status':'clean'}"
                         "]; "
                         "out.write_text(json.dumps({'checks': checks}), encoding='utf-8')"
                     ),
@@ -131,17 +172,17 @@ def test_foundry_drc_sealed_generic_cli_success_with_summary_json(tmp_path: Path
     validate_instance(report, pic_foundry_drc_sealed_summary_schema_path())
     assert report["execution_backend"] == "generic_cli"
     assert report["status"] == "fail"
-    assert report["check_counts"] == {"total": 2, "passed": 1, "failed": 1, "errored": 0}
-    assert report["failed_check_ids"] == ["DRC.WG.MIN_GAP"]
-    assert report["failed_check_names"] == ["wg_min_gap"]
+    assert report["check_counts"] == {"total": 4, "passed": 3, "failed": 1, "errored": 0}
+    assert report["failed_check_ids"] == ["DRC.WG.MIN_SPACING"]
+    assert report["failed_check_names"] == ["wg_min_spacing"]
     assert report["error_code"] is None
+    _assert_mandatory_rule_results_keys(report)
     _assert_no_leakage(
         report,
         forbidden_values=[
             str(summary_path),
             "PT_DRC_MODE",
             "STRICT",
-            "violation",
         ],
     )
 
@@ -168,7 +209,8 @@ def test_foundry_drc_sealed_generic_cli_error_when_command_fails(tmp_path: Path)
     assert report["execution_backend"] == "generic_cli"
     assert report["status"] == "error"
     assert report["error_code"] == "command_failed"
-    assert report["check_counts"] == {"total": 0, "passed": 0, "failed": 0, "errored": 0}
+    assert report["check_counts"] == {"total": 4, "passed": 0, "failed": 0, "errored": 4}
+    _assert_mandatory_rule_results_keys(report)
     _assert_no_leakage(
         report,
         forbidden_values=[
@@ -196,7 +238,8 @@ def test_foundry_drc_sealed_generic_cli_missing_summary_json_fails_closed(tmp_pa
     assert report["execution_backend"] == "generic_cli"
     assert report["status"] == "error"
     assert report["error_code"] == "generic_cli_summary_json_required"
-    assert report["check_counts"] == {"total": 0, "passed": 0, "failed": 0, "errored": 0}
+    assert report["check_counts"] == {"total": 4, "passed": 0, "failed": 0, "errored": 4}
+    _assert_mandatory_rule_results_keys(report)
 
 
 def test_foundry_drc_sealed_generic_cli_empty_checks_cannot_pass(tmp_path: Path) -> None:
@@ -226,7 +269,8 @@ def test_foundry_drc_sealed_generic_cli_empty_checks_cannot_pass(tmp_path: Path)
     assert report["execution_backend"] == "generic_cli"
     assert report["status"] == "error"
     assert report["error_code"] == "generic_cli_empty_checks"
-    assert report["check_counts"] == {"total": 0, "passed": 0, "failed": 0, "errored": 0}
+    assert report["check_counts"] == {"total": 4, "passed": 0, "failed": 0, "errored": 4}
+    _assert_mandatory_rule_results_keys(report)
 
 
 def test_foundry_drc_sealed_generic_cli_pass_status_conflicts_with_failing_checks(tmp_path: Path) -> None:
@@ -241,7 +285,10 @@ def test_foundry_drc_sealed_generic_cli_pass_status_conflicts_with_failing_check
                     (
                         "import json, pathlib, sys; "
                         "payload={'status':'pass','checks':["
-                        "{'id':'DRC.WG.MIN_WIDTH','name':'wg_min_width','status':'fail'}"
+                        "{'id':'DRC.WG.MIN_WIDTH','name':'wg_min_width','status':'fail'},"
+                        "{'id':'DRC.WG.MIN_SPACING','name':'wg_min_spacing','status':'pass'},"
+                        "{'id':'DRC.WG.MIN_BEND_RADIUS','name':'wg_min_bend_radius','status':'pass'},"
+                        "{'id':'DRC.WG.MIN_ENCLOSURE','name':'wg_min_enclosure','status':'pass'}"
                         "]}; "
                         "pathlib.Path(sys.argv[1]).write_text(json.dumps(payload), encoding='utf-8')"
                     ),
@@ -259,8 +306,9 @@ def test_foundry_drc_sealed_generic_cli_pass_status_conflicts_with_failing_check
     assert report["execution_backend"] == "generic_cli"
     assert report["status"] == "error"
     assert report["error_code"] == "generic_cli_status_checks_conflict"
-    assert report["check_counts"] == {"total": 1, "passed": 0, "failed": 1, "errored": 0}
+    assert report["check_counts"] == {"total": 4, "passed": 3, "failed": 1, "errored": 0}
     assert report["failed_check_ids"] == ["DRC.WG.MIN_WIDTH"]
+    _assert_mandatory_rule_results_keys(report)
 
 
 def test_foundry_drc_sealed_local_rules_pass_schema_and_counts() -> None:

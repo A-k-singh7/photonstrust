@@ -7,6 +7,12 @@ import sys
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+_MANDATORY_DRC_RULE_IDS = (
+    "DRC.WG.MIN_WIDTH",
+    "DRC.WG.MIN_SPACING",
+    "DRC.WG.MIN_BEND_RADIUS",
+    "DRC.WG.MIN_ENCLOSURE",
+)
 
 
 def _write_payload(path: Path, payload: dict) -> Path:
@@ -45,7 +51,29 @@ def _write_valid_waiver(path: Path) -> Path:
     return path
 
 
-def _write_foundry_summary(path: Path, *, kind: str, status: str, backend: str, failed_ids: list[str] | None = None) -> Path:
+def _drc_rule_results_from_failed_ids(failed_ids: list[str] | None = None) -> dict:
+    failed = set(failed_ids or [])
+    return {
+        rule_id: {
+            "status": "fail" if rule_id in failed else "pass",
+            "required_um": None,
+            "observed_um": None,
+            "violation_count": 1 if rule_id in failed else 0,
+            "entity_refs": [],
+        }
+        for rule_id in _MANDATORY_DRC_RULE_IDS
+    }
+
+
+def _write_foundry_summary(
+    path: Path,
+    *,
+    kind: str,
+    status: str,
+    backend: str,
+    failed_ids: list[str] | None = None,
+    drc_rule_results: dict | None = None,
+) -> Path:
     failed_ids = list(failed_ids or [])
     payload = {
         "schema_version": "0.1",
@@ -66,6 +94,8 @@ def _write_foundry_summary(path: Path, *, kind: str, status: str, backend: str, 
         "deck_fingerprint": "sha256:testdeck",
         "error_code": None,
     }
+    if kind == "drc":
+        payload["rule_results"] = drc_rule_results if isinstance(drc_rule_results, dict) else _drc_rule_results_from_failed_ids(failed_ids)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
 
@@ -180,7 +210,7 @@ def test_pic_tapeout_gate_foundry_signoff_fails_without_waiver(tmp_path: Path) -
         kind="drc",
         status="fail",
         backend="generic_cli",
-        failed_ids=["DRC.WG.MIN_GAP"],
+        failed_ids=["DRC.WG.MIN_SPACING"],
     )
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
@@ -209,7 +239,7 @@ def test_pic_tapeout_gate_foundry_signoff_allows_waived_failures(tmp_path: Path)
         kind="drc",
         status="fail",
         backend="generic_cli",
-        failed_ids=["DRC.WG.MIN_GAP"],
+        failed_ids=["DRC.WG.MIN_SPACING"],
     )
     _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
     _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
@@ -221,7 +251,7 @@ def test_pic_tapeout_gate_foundry_signoff_allows_waived_failures(tmp_path: Path)
             "kind": "photonstrust.pic_waivers",
             "waivers": [
                 {
-                    "rule_id": "DRC.WG.MIN_GAP",
+                    "rule_id": "DRC.WG.MIN_SPACING",
                     "entity_ref": "routes:r1:r2",
                     "justification": "Approved foundry waiver",
                     "reviewer": "qa.engineer",
@@ -304,7 +334,7 @@ def test_pic_tapeout_gate_non_mock_enforced_even_with_waivers(tmp_path: Path) ->
         kind="drc",
         status="fail",
         backend="generic_cli",
-        failed_ids=["DRC.WG.MIN_GAP"],
+        failed_ids=["DRC.WG.MIN_SPACING"],
     )
     _write_foundry_summary(
         run_dir / "foundry_lvs_sealed_summary.json",
@@ -321,7 +351,7 @@ def test_pic_tapeout_gate_non_mock_enforced_even_with_waivers(tmp_path: Path) ->
             "kind": "photonstrust.pic_waivers",
             "waivers": [
                 {
-                    "rule_id": "DRC.WG.MIN_GAP",
+                    "rule_id": "DRC.WG.MIN_SPACING",
                     "entity_ref": "routes:r1:r2",
                     "justification": "Approved foundry waiver",
                     "reviewer": "qa.engineer",
@@ -373,7 +403,7 @@ def test_pic_tapeout_gate_fail_status_requires_failed_check_ids(tmp_path: Path) 
             "kind": "photonstrust.pic_waivers",
             "waivers": [
                 {
-                    "rule_id": "DRC.WG.MIN_GAP",
+                    "rule_id": "DRC.WG.MIN_SPACING",
                     "entity_ref": "routes:r1:r2",
                     "justification": "Approved foundry waiver",
                     "reviewer": "qa.engineer",
@@ -395,6 +425,68 @@ def test_pic_tapeout_gate_fail_status_requires_failed_check_ids(tmp_path: Path) 
             "--allow-waived-failures",
             "--waiver-file",
             str(waiver_path),
+        ],
+        cwd=str(REPO_ROOT),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 1
+
+
+def test_pic_tapeout_gate_drc_failed_check_ids_must_match_failed_rule_results(tmp_path: Path) -> None:
+    script = REPO_ROOT / "scripts" / "check_pic_tapeout_gate.py"
+    run_dir = _create_synthetic_run_dir(tmp_path)
+    _write_foundry_summary(
+        run_dir / "foundry_drc_sealed_summary.json",
+        kind="drc",
+        status="fail",
+        backend="generic_cli",
+        failed_ids=["DRC.WG.MIN_SPACING"],
+        drc_rule_results=_drc_rule_results_from_failed_ids(["DRC.WG.MIN_WIDTH"]),
+    )
+    _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
+    _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--run-dir",
+            str(run_dir),
+            "--require-foundry-signoff",
+        ],
+        cwd=str(REPO_ROOT),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 1
+
+
+def test_pic_tapeout_gate_drc_missing_rule_results_fails_closed(tmp_path: Path) -> None:
+    script = REPO_ROOT / "scripts" / "check_pic_tapeout_gate.py"
+    run_dir = _create_synthetic_run_dir(tmp_path)
+    drc_path = _write_foundry_summary(
+        run_dir / "foundry_drc_sealed_summary.json",
+        kind="drc",
+        status="pass",
+        backend="generic_cli",
+    )
+    payload = json.loads(drc_path.read_text(encoding="utf-8"))
+    payload.pop("rule_results", None)
+    drc_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    _write_foundry_summary(run_dir / "foundry_lvs_sealed_summary.json", kind="lvs", status="pass", backend="generic_cli")
+    _write_foundry_summary(run_dir / "foundry_pex_sealed_summary.json", kind="pex", status="pass", backend="generic_cli")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--run-dir",
+            str(run_dir),
+            "--require-foundry-signoff",
         ],
         cwd=str(REPO_ROOT),
         check=False,

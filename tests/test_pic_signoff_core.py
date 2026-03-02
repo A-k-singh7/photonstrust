@@ -85,6 +85,27 @@ def _passing_stage_summaries() -> dict:
     }
 
 
+def _recompute_hash_chain(report: dict) -> None:
+    prev_hash = str(report["inputs"]["chip_assembly_hash"])
+    for row in report["ladder"]:
+        row["prev_stage_hash"] = prev_hash
+        payload = {
+            "level": int(row.get("level", 0)),
+            "stage": str(row.get("stage", "")),
+            "status": str(row.get("status", "")),
+            "run_id": str(row.get("run_id", "")),
+            "reason": str(row.get("reason", "")),
+            "evidence_hashes": list(row.get("evidence_hashes") or []),
+            "failure_rule_ids": list(row.get("failure_rule_ids") or []),
+            "waived_rule_ids": list(row.get("waived_rule_ids") or []),
+            "prev_stage_hash": prev_hash,
+        }
+        stage_hash = hash_dict(payload)
+        row["stage_hash"] = stage_hash
+        prev_hash = stage_hash
+    report["evidence_chain_root"] = prev_hash
+
+
 def test_build_pic_signoff_ladder_pass_path() -> None:
     assembly_report = _assembly_report()
     request = {
@@ -559,4 +580,64 @@ def test_verify_pic_signoff_hash_chain_detects_stage_reordering() -> None:
     report["ladder"][1], report["ladder"][2] = report["ladder"][2], report["ladder"][1]
 
     with pytest.raises(ValueError, match=r"report\.ladder\[1\]\.level must be 2"):
+        verify_pic_signoff_hash_chain(report)
+
+
+def test_verify_pic_signoff_hash_chain_detects_fail_fast_violation_even_when_rehashed() -> None:
+    request = {
+        "assembly_report": _assembly_report(),
+        "policy": {"multi_stage": True},
+        "drc_summary": {
+            "run_id": "6" * 12,
+            "status": "fail",
+            "execution_backend": "generic_cli",
+            "failed_check_ids": ["DRC.WG.MIN_SPACING"],
+        },
+        "lvs_summary": {"run_id": "7" * 12, "status": "pass", "execution_backend": "generic_cli", "failed_check_ids": []},
+        "pex_summary": {"run_id": "8" * 12, "status": "pass", "execution_backend": "generic_cli", "failed_check_ids": []},
+        "foundry_approval": {"run_id": "9" * 12, "decision": "GO"},
+    }
+    report = build_pic_signoff_ladder(request)["report"]
+
+    # lvs should be skipped after drc fail; force pass and re-hash to simulate semantic tamper.
+    report["ladder"][2]["status"] = "pass"
+    report["ladder"][2]["reason"] = "tampered non-skipped lvs"
+    report["ladder"][2]["evidence_hashes"] = [hash_dict({"tampered": "lvs"})]
+    report["ladder"][2]["failure_rule_ids"] = []
+    report["ladder"][2]["waived_rule_ids"] = []
+    _recompute_hash_chain(report)
+
+    with pytest.raises(ValueError, match="must be skipped because prior stage"):
+        verify_pic_signoff_hash_chain(report)
+
+
+def test_verify_pic_signoff_hash_chain_detects_waiver_boundary_violation_even_when_rehashed() -> None:
+    request = {
+        "assembly_report": _assembly_report(),
+        "policy": {"mode": "default"},
+        **_passing_stage_summaries(),
+    }
+    report = build_pic_signoff_ladder(request)["report"]
+
+    report["ladder"][1]["status"] = "waived"
+    report["ladder"][1]["reason"] = "tampered waived mismatch"
+    report["ladder"][1]["failure_rule_ids"] = ["DRC.WG.MIN_WIDTH"]
+    report["ladder"][1]["waived_rule_ids"] = ["DRC.WG.MIN_SPACING"]
+    _recompute_hash_chain(report)
+
+    with pytest.raises(ValueError, match="waived_rule_ids must match failure_rule_ids"):
+        verify_pic_signoff_hash_chain(report)
+
+
+def test_verify_pic_signoff_hash_chain_detects_final_decision_tamper() -> None:
+    request = {
+        "assembly_report": _assembly_report(),
+        "policy": {"mode": "default"},
+        **_passing_stage_summaries(),
+    }
+    report = build_pic_signoff_ladder(request)["report"]
+    report["final_decision"]["decision"] = "HOLD"
+    report["final_decision"]["reasons"] = ["tampered decision"]
+
+    with pytest.raises(ValueError, match="final_decision.decision does not match ladder state"):
         verify_pic_signoff_hash_chain(report)

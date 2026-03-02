@@ -294,7 +294,9 @@ def test_phase57_foundry_drc_sealed_run_writes_outputs(tmp_path: Path, monkeypat
             "mock_result": {
                 "checks": [
                     {"id": "DRC.WG.MIN_WIDTH", "name": "wg_min_width", "status": "pass"},
-                    {"id": "DRC.WG.MIN_GAP", "name": "wg_min_gap", "status": "fail"},
+                    {"id": "DRC.WG.MIN_SPACING", "name": "wg_min_spacing", "status": "fail"},
+                    {"id": "DRC.WG.MIN_BEND_RADIUS", "name": "wg_min_bend_radius", "status": "pass"},
+                    {"id": "DRC.WG.MIN_ENCLOSURE", "name": "wg_min_enclosure", "status": "pass"},
                 ]
             },
         },

@@ -169,7 +169,14 @@ def test_foundry_endpoints_emit_metrics_events_and_summary(tmp_path: Path, monke
             "execution_mode": "preview",
             "backend": "mock",
             "deck_fingerprint": "sha256:day8-drc",
-            "mock_result": {"checks": [{"id": "DRC.WG.MIN_WIDTH", "status": "pass"}]},
+            "mock_result": {
+                "checks": [
+                    {"id": "DRC.WG.MIN_WIDTH", "status": "pass"},
+                    {"id": "DRC.WG.MIN_SPACING", "status": "pass"},
+                    {"id": "DRC.WG.MIN_BEND_RADIUS", "status": "pass"},
+                    {"id": "DRC.WG.MIN_ENCLOSURE", "status": "pass"},
+                ]
+            },
         },
     )
     assert drc.status_code == 200
