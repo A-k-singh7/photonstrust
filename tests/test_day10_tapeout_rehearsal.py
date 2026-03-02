@@ -16,6 +16,13 @@ _MANDATORY_DRC_RULE_IDS = (
     "DRC.WG.MIN_BEND_RADIUS",
     "DRC.WG.MIN_ENCLOSURE",
 )
+_SIGNOFF_STAGE_ORDER = (
+    "chip_assembly",
+    "drc",
+    "lvs",
+    "pex",
+    "foundry_approval",
+)
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -138,6 +145,10 @@ def _load_day10_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def test_day10_rehearsal_dry_run_prints_plan(tmp_path: Path) -> None:
@@ -333,6 +344,88 @@ def test_day10_rehearsal_real_mode_can_use_local_smoke_backend_without_runner_co
     assert smoke_report["stages"]["drc"]["execution_backend"] == "local_rules"
     assert smoke_report["stages"]["lvs"]["execution_backend"] == "local_lvs"
     assert smoke_report["stages"]["pex"]["execution_backend"] == "local_pex"
+
+    signoff_path = run_dir / "signoff_ladder.json"
+    assert signoff_path.exists()
+    signoff = _load_json(signoff_path)
+    assert signoff["kind"] == "pic.signoff_ladder"
+    ladder = signoff.get("ladder", [])
+    assert isinstance(ladder, list)
+    assert len(ladder) == len(_SIGNOFF_STAGE_ORDER)
+    assert [str(stage.get("stage")) for stage in ladder] == list(_SIGNOFF_STAGE_ORDER)
+
+    foundry_paths = artifacts.get("foundry_summary_paths", {})
+    summary_run_ids = {
+        kind: str(_load_json(Path(foundry_paths[kind])).get("run_id") or "")
+        for kind in ("drc", "lvs", "pex")
+    }
+    signoff_run_ids = {
+        str(stage.get("stage")): str(stage.get("run_id") or "")
+        for stage in ladder
+        if str(stage.get("stage")) in {"drc", "lvs", "pex"}
+    }
+    for kind in ("drc", "lvs", "pex"):
+        assert summary_run_ids[kind]
+        assert signoff_run_ids[kind] == summary_run_ids[kind]
+
+
+def test_day10_rehearsal_real_mode_local_backend_hold_signoff_foundry_approval_uses_foundry_failure_ids(
+    tmp_path: Path,
+) -> None:
+    packet_path = tmp_path / "day10_packet_real_local_hold.json"
+    run_dir = _make_local_layout_run_dir(tmp_path)
+
+    pdk_manifest_path = run_dir / "pdk_manifest.json"
+    pdk_manifest = _load_json(pdk_manifest_path)
+    design_rules = pdk_manifest.get("design_rules")
+    assert isinstance(design_rules, dict)
+    design_rules["min_waveguide_width_um"] = 0.60
+    _write_json(pdk_manifest_path, pdk_manifest)
+
+    completed = _run_day10(
+        [
+            "--mode",
+            "real",
+            "--output-json",
+            str(packet_path),
+            "--run-dir",
+            str(run_dir),
+            "--smoke-local-backend",
+        ]
+    )
+
+    combined_output = completed.stdout + completed.stderr
+    assert completed.returncode == 1, combined_output
+    assert packet_path.exists()
+
+    packet = _load_json(packet_path)
+    assert packet["decision"] == "HOLD"
+    assert packet["smoke_overall_status"] == "fail"
+
+    artifacts = packet.get("artifacts", {})
+    smoke_report = _load_json(Path(artifacts["foundry_smoke_report_json"]))
+    smoke_failed_ids = sorted(
+        {
+            str(check_id)
+            for stage in (smoke_report.get("stages") or {}).values()
+            if isinstance(stage, dict)
+            for check_id in (stage.get("failed_check_ids") or [])
+            if str(check_id).strip()
+        }
+    )
+    assert smoke_failed_ids
+
+    signoff_path = run_dir / "signoff_ladder.json"
+    assert signoff_path.exists()
+    signoff = _load_json(signoff_path)
+    assert signoff["kind"] == "pic.signoff_ladder"
+
+    foundry_approval_stage = next(row for row in signoff.get("ladder", []) if row.get("stage") == "foundry_approval")
+    assert str(foundry_approval_stage.get("status")) in {"hold", "fail"}
+    signoff_failure_ids = [str(v) for v in (foundry_approval_stage.get("failure_rule_ids") or []) if str(v).strip()]
+    assert signoff_failure_ids
+    assert "foundry_approval.synthetic_hold" not in signoff_failure_ids
+    assert set(smoke_failed_ids).issubset(set(signoff_failure_ids))
 
 
 def test_day10_rehearsal_real_mode_bootstrap_local_backend_end_to_end(tmp_path: Path) -> None:
