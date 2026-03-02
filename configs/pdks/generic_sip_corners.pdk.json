@@ -1,0 +1,72 @@
+{
+  "name": "generic_sip_corners",
+  "version": "0.1",
+  "design_rules": {
+    "min_waveguide_width_um": 0.45,
+    "min_waveguide_gap_um": 0.20,
+    "min_bend_radius_um": 5.0
+  },
+  "notes": [
+    "Generic silicon photonics corner-enabled manifest for M4 process-corner risk propagation."
+  ],
+  "capabilities": {
+    "supports_layout": true,
+    "supports_performance_drc": true,
+    "supports_lvs_lite_signoff": true,
+    "supports_spice_export": true
+  },
+  "process_corners": {
+    "TT": {
+      "waveguide_width_nm": 0.0,
+      "propagation_loss_db_per_cm": 2.20,
+      "coupler_gap_nm": 0.0,
+      "ring_width_nm": 0.0
+    },
+    "SS": {
+      "waveguide_width_nm": -8.0,
+      "propagation_loss_db_per_cm": 2.70,
+      "coupler_gap_nm": 6.0,
+      "ring_width_nm": -8.0
+    },
+    "FF": {
+      "waveguide_width_nm": 8.0,
+      "propagation_loss_db_per_cm": 1.80,
+      "coupler_gap_nm": -6.0,
+      "ring_width_nm": 8.0
+    },
+    "FS": {
+      "waveguide_width_nm": 7.0,
+      "propagation_loss_db_per_cm": 2.50,
+      "coupler_gap_nm": -5.0,
+      "ring_width_nm": 7.0
+    },
+    "SF": {
+      "waveguide_width_nm": -7.0,
+      "propagation_loss_db_per_cm": 1.95,
+      "coupler_gap_nm": 5.0,
+      "ring_width_nm": -7.0
+    }
+  },
+  "sensitivity_coefficients": {
+    "coupling_ratio_per_gap_um": -2.1,
+    "ring_resonance_nm_per_width_nm": -0.010,
+    "waveguide_width_nm_to_key_rate_rel": 0.005,
+    "propagation_loss_db_per_cm_to_key_rate_rel": -0.090
+  },
+  "component_cells": [
+    {
+      "name": "grating_coupler_te",
+      "library": "generic_sip",
+      "cell": "GC_TE",
+      "ports": ["opt1", "opt2"],
+      "nominal_il_db": 3.0
+    },
+    {
+      "name": "edge_coupler_te",
+      "library": "generic_sip",
+      "cell": "EC_TE",
+      "ports": ["opt1", "opt2"],
+      "nominal_il_db": 1.1
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import sys
 from pathlib import Path
@@ -225,6 +226,47 @@ def main() -> None:
         action="store_true",
         help="Exit with code 1 when overall_status is not PASS",
     )
+
+    sweep_parser = subparsers.add_parser("sweep", help="Run PIC process-corner sweep")
+    sweep_parser.add_argument("graph_path", help="Path to PIC graph JSON")
+    sweep_parser.add_argument("--pdk", default="generic_sip_corners", help="PDK name")
+    sweep_parser.add_argument(
+        "--pdk-manifest",
+        default=None,
+        help="Optional path to a PDK manifest JSON",
+    )
+    sweep_parser.add_argument("--protocol", default="BB84_DECOY", help="QKD protocol name")
+    sweep_parser.add_argument(
+        "--target-distance",
+        type=float,
+        default=50.0,
+        help="Target link distance in km",
+    )
+    sweep_parser.add_argument(
+        "--wavelength",
+        type=float,
+        default=1550.0,
+        help="Wavelength in nm",
+    )
+    sweep_parser.add_argument(
+        "--corners",
+        default="all",
+        help="Corner selection: all or comma-separated subset of SS,TT,FF,FS,SF",
+    )
+    sweep_parser.add_argument(
+        "--monte-carlo",
+        type=int,
+        default=0,
+        help="Number of Monte Carlo samples (0 disables MC)",
+    )
+    sweep_parser.add_argument("--mc-seed", type=int, default=42, help="Monte Carlo seed")
+    sweep_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=1000.0,
+        help="Key-rate threshold in bps",
+    )
+    sweep_parser.add_argument("--output", default="results/corner_sweep", help="Output directory")
 
     args = parser.parse_args()
 
@@ -541,6 +583,48 @@ def main() -> None:
             raise SystemExit(1)
         return
 
+    if args.command == "sweep":
+        try:
+            from photonstrust.pic.corner_sweep import run_corner_sweep
+        except Exception as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": f"corner_sweep_api_unavailable: {exc}",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+            raise SystemExit(2)
+
+        output_dir = Path(args.output)
+        try:
+            corner_set = _normalize_corner_selection(args.corners)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(2) from exc
+
+        result = _invoke_corner_sweep(
+            run_corner_sweep,
+            graph_path=Path(args.graph_path),
+            pdk_name=str(args.pdk),
+            pdk_manifest_path=Path(args.pdk_manifest) if args.pdk_manifest else None,
+            protocol=str(args.protocol),
+            target_distance_km=float(args.target_distance),
+            wavelength_nm=float(args.wavelength),
+            corner_set=corner_set,
+            n_monte_carlo=int(args.monte_carlo),
+            mc_seed=int(args.mc_seed),
+            key_rate_threshold_bps=float(args.threshold),
+            output_dir=output_dir,
+        )
+
+        summary = _summarize_corner_sweep_result(result, output_dir=output_dir)
+        print(json.dumps(summary, separators=(",", ":"), sort_keys=True))
+        return
+
     if args.command == "m3":
         if args.m3_command != "checkpoint":
             m3_parser.print_help()
@@ -747,6 +831,153 @@ def _summarize_m3_checkpoint_result(result: object, *, output_dir: Path) -> dict
         "repeater_status": repeater_status,
         "qkd_pass_flags": qkd_pass_flags,
         "repeater_stability": repeater_stability,
+    }
+
+
+def _normalize_corner_selection(raw_value: object) -> str | None:
+    value = str(raw_value if raw_value is not None else "all").strip()
+    if not value or value.lower() == "all":
+        return None
+
+    allowed = {"SS", "TT", "FF", "FS", "SF"}
+    tokens: list[str] = []
+    for part in value.split(","):
+        token = part.strip().upper()
+        if not token:
+            continue
+        if token == "ALL" and len(value.split(",")) == 1:
+            return None
+        if token not in allowed:
+            allowed_text = ",".join(sorted(allowed))
+            raise ValueError(f"Invalid --corners value {part!r}. Expected 'all' or subset of: {allowed_text}")
+        if token not in tokens:
+            tokens.append(token)
+
+    return ",".join(tokens) if tokens else None
+
+
+def _invoke_corner_sweep(
+    run_fn: object,
+    *,
+    graph_path: Path,
+    pdk_name: str,
+    pdk_manifest_path: Path | None,
+    protocol: str,
+    target_distance_km: float,
+    wavelength_nm: float,
+    corner_set: str | None,
+    n_monte_carlo: int,
+    mc_seed: int,
+    key_rate_threshold_bps: float,
+    output_dir: Path,
+) -> dict:
+    if not callable(run_fn):
+        raise TypeError("run_corner_sweep is not callable")
+
+    try:
+        sig = inspect.signature(run_fn)
+        params = sig.parameters
+    except (TypeError, ValueError):
+        params = {}
+
+    kwargs: dict[str, object] = {}
+
+    def _set(names: tuple[str, ...], value: object) -> None:
+        for name in names:
+            if name in params:
+                kwargs[name] = value
+                return
+
+    _set(("pdk_name", "pdk"), pdk_name)
+    if pdk_manifest_path is not None:
+        _set(("pdk_manifest_path", "pdk_manifest"), pdk_manifest_path)
+    _set(("protocol",), protocol)
+    _set(("target_distance_km", "target_distance"), float(target_distance_km))
+    _set(("wavelength_nm", "wavelength"), float(wavelength_nm))
+    if corner_set is not None:
+        _set(("corner_set", "corners"), corner_set)
+    _set(("n_monte_carlo", "monte_carlo"), int(n_monte_carlo))
+    _set(("mc_seed",), int(mc_seed))
+    _set(("key_rate_threshold_bps", "threshold_bps", "threshold"), float(key_rate_threshold_bps))
+    _set(("output_dir", "output_path"), output_dir)
+
+    try:
+        result = run_fn(graph_path, **kwargs)
+    except TypeError:
+        if pdk_manifest_path is None:
+            result = run_fn(
+                graph_path,
+                pdk_name=pdk_name,
+                protocol=protocol,
+                target_distance_km=float(target_distance_km),
+                wavelength_nm=float(wavelength_nm),
+                corner_set=corner_set,
+                n_monte_carlo=int(n_monte_carlo),
+                mc_seed=int(mc_seed),
+                key_rate_threshold_bps=float(key_rate_threshold_bps),
+                output_dir=output_dir,
+            )
+        else:
+            result = run_fn(
+                graph_path,
+                pdk_name=pdk_name,
+                pdk_manifest_path=pdk_manifest_path,
+                protocol=protocol,
+                target_distance_km=float(target_distance_km),
+                wavelength_nm=float(wavelength_nm),
+                corner_set=corner_set,
+                n_monte_carlo=int(n_monte_carlo),
+                mc_seed=int(mc_seed),
+                key_rate_threshold_bps=float(key_rate_threshold_bps),
+                output_dir=output_dir,
+            )
+
+    if not isinstance(result, dict):
+        raise ValueError("run_corner_sweep returned a non-dict payload")
+    return result
+
+
+def _summarize_corner_sweep_result(result: object, *, output_dir: Path) -> dict:
+    payload = result if isinstance(result, dict) else {}
+    risk = payload.get("risk_assessment") if isinstance(payload.get("risk_assessment"), dict) else {}
+    monte_carlo = payload.get("monte_carlo") if isinstance(payload.get("monte_carlo"), dict) else {}
+
+    worst_corner = risk.get("worst_corner")
+    if worst_corner is None:
+        worst_corner = payload.get("worst_corner")
+
+    worst_case_key_rate_bps = risk.get("worst_case_key_rate_bps")
+    if worst_case_key_rate_bps is None:
+        worst_case_key_rate_bps = payload.get("worst_case_key_rate_bps")
+
+    risk_level = risk.get("risk_level")
+    if risk_level is None:
+        risk_level = payload.get("risk_level")
+
+    yield_above_threshold = risk.get("yield_above_threshold")
+    if yield_above_threshold is None:
+        yield_above_threshold = monte_carlo.get("yield_above_threshold")
+    if yield_above_threshold is None:
+        yield_above_threshold = monte_carlo.get("yield_fraction")
+    if yield_above_threshold is None:
+        yield_above_threshold = payload.get("yield_above_threshold")
+
+    output_path_raw = payload.get("output_path")
+    if output_path_raw is None:
+        output_path_raw = payload.get("output_dir")
+    artifacts = payload.get("artifacts")
+    if output_path_raw is None and isinstance(artifacts, dict):
+        output_path_raw = artifacts.get("output_dir")
+        if output_path_raw is None:
+            output_path_raw = artifacts.get("report_path")
+    output_path = str(output_path_raw) if output_path_raw is not None else str(output_dir.resolve())
+
+    return {
+        "output_path": output_path,
+        "risk_level": risk_level,
+        "worst_case_key_rate_bps": worst_case_key_rate_bps,
+        "worst_corner": worst_corner,
+        "yield_above_threshold": yield_above_threshold,
     }
 
 

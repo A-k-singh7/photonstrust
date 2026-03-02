@@ -23,6 +23,8 @@ class PDK:
     layer_stack: list[dict[str, Any]] | None = None
     component_cells: list[dict[str, Any]] | None = None
     interop: dict[str, Any] | None = None
+    process_corners: dict[str, Any] | None = None
+    sensitivity_coefficients: dict[str, Any] | None = None
 
     def to_payload(self, *, include_optional: bool = True) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -38,6 +40,10 @@ class PDK:
                 payload["component_cells"] = [dict(cell) for cell in self.component_cells]
             if self.interop:
                 payload["interop"] = dict(self.interop)
+            if self.process_corners is not None:
+                payload["process_corners"] = dict(self.process_corners)
+            if self.sensitivity_coefficients is not None:
+                payload["sensitivity_coefficients"] = dict(self.sensitivity_coefficients)
         return payload
 
 def _to_registry_pdk(loaded: LoadedPDK) -> PDK:
@@ -54,6 +60,16 @@ def _to_registry_pdk(loaded: LoadedPDK) -> PDK:
         layer_stack=layer_stack,
         component_cells=component_cells,
         interop=interop,
+        process_corners=(
+            dict(loaded.identity.process_corners)
+            if loaded.identity.process_corners is not None
+            else None
+        ),
+        sensitivity_coefficients=(
+            dict(loaded.identity.sensitivity_coefficients)
+            if loaded.identity.sensitivity_coefficients is not None
+            else None
+        ),
     )
 
 

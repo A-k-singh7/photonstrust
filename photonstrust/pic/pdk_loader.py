@@ -17,10 +17,13 @@ _PDK_NAME_ALIASES: dict[str, str] = {
     "generic": "generic_silicon_photonics",
     "generic_silicon_photonics": "generic_silicon_photonics",
     "generic_sip": "generic_silicon_photonics",
+    "generic_sip_corners": "generic_sip_corners",
     "siepic": "generic_silicon_photonics",
     "ebeam": "generic_silicon_photonics",
     "aim": "aim_photonics",
     "aim_photonics": "aim_photonics",
+    "aim_300nm_sin": "aim_photonics_300nm_sin",
+    "aim_photonics_300nm_sin": "aim_photonics_300nm_sin",
 }
 
 _BUILTIN_PDK_MANIFESTS: dict[str, dict[str, Any]] = {

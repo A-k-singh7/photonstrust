@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.pic_corner_sweep.v0.schema.json",
+  "title": "PhotonTrust PIC corner sweep schema v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "inputs",
+    "nominal",
+    "corners",
+    "monte_carlo",
+    "risk_assessment"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "photonstrust.pic_corner_sweep"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_path",
+        "pdk_name",
+        "pdk_manifest_path",
+        "resolved_pdk_name",
+        "resolved_pdk_version",
+        "protocol",
+        "target_distance_km",
+        "wavelength_nm",
+        "corners",
+        "n_monte_carlo",
+        "mc_seed",
+        "key_rate_threshold_bps",
+        "output_dir"
+      ],
+      "properties": {
+        "graph_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pdk_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pdk_manifest_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolved_pdk_name": {
+          "type": "string"
+        },
+        "resolved_pdk_version": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_distance_km": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "wavelength_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0.0
+        },
+        "corners": {
+          "type": "string"
+        },
+        "n_monte_carlo": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mc_seed": {
+          "type": "integer"
+        },
+        "key_rate_threshold_bps": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "output_dir": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "nominal": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "error"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "key_rate_bps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "corners": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      },
+      "required": [
+        "requested",
+        "selected",
+        "count",
+        "evaluated"
+      ],
+      "properties": {
+        "requested": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evaluated": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "corner"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "error"
+                ]
+              },
+              "corner": {
+                "type": "string"
+              },
+              "key_rate_bps": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "monte_carlo": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "n_samples",
+        "seed",
+        "status",
+        "yield_fraction_above_threshold"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "n_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "skipped",
+            "ok",
+            "error"
+          ]
+        },
+        "yield_fraction_above_threshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "additionalProperties": true
+    },
+    "risk_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worst_case_key_rate_bps",
+        "worst_corner",
+        "yield_above_threshold",
+        "key_rate_threshold_bps",
+        "risk_level",
+        "dominant_sensitivity",
+        "sensitivity_rank"
+      ],
+      "properties": {
+        "worst_case_key_rate_bps": {
+          "type": "number"
+        },
+        "worst_corner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "yield_above_threshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "key_rate_threshold_bps": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "risk_level": {
+          "type": "string",
+          "enum": [
+            "CRITICAL",
+            "LOW",
+            "MEDIUM",
+            "HIGH"
+          ]
+        },
+        "dominant_sensitivity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sensitivity_rank": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "parameter",
+              "rank",
+              "sensitivity_abs_bps"
+            ],
+            "properties": {
+              "parameter": {
+                "type": "string"
+              },
+              "rank": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sensitivity_abs_bps": {
+                "type": "number",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

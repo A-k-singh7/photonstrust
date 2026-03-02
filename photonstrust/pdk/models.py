@@ -42,6 +42,8 @@ class PDKIdentity:
     version: str
     design_rules: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    process_corners: dict[str, Any] | None = None
+    sensitivity_coefficients: dict[str, Any] | None = None
 
     @classmethod
     def from_mapping(cls, payload: Mapping[str, Any]) -> "PDKIdentity":
@@ -55,15 +57,44 @@ class PDKIdentity:
         if not isinstance(rules, Mapping):
             raise ValueError("PDK manifest design_rules must be an object")
         notes = _coerce_text_array(payload.get("notes"))
-        return cls(name=name, version=version, design_rules=dict(rules), notes=notes)
+        process_corners_raw = payload.get("process_corners")
+        if process_corners_raw is None:
+            process_corners = None
+        elif isinstance(process_corners_raw, Mapping):
+            process_corners = dict(process_corners_raw)
+        else:
+            raise ValueError("PDK manifest process_corners must be an object when present")
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
+        sensitivity_raw = payload.get("sensitivity_coefficients")
+        if sensitivity_raw is None:
+            sensitivity_coefficients = None
+        elif isinstance(sensitivity_raw, Mapping):
+            sensitivity_coefficients = dict(sensitivity_raw)
+        else:
+            raise ValueError("PDK manifest sensitivity_coefficients must be an object when present")
+
+        return cls(
+            name=name,
+            version=version,
+            design_rules=dict(rules),
+            notes=notes,
+            process_corners=process_corners,
+            sensitivity_coefficients=sensitivity_coefficients,
+        )
+
+    def to_dict(self, *, include_optional: bool = True) -> dict[str, Any]:
+        out = {
             "name": self.name,
             "version": self.version,
             "design_rules": dict(self.design_rules),
             "notes": list(self.notes),
         }
+        if include_optional:
+            if self.process_corners is not None:
+                out["process_corners"] = dict(self.process_corners)
+            if self.sensitivity_coefficients is not None:
+                out["sensitivity_coefficients"] = dict(self.sensitivity_coefficients)
+        return out
 
 
 @dataclass(frozen=True)
@@ -282,7 +313,7 @@ class LoadedPDK:
         )
 
     def pdk_payload(self, *, include_optional: bool = True) -> dict[str, Any]:
-        payload = self.identity.to_dict()
+        payload = self.identity.to_dict(include_optional=include_optional)
         if include_optional:
             if self.layer_stack:
                 payload["layer_stack"] = [layer.to_dict() for layer in self.layer_stack]
