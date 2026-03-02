@@ -138,6 +138,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Overwrite conflicting existing files when set",
     )
+    parser.add_argument(
+        "--allow-ci",
+        action="store_true",
+        help="Compatibility no-op for CI wrappers that forward this flag",
+    )
     return parser.parse_args()
 
 

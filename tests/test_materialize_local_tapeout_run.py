@@ -39,7 +39,7 @@ def test_materialize_local_tapeout_run_success_and_smoke_compatible(tmp_path: Pa
     run_dir = tmp_path / "run_pkg"
     report_path = tmp_path / "materialize_report.json"
 
-    completed = _run_materialize(["--run-dir", str(run_dir), "--report-path", str(report_path)])
+    completed = _run_materialize(["--run-dir", str(run_dir), "--report-path", str(report_path), "--allow-ci"])
     assert completed.returncode == 0, completed.stdout + completed.stderr
     report = _parse_stdout_json(completed)
     assert report["ok"] is True
