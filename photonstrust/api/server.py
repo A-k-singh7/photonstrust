@@ -27,6 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from photonstrust.api import compile_cache as compile_cache_store
+from photonstrust.api import foundry_metrics as foundry_metrics_store
 from photonstrust.api import jobs as job_store
 from photonstrust.api import projects as project_store
 from photonstrust.api import runs as run_store
@@ -263,6 +264,15 @@ def _enforce_foundry_certification_provenance(summary: dict[str, Any], *, stage_
     deck_fingerprint = str(summary.get("deck_fingerprint") or "").strip()
     if not deck_fingerprint:
         raise HTTPException(status_code=400, detail=f"certification mode requires deck_fingerprint for foundry {stage}")
+
+
+def _append_foundry_metric_event(*, stage: str, run_id: str, summary: dict[str, Any]) -> None:
+    try:
+        event = foundry_metrics_store.build_foundry_metric_event(stage=stage, run_id=run_id, summary=summary)
+        foundry_metrics_store.append_foundry_metric_event(event)
+    except Exception:
+        # Best-effort telemetry must not fail primary verification workflows.
+        return
 
 
 def _auth_mode() -> str:
@@ -1722,6 +1732,24 @@ def ui_telemetry_events_ingest(request: Request, payload: dict = Body(...)) -> d
         "accepted": True,
         "path": str(out_path),
         "event": event,
+        "provenance": {
+            "photonstrust_version": app.version,
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+    }
+
+
+@app.get("/v0/metrics/foundry/summary")
+def foundry_metrics_summary(request: Request, limit: int = Query(200, ge=1, le=5000)) -> dict[str, Any]:
+    _require_roles(request, "viewer", "runner", "approver")
+    events = foundry_metrics_store.read_foundry_metric_events(limit=int(limit))
+    summary = foundry_metrics_store.aggregate_foundry_metrics(events)
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "limit": int(limit),
+        "event_count": len(events),
+        "summary": summary,
         "provenance": {
             "photonstrust_version": app.version,
             "python": sys.version.split()[0],
@@ -3772,6 +3800,7 @@ def pic_layout_foundry_drc_run(payload: dict = Body(...)) -> dict[str, Any]:
         },
     }
     manifest_path = run_store.write_run_manifest(run_dir, manifest)
+    _append_foundry_metric_event(stage="drc", run_id=run_id, summary=summary)
 
     return {
         "generated_at": generated_at,
@@ -3926,6 +3955,7 @@ def pic_layout_foundry_lvs_run(payload: dict = Body(...)) -> dict[str, Any]:
         },
     }
     manifest_path = run_store.write_run_manifest(run_dir, manifest)
+    _append_foundry_metric_event(stage="lvs", run_id=run_id, summary=summary)
 
     return {
         "generated_at": generated_at,
@@ -4069,6 +4099,7 @@ def pic_layout_foundry_pex_run(payload: dict = Body(...)) -> dict[str, Any]:
         },
     }
     manifest_path = run_store.write_run_manifest(run_dir, manifest)
+    _append_foundry_metric_event(stage="pex", run_id=run_id, summary=summary)
 
     return {
         "generated_at": generated_at,
