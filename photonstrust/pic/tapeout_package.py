@@ -8,9 +8,18 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 import shutil
-from typing import Any
+from typing import Any, Callable
 
+from photonstrust.measurements.schema import validate_instance
+from photonstrust.pic.signoff import build_pic_signoff_ladder
 from photonstrust.utils import hash_dict
+from photonstrust.verification.waivers import load_and_validate_pic_waivers
+from photonstrust.workflow.schema import (
+    pic_foundry_drc_sealed_summary_schema_path,
+    pic_foundry_lvs_sealed_summary_schema_path,
+    pic_foundry_pex_sealed_summary_schema_path,
+    pic_signoff_ladder_schema_path,
+)
 
 _DEFAULT_OUTPUT_ROOT = Path("results/tapeout_packages")
 _DEFAULT_MANIFEST_NAME = "MANIFEST.sha256"
@@ -29,6 +38,12 @@ _VERIFICATION_DEFAULTS = {
     "foundry_drc_sealed_summary.json": Path("foundry_drc_sealed_summary.json"),
     "foundry_lvs_sealed_summary.json": Path("foundry_lvs_sealed_summary.json"),
     "foundry_pex_sealed_summary.json": Path("foundry_pex_sealed_summary.json"),
+}
+
+_VERIFICATION_SCHEMAS: dict[str, tuple[str, Callable[[], Path]]] = {
+    "foundry_drc_sealed_summary.json": ("pic.foundry_drc_sealed_summary", pic_foundry_drc_sealed_summary_schema_path),
+    "foundry_lvs_sealed_summary.json": ("pic.foundry_lvs_sealed_summary", pic_foundry_lvs_sealed_summary_schema_path),
+    "foundry_pex_sealed_summary.json": ("pic.foundry_pex_sealed_summary", pic_foundry_pex_sealed_summary_schema_path),
 }
 
 
@@ -85,6 +100,7 @@ def build_tapeout_package(
     signoff_rel = _copy_signoff(
         request=request,
         run_dir=run_dir,
+        repo_root=resolved_repo_root,
         signoff_dir=signoff_dir,
         allow_missing_signoff=bool(request.get("allow_missing_signoff", False)),
     )
@@ -216,14 +232,15 @@ def _copy_verification(
         if src.exists() and src.is_file():
             shutil.copy2(src, dst)
         elif name == "foundry_pex_sealed_summary.json" and allow_stub_pex:
+            now_iso = datetime.now(timezone.utc).isoformat()
             stub = {
                 "schema_version": "0.1",
                 "kind": "pic.foundry_pex_sealed_summary",
-                "run_id": "stub_pex",
+                "run_id": "stub_pex_0001",
                 "status": "error",
-                "execution_backend": "stub",
-                "started_at": datetime.now(timezone.utc).isoformat(),
-                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "execution_backend": "mock",
+                "started_at": now_iso,
+                "finished_at": now_iso,
                 "check_counts": {"total": 0, "passed": 0, "failed": 0, "errored": 0},
                 "failed_check_ids": [],
                 "failed_check_names": [],
@@ -233,76 +250,101 @@ def _copy_verification(
             dst.write_text(json.dumps(stub, indent=2), encoding="utf-8")
         else:
             raise FileNotFoundError(f"required verification artifact missing: {src}")
+        _validate_verification_artifact(path=dst, artifact_name=name)
         copied[name] = str(dst.relative_to(verification_dir.parent)).replace("\\", "/")
     return copied
+
+
+def _build_placeholder_signoff_ladder(*, run_dir: Path) -> dict[str, Any]:
+    placeholder_seed = hash_dict({"kind": "placeholder_signoff", "source_run": str(run_dir.resolve())})
+    assembly_report = {
+        "kind": "pic.chip_assembly",
+        "assembly_run_id": placeholder_seed[:12],
+        "outputs": {
+            "summary": {
+                "status": "fail",
+                "output_hash": placeholder_seed,
+            }
+        },
+        "stitch": {
+            "summary": {
+                "failed_links": 1,
+            }
+        },
+    }
+    payload = build_pic_signoff_ladder(
+        {
+            "assembly_report": assembly_report,
+            "policy": {"multi_stage": True},
+        }
+    )
+    report = payload.get("report")
+    if not isinstance(report, dict):
+        raise ValueError("placeholder signoff builder returned unexpected payload")
+    return report
 
 
 def _copy_signoff(
     *,
     request: dict[str, Any],
     run_dir: Path,
+    repo_root: Path,
     signoff_dir: Path,
     allow_missing_signoff: bool,
 ) -> dict[str, str]:
     copied: dict[str, str] = {}
 
-    signoff_src = _resolve_user_or_default_path(
+    signoff_src, has_signoff_override = _resolve_user_or_default_path(
         request.get("signoff_ladder_path"),
         run_dir=run_dir,
+        repo_root=repo_root,
         default_rel=Path("signoff_ladder.json"),
     )
     signoff_dst = signoff_dir / "signoff_ladder.json"
     if signoff_src.exists() and signoff_src.is_file():
         shutil.copy2(signoff_src, signoff_dst)
+    elif signoff_src.exists():
+        raise FileNotFoundError(f"signoff ladder path is not a file: {signoff_src}")
     elif allow_missing_signoff:
-        placeholder = {
-            "schema_version": "0.1",
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "kind": "pic.signoff_ladder",
-            "run_id": hash_dict({"kind": "placeholder_signoff", "source_run": str(run_dir)})[:12],
-            "inputs": {
-                "chip_assembly_run_id": hash_dict({"missing": True})[:12],
-                "chip_assembly_hash": hash_dict({"missing": "chip_assembly"}),
-                "policy_hash": hash_dict({"missing": "policy"}),
-            },
-            "ladder": [
-                {
-                    "level": 1,
-                    "stage": "chip_assembly",
-                    "status": "hold",
-                    "reason": "placeholder signoff generated by tapeout package builder",
-                }
-            ],
-            "final_decision": {"decision": "HOLD", "reasons": ["placeholder signoff generated"]},
-            "provenance": {
-                "photonstrust_version": "unknown",
-                "python": "unknown",
-                "platform": "unknown",
-            },
-        }
+        if has_signoff_override:
+            raise FileNotFoundError(f"explicit signoff_ladder_path does not exist: {signoff_src}")
+        placeholder = _build_placeholder_signoff_ladder(run_dir=run_dir)
         signoff_dst.write_text(json.dumps(placeholder, indent=2), encoding="utf-8")
     else:
         raise FileNotFoundError(f"required signoff ladder artifact missing: {signoff_src}")
+    _validate_signoff_ladder_artifact(path=signoff_dst)
     copied["signoff_ladder.json"] = str(signoff_dst.relative_to(signoff_dir.parent)).replace("\\", "/")
 
-    waivers_src = _resolve_user_or_default_path(
+    waivers_src, has_waivers_override = _resolve_user_or_default_path(
         request.get("waivers_path"),
         run_dir=run_dir,
+        repo_root=repo_root,
         default_rel=Path("waivers.json"),
     )
     waivers_dst = signoff_dir / "waivers.json"
     if waivers_src.exists() and waivers_src.is_file():
         shutil.copy2(waivers_src, waivers_dst)
+    elif waivers_src.exists():
+        raise FileNotFoundError(f"waivers path is not a file: {waivers_src}")
+    elif has_waivers_override:
+        raise FileNotFoundError(f"explicit waivers_path does not exist: {waivers_src}")
     else:
         waivers_dst.write_text(json.dumps({"schema_version": "0", "kind": "photonstrust.pic_waivers", "waivers": []}, indent=2), encoding="utf-8")
+    _validate_waivers_artifact(path=waivers_dst)
     copied["waivers.json"] = str(waivers_dst.relative_to(signoff_dir.parent)).replace("\\", "/")
 
     return copied
 
 
-def _resolve_user_or_default_path(raw: Any, *, run_dir: Path, default_rel: Path) -> Path:
+def _resolve_user_or_default_path(
+    raw: Any,
+    *,
+    run_dir: Path,
+    repo_root: Path,
+    default_rel: Path,
+) -> tuple[Path, bool]:
     if raw is None:
-        return (run_dir / default_rel).resolve()
+        return (run_dir / default_rel).resolve(), False
     if not isinstance(raw, str):
         raise TypeError("path overrides must be strings")
     text = raw.strip()
@@ -310,8 +352,159 @@ def _resolve_user_or_default_path(raw: Any, *, run_dir: Path, default_rel: Path)
         raise ValueError("path overrides must be non-empty")
     path = Path(text)
     if not path.is_absolute():
-        path = run_dir / path
-    return path.resolve()
+        run_candidate = (run_dir / path).resolve()
+        repo_candidate = (repo_root / path).resolve()
+        run_exists = run_candidate.exists()
+        repo_exists = repo_candidate.exists()
+        if run_exists and repo_exists and run_candidate != repo_candidate:
+            raise ValueError(
+                f"path override is ambiguous and resolves to multiple files: "
+                f"{run_candidate} and {repo_candidate}"
+            )
+        if run_exists:
+            return run_candidate, True
+        if repo_exists:
+            return repo_candidate, True
+        return run_candidate, True
+    return path.resolve(), True
+
+
+def _load_json_object(path: Path, *, label: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} is not valid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} must be a JSON object: {path}")
+    return payload
+
+
+def _validate_schema_payload(*, payload: dict[str, Any], schema_path: Path, label: str) -> None:
+    try:
+        validate_instance(payload, schema_path)
+    except Exception as exc:
+        raise ValueError(f"{label} failed schema validation: {exc}") from exc
+
+
+def _validate_verification_artifact(*, path: Path, artifact_name: str) -> None:
+    if artifact_name not in _VERIFICATION_SCHEMAS:
+        raise ValueError(f"unsupported verification artifact: {artifact_name}")
+    expected_kind, schema_path_fn = _VERIFICATION_SCHEMAS[artifact_name]
+    payload = _load_json_object(path, label=f"verification artifact {artifact_name}")
+    _validate_schema_payload(
+        payload=payload,
+        schema_path=schema_path_fn(),
+        label=f"verification artifact {artifact_name}",
+    )
+    _validate_verification_content(
+        payload=payload,
+        expected_kind=expected_kind,
+        label=f"verification artifact {artifact_name}",
+    )
+
+
+def _validate_verification_content(*, payload: dict[str, Any], expected_kind: str, label: str) -> None:
+    kind = str(payload.get("kind", "")).strip()
+    if kind != expected_kind:
+        raise ValueError(f"{label} has kind={kind!r}, expected {expected_kind!r}")
+
+    status = str(payload.get("status", "")).strip().lower()
+    check_counts = payload.get("check_counts")
+    if not isinstance(check_counts, dict):
+        raise ValueError(f"{label} missing check_counts object")
+
+    total = _require_int(check_counts, "total", label=label)
+    passed = _require_int(check_counts, "passed", label=label)
+    failed = _require_int(check_counts, "failed", label=label)
+    errored = _require_int(check_counts, "errored", label=label)
+    if total != (passed + failed + errored):
+        raise ValueError(
+            f"{label} has inconsistent check_counts: total={total} "
+            f"but passed+failed+errored={passed + failed + errored}"
+        )
+
+    failed_ids = payload.get("failed_check_ids")
+    failed_names = payload.get("failed_check_names")
+    if not isinstance(failed_ids, list):
+        raise ValueError(f"{label} failed_check_ids must be an array")
+    if not isinstance(failed_names, list):
+        raise ValueError(f"{label} failed_check_names must be an array")
+    if len(failed_ids) != len(failed_names):
+        raise ValueError(
+            f"{label} has mismatched failed_check_ids/failed_check_names lengths: "
+            f"{len(failed_ids)} vs {len(failed_names)}"
+        )
+    if any((not isinstance(item, str) or not item.strip()) for item in failed_ids):
+        raise ValueError(f"{label} failed_check_ids entries must be non-empty strings")
+    if any((not isinstance(item, str) or not item.strip()) for item in failed_names):
+        raise ValueError(f"{label} failed_check_names entries must be non-empty strings")
+
+    if status == "pass":
+        if failed != 0 or errored != 0 or failed_ids:
+            raise ValueError(f"{label} status=pass cannot include failed/errored checks")
+    elif status == "fail":
+        if failed <= 0 or not failed_ids:
+            raise ValueError(f"{label} status=fail requires failed_check_ids and failed count > 0")
+    elif status == "error":
+        error_code = str(payload.get("error_code", "")).strip()
+        if errored <= 0 and not failed_ids and not error_code:
+            raise ValueError(f"{label} status=error requires errored checks, failed checks, or error_code")
+    else:
+        raise ValueError(f"{label} has unsupported status={status!r}")
+
+
+def _require_int(container: dict[str, Any], key: str, *, label: str) -> int:
+    value = container.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{label} check_counts.{key} must be an integer")
+    return int(value)
+
+
+def _validate_signoff_ladder_artifact(*, path: Path) -> None:
+    payload = _load_json_object(path, label="signoff ladder artifact")
+    _validate_schema_payload(
+        payload=payload,
+        schema_path=pic_signoff_ladder_schema_path(),
+        label="signoff ladder artifact",
+    )
+
+    ladder = payload.get("ladder")
+    if not isinstance(ladder, list) or not ladder:
+        raise ValueError("signoff ladder artifact requires at least one ladder row")
+    if any(not isinstance(row, dict) for row in ladder):
+        raise ValueError("signoff ladder artifact ladder rows must be objects")
+
+    final_decision = payload.get("final_decision")
+    if not isinstance(final_decision, dict):
+        raise ValueError("signoff ladder artifact final_decision must be an object")
+    decision = str(final_decision.get("decision", "")).strip().upper()
+    if decision not in {"GO", "HOLD"}:
+        raise ValueError(f"signoff ladder artifact has unsupported final_decision.decision={decision!r}")
+
+    statuses = [str(row.get("status", "")).strip().lower() for row in ladder]
+    blocking_statuses = {"fail", "error", "hold", "skipped"}
+    has_blocking = any(status in blocking_statuses for status in statuses)
+    if decision == "GO" and has_blocking:
+        raise ValueError("signoff ladder artifact final_decision=GO conflicts with ladder blocking status")
+    if decision == "HOLD" and not has_blocking:
+        raise ValueError("signoff ladder artifact final_decision=HOLD requires at least one blocking ladder status")
+
+
+def _validate_waivers_artifact(*, path: Path) -> None:
+    try:
+        validated = load_and_validate_pic_waivers(path)
+    except Exception as exc:
+        raise ValueError(f"waivers artifact failed validation: {exc}") from exc
+
+    if bool(validated.get("ok", False)):
+        return
+
+    issues = validated.get("issues")
+    if isinstance(issues, list) and issues:
+        issue_text = "; ".join(str(item) for item in issues[:3])
+    else:
+        issue_text = "waiver validation returned ok=false"
+    raise ValueError(f"waivers artifact failed validation: {issue_text}")
 
 
 def _build_readme(

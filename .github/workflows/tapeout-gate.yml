@@ -82,19 +82,10 @@ jobs:
 
       - name: Build deterministic tapeout package
         run: |
-          if [ "${IS_STRICT_RELEASE}" = "true" ]; then
-            python scripts/build_tapeout_package.py \
-              --run-dir results/day10_ci/run_pkg \
-              --output-root results/tapeout_packages_ci \
-              --report-path results/day10_ci/tapeout_package_report.json
-          else
-            python scripts/build_tapeout_package.py \
-              --run-dir results/day10_ci/run_pkg \
-              --output-root results/tapeout_packages_ci \
-              --allow-missing-signoff \
-              --allow-stub-pex \
-              --report-path results/day10_ci/tapeout_package_report.json
-          fi
+          python scripts/build_tapeout_package.py \
+            --run-dir results/day10_ci/run_pkg \
+            --output-root results/tapeout_packages_ci \
+            --report-path results/day10_ci/tapeout_package_report.json
 
       - name: Release gate checks (main/tag push only)
         if: env.IS_STRICT_RELEASE == 'true'

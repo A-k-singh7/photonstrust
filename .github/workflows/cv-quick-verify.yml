@@ -55,7 +55,7 @@ jobs:
   tapeout-gate-final:
     name: Tapeout Gate Final
     needs: verify
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

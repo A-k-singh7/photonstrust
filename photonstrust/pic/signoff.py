@@ -44,7 +44,8 @@ def build_pic_signoff_ladder(
         raise TypeError("request.policy must be an object when provided")
 
     summaries = _collect_stage_summaries(request)
-    multi_stage_enabled = bool(policy.get("multi_stage", False)) or any(v is not None for v in summaries.values())
+    # Phase-2 hardening: enforce the research-grade 5-stage ladder for every signoff build.
+    multi_stage_enabled = True
 
     chip_assembly_hash = hash_dict(assembly_report)
     chip_assembly_run_id = _resolve_chip_assembly_run_id(
@@ -71,9 +72,7 @@ def build_pic_signoff_ladder(
 
     ladder: list[dict[str, Any]] = []
     previous_stage_hash = chip_assembly_hash
-    previous_status = "pass"
     for stage in _iter_stage_specs(
-        multi_stage_enabled=multi_stage_enabled,
         chip_assembly_stage=chip_assembly_stage,
         summaries=summaries,
         allow_waived_failures=allow_waived_failures,
@@ -83,7 +82,8 @@ def build_pic_signoff_ladder(
     ):
         stage_with_chain, previous_stage_hash = _attach_hash_chain(stage=stage, prev_stage_hash=previous_stage_hash)
         ladder.append(stage_with_chain)
-        previous_status = str(stage_with_chain.get("status", "")).strip().lower()
+
+    _validate_deterministic_ladder_structure(ladder)
 
     final_decision = _derive_final_decision(ladder)
 
@@ -112,6 +112,7 @@ def build_pic_signoff_ladder(
             "platform": platform.platform(),
         },
     }
+    verify_pic_signoff_hash_chain(report)
 
     return {
         "report": report,
@@ -217,7 +218,6 @@ def _waiver_ids_for_stage(
 
 def _iter_stage_specs(
     *,
-    multi_stage_enabled: bool,
     chip_assembly_stage: dict[str, Any],
     summaries: dict[str, dict[str, Any] | None],
     allow_waived_failures: bool,
@@ -226,8 +226,6 @@ def _iter_stage_specs(
     previous_status: str,
 ) -> list[dict[str, Any]]:
     stages: list[dict[str, Any]] = [chip_assembly_stage]
-    if not multi_stage_enabled:
-        return stages
 
     prior_stage = "chip_assembly"
     prior_status = previous_status
@@ -480,8 +478,79 @@ def _resolve_stage_run_id(*, stage: str, summary: dict[str, Any] | None) -> str:
     return hash_dict({"kind": f"pic_{stage}_run_id", "missing": True})[:12]
 
 
-def _attach_hash_chain(stage: dict[str, Any], *, prev_stage_hash: str) -> tuple[dict[str, Any], str]:
-    payload = {
+def verify_pic_signoff_hash_chain(report: dict[str, Any]) -> bool:
+    """Validate deterministic ladder structure and stage hash-chain integrity."""
+
+    if not isinstance(report, dict):
+        raise TypeError("report must be an object")
+    if str(report.get("kind", "")).strip() != "pic.signoff_ladder":
+        raise ValueError("report.kind must be pic.signoff_ladder")
+
+    inputs = report.get("inputs")
+    if not isinstance(inputs, dict):
+        raise TypeError("report.inputs must be an object")
+    chip_assembly_hash = str(inputs.get("chip_assembly_hash", "")).strip().lower()
+    if not _is_lower_hex(chip_assembly_hash, min_len=64, max_len=64):
+        raise ValueError("report.inputs.chip_assembly_hash must be a 64-char lowercase hex hash")
+
+    ladder = _validate_deterministic_ladder_structure(report.get("ladder"))
+    expected_prev_hash = chip_assembly_hash
+
+    for i, stage in enumerate(ladder):
+        row_path = f"report.ladder[{i}]"
+        prev_stage_hash = str(stage.get("prev_stage_hash", "")).strip().lower()
+        stage_hash = str(stage.get("stage_hash", "")).strip().lower()
+
+        if not _is_lower_hex(prev_stage_hash, min_len=64, max_len=64):
+            raise ValueError(f"{row_path}.prev_stage_hash must be a 64-char lowercase hex hash")
+        if not _is_lower_hex(stage_hash, min_len=64, max_len=64):
+            raise ValueError(f"{row_path}.stage_hash must be a 64-char lowercase hex hash")
+        if prev_stage_hash != expected_prev_hash:
+            raise ValueError(f"{row_path}.prev_stage_hash does not match prior stage chain hash")
+
+        expected_stage_hash = hash_dict(_stage_hash_payload(stage=stage, prev_stage_hash=prev_stage_hash))
+        if stage_hash != expected_stage_hash:
+            raise ValueError(f"{row_path}.stage_hash mismatch (evidence chain tamper detected)")
+
+        expected_prev_hash = stage_hash
+
+    evidence_chain_root = str(report.get("evidence_chain_root", "")).strip().lower()
+    if not _is_lower_hex(evidence_chain_root, min_len=64, max_len=64):
+        raise ValueError("report.evidence_chain_root must be a 64-char lowercase hex hash")
+    if evidence_chain_root != expected_prev_hash:
+        raise ValueError("report.evidence_chain_root does not match final stage hash")
+
+    return True
+
+
+def _validate_deterministic_ladder_structure(ladder: Any) -> list[dict[str, Any]]:
+    if not isinstance(ladder, list):
+        raise TypeError("report.ladder must be an array")
+    if len(ladder) != len(_MULTI_STAGE_ORDER):
+        raise ValueError(f"report.ladder must contain exactly {len(_MULTI_STAGE_ORDER)} ordered stages")
+
+    rows: list[dict[str, Any]] = []
+    for i, expected_stage in enumerate(_MULTI_STAGE_ORDER):
+        row_path = f"report.ladder[{i}]"
+        raw = ladder[i]
+        if not isinstance(raw, dict):
+            raise TypeError(f"{row_path} must be an object")
+
+        level = _int_or_none(raw.get("level"))
+        if level != i + 1:
+            raise ValueError(f"{row_path}.level must be {i + 1}")
+
+        stage = str(raw.get("stage", "")).strip().lower()
+        if stage != expected_stage:
+            raise ValueError(f"{row_path}.stage must be {expected_stage}")
+
+        rows.append(raw)
+
+    return rows
+
+
+def _stage_hash_payload(*, stage: dict[str, Any], prev_stage_hash: str) -> dict[str, Any]:
+    return {
         "level": int(stage.get("level", 0)),
         "stage": str(stage.get("stage", "")),
         "status": str(stage.get("status", "")),
@@ -492,6 +561,10 @@ def _attach_hash_chain(stage: dict[str, Any], *, prev_stage_hash: str) -> tuple[
         "waived_rule_ids": list(stage.get("waived_rule_ids") or []),
         "prev_stage_hash": prev_stage_hash,
     }
+
+
+def _attach_hash_chain(stage: dict[str, Any], *, prev_stage_hash: str) -> tuple[dict[str, Any], str]:
+    payload = _stage_hash_payload(stage=stage, prev_stage_hash=prev_stage_hash)
     stage_hash = hash_dict(payload)
     out = dict(stage)
     out["prev_stage_hash"] = prev_stage_hash

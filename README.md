@@ -1,4 +1,5 @@
 # PhotonTrust
+[![Tapeout Signoff Gate](https://github.com/photonstrust/photonstrust/actions/workflows/tapeout-gate.yml/badge.svg)](https://github.com/photonstrust/photonstrust/actions/workflows/tapeout-gate.yml)
 
 PhotonTrust is an open-source digital twin and reliability card generator for
 photonic quantum links. This MVP focuses on QKD key-rate realism across Near-IR,

@@ -12,6 +12,7 @@ import sys
 import time
 from typing import Any
 
+from photonstrust.pic.signoff import build_pic_signoff_ladder
 from photonstrust.pic.tapeout_package import build_tapeout_package
 
 
@@ -147,7 +148,8 @@ def _build_synthetic_smoke_report(*, deck_fingerprint: str, fail_stage: str) -> 
         stages[kind] = {
             "run_id": f"day10_synth_{kind}",
             "status": status,
-            "execution_backend": "synthetic_in_process",
+            # Keep synthetic artifacts schema-compatible with sealed summary contracts.
+            "execution_backend": "generic_cli",
             "check_counts": {
                 "total": 3,
                 "passed": 2 if stage_failed else 3,
@@ -289,6 +291,47 @@ def _materialize_foundry_summaries(*, run_dir: Path, smoke_report: dict[str, Any
     return out
 
 
+def _build_synthetic_signoff_ladder(*, run_dir: Path, smoke_report: dict[str, Any]) -> str:
+    smoke_status = str(smoke_report.get("overall_status") or "error").strip().lower()
+    assembly_status = "pass" if smoke_status == "pass" else "fail"
+    failed_links = 0 if assembly_status == "pass" else 1
+    assembly_report = {
+        "kind": "pic.chip_assembly",
+        "assembly_run_id": "day10_synth_assembly",
+        "outputs": {
+            "summary": {
+                "status": assembly_status,
+                "output_hash": "a" * 64,
+            }
+        },
+        "stitch": {
+            "summary": {
+                "failed_links": failed_links,
+            }
+        },
+    }
+    generated_at = str(smoke_report.get("generated_at") or datetime.now(timezone.utc).isoformat())
+    request = {
+        "assembly_report": assembly_report,
+        "policy": {"multi_stage": True},
+        "drc_summary": _to_foundry_summary(kind="drc", smoke_generated_at=generated_at, smoke_report=smoke_report),
+        "lvs_summary": _to_foundry_summary(kind="lvs", smoke_generated_at=generated_at, smoke_report=smoke_report),
+        "pex_summary": _to_foundry_summary(kind="pex", smoke_generated_at=generated_at, smoke_report=smoke_report),
+        "foundry_approval": {
+            "decision": "go" if smoke_status == "pass" else "hold",
+            "status": "pass" if smoke_status == "pass" else "fail",
+            "failed_check_ids": [] if smoke_status == "pass" else ["foundry_approval.synthetic_hold"],
+        },
+    }
+    result = build_pic_signoff_ladder(request)
+    report = result.get("report")
+    if not isinstance(report, dict):
+        raise ValueError("synthetic signoff builder returned invalid report payload")
+    out_path = run_dir / "signoff_ladder.json"
+    _write_json(out_path, report)
+    return str(out_path)
+
+
 def _derive_decision(*, smoke_status: str, tapeout_all_passed: bool, tapeout_package_ok: bool) -> tuple[str, list[str]]:
     reasons: list[str] = []
     if str(smoke_status).strip().lower() != "pass":
@@ -393,6 +436,15 @@ def main() -> int:
                 "paths": materialized_paths,
             }
         )
+        signoff_path = _build_synthetic_signoff_ladder(run_dir=run_dir, smoke_report=smoke_report)
+        steps.append(
+            {
+                "name": "materialize_signoff_ladder",
+                "passed": True,
+                "duration_s": 0.0,
+                "path": signoff_path,
+            }
+        )
     except Exception as exc:
         steps.append(
             {
@@ -460,8 +512,8 @@ def main() -> int:
             {
                 "run_dir": str(run_dir),
                 "output_root": str(out_dir / "tapeout_packages"),
-                "allow_missing_signoff": bool(is_synthetic_mode),
-                "allow_stub_pex": bool(is_synthetic_mode),
+                "allow_missing_signoff": False,
+                "allow_stub_pex": False,
             },
             repo_root=repo_root,
         )

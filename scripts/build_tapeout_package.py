@@ -52,21 +52,31 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _resolve_cli_path(path: Path, *, cwd: Path) -> Path:
+    if path.is_absolute():
+        return path.resolve()
+    return (cwd / path).resolve()
+
+
 def main() -> int:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[1]
+    invocation_cwd = Path.cwd()
+
+    run_dir = _resolve_cli_path(args.run_dir, cwd=invocation_cwd)
+    output_root = _resolve_cli_path(args.output_root, cwd=invocation_cwd)
 
     request = {
-        "run_dir": str(args.run_dir),
+        "run_dir": str(run_dir),
         "run_id": str(args.run_id).strip() if args.run_id else None,
-        "output_root": str(args.output_root),
+        "output_root": str(output_root),
         "allow_missing_signoff": bool(args.allow_missing_signoff),
         "allow_stub_pex": bool(args.allow_stub_pex),
     }
     if args.signoff_ladder_path is not None:
-        request["signoff_ladder_path"] = str(args.signoff_ladder_path)
+        request["signoff_ladder_path"] = str(_resolve_cli_path(args.signoff_ladder_path, cwd=invocation_cwd))
     if args.waivers_path is not None:
-        request["waivers_path"] = str(args.waivers_path)
+        request["waivers_path"] = str(_resolve_cli_path(args.waivers_path, cwd=invocation_cwd))
 
     try:
         report = build_tapeout_package(request, repo_root=repo_root)
@@ -74,7 +84,7 @@ def main() -> int:
         print(f"tapeout package build: FAIL ({exc})")
         return 1
 
-    report_path = args.report_path if args.report_path.is_absolute() else (repo_root / args.report_path)
+    report_path = _resolve_cli_path(args.report_path, cwd=invocation_cwd)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
@@ -87,4 +97,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
