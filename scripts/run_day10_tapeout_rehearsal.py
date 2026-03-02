@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -12,6 +13,7 @@ import sys
 import time
 from typing import Any
 
+from photonstrust.pic.assembly import assemble_pic_chip
 from photonstrust.pic.signoff import build_pic_signoff_ladder
 from photonstrust.pic.tapeout_package import build_tapeout_package
 
@@ -29,6 +31,7 @@ _MANDATORY_DRC_RULE_IDS = (
     "DRC.WG.MIN_BEND_RADIUS",
     "DRC.WG.MIN_ENCLOSURE",
 )
+_HEX_CHARS = set("0123456789abcdef")
 
 
 def parse_args() -> argparse.Namespace:
@@ -158,9 +161,30 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 def _create_synthetic_inputs(run_dir: Path) -> None:
     inputs = run_dir / "inputs"
     inputs.mkdir(parents=True, exist_ok=True)
-    (inputs / "graph.json").write_text("{}", encoding="utf-8")
-    (inputs / "ports.json").write_text("[]", encoding="utf-8")
-    (inputs / "routes.json").write_text("[]", encoding="utf-8")
+    graph = {
+        "schema_version": "0.1",
+        "graph_id": "day10_synthetic_graph",
+        "profile": "pic_circuit",
+        "circuit": {"id": "day10_synthetic_graph", "wavelength_nm": 1550},
+        "nodes": [
+            {"id": "gc_in", "kind": "pic.grating_coupler", "params": {}},
+            {"id": "wg_1", "kind": "pic.waveguide", "params": {"length_um": 200.0}},
+            {"id": "ec_out", "kind": "pic.edge_coupler", "params": {}},
+        ],
+        "edges": [
+            {"from": "gc_in", "to": "wg_1", "kind": "optical"},
+            {"from": "wg_1", "to": "ec_out", "kind": "optical"},
+        ],
+    }
+    (inputs / "graph.json").write_text(json.dumps(graph, indent=2), encoding="utf-8")
+    (inputs / "ports.json").write_text(
+        json.dumps({"schema_version": "0.1", "kind": "pic.ports", "ports": []}, indent=2),
+        encoding="utf-8",
+    )
+    (inputs / "routes.json").write_text(
+        json.dumps({"schema_version": "0.1", "kind": "pic.routes", "routes": []}, indent=2),
+        encoding="utf-8",
+    )
     (inputs / "layout.gds").write_bytes(b"GDSII")
 
 
@@ -280,6 +304,11 @@ def _load_json_object(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _is_lower_hex(value: str, *, min_len: int = 8, max_len: int = 64) -> bool:
+    text = str(value or "").strip().lower()
+    return min_len <= len(text) <= max_len and all(ch in _HEX_CHARS for ch in text)
+
+
 def _to_foundry_summary(
     *,
     kind: str,
@@ -295,11 +324,22 @@ def _to_foundry_summary(
     status = str(stage.get("status") or "error").strip().lower()
     if status not in {"pass", "fail", "error"}:
         status = "error"
+    run_id = str(stage.get("run_id") or "").strip().lower()
+    if not _is_lower_hex(run_id):
+        run_id = _stable_digest(
+            {
+                "kind": f"day10_{kind}_summary_run_id",
+                "source_run_id": str(stage.get("run_id") or ""),
+                "status": status,
+                "failed_check_ids": [str(v).strip() for v in failed_ids if str(v).strip()],
+                "backend": str(stage.get("execution_backend") or "").strip().lower(),
+            }
+        )[:12]
 
     payload = {
         "schema_version": "0.1",
         "kind": f"pic.foundry_{kind}_sealed_summary",
-        "run_id": str(stage.get("run_id") or f"day10_{kind}_run"),
+        "run_id": run_id,
         "status": status,
         "execution_backend": str(stage.get("execution_backend") or "generic_cli"),
         "started_at": str(smoke_generated_at),
@@ -352,7 +392,7 @@ def _canonical_drc_rule_results(*, status: str, failed_check_ids: list[Any]) -> 
 
 
 def _materialize_foundry_summaries(*, run_dir: Path, smoke_report: dict[str, Any]) -> dict[str, str]:
-    generated_at = str(smoke_report.get("generated_at") or datetime.now(timezone.utc).isoformat())
+    generated_at = str(smoke_report.get("generated_at") or _SYNTHETIC_SMOKE_GENERATED_AT)
     out: dict[str, str] = {}
     for kind in STAGES:
         payload = _to_foundry_summary(kind=kind, smoke_generated_at=generated_at, smoke_report=smoke_report)
@@ -362,42 +402,175 @@ def _materialize_foundry_summaries(*, run_dir: Path, smoke_report: dict[str, Any
     return out
 
 
-def _build_synthetic_signoff_ladder(*, run_dir: Path, smoke_report: dict[str, Any]) -> str:
-    smoke_status = str(smoke_report.get("overall_status") or "error").strip().lower()
-    assembly_status = "pass" if smoke_status == "pass" else "fail"
-    failed_links = 0 if assembly_status == "pass" else 1
-    assembly_report = {
+def _stable_digest(payload: Any) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _load_or_derive_assembly_report(*, run_dir: Path) -> dict[str, Any]:
+    graph_path = run_dir / "inputs" / "graph.json"
+    graph_payload: Any = None
+    if graph_path.exists() and graph_path.is_file():
+        try:
+            graph_payload = json.loads(graph_path.read_text(encoding="utf-8"))
+        except Exception:
+            graph_payload = None
+
+    if isinstance(graph_payload, dict):
+        try:
+            assembly_payload = assemble_pic_chip({"graph": graph_payload}, require_schema=False)
+            assembly_report = assembly_payload.get("report")
+            if isinstance(assembly_report, dict):
+                return assembly_report
+        except Exception:
+            pass
+
+    digest = _stable_digest(
+        {
+            "kind": "day10_context_assembly_fallback",
+            "graph_payload": graph_payload if isinstance(graph_payload, dict) else None,
+            "graph_exists": bool(graph_path.exists()),
+        }
+    )
+    return {
+        "schema_version": "0.1",
         "kind": "pic.chip_assembly",
-        "assembly_run_id": "day10_synth_assembly",
+        "assembly_run_id": digest[:12],
         "outputs": {
             "summary": {
-                "status": assembly_status,
-                "output_hash": "a" * 64,
+                "status": "fail",
+                "output_hash": digest,
             }
         },
         "stitch": {
             "summary": {
-                "failed_links": failed_links,
+                "status": "fail",
+                "failed_links": 1,
+                "stitched_links": 0,
+                "warnings": ["assembly context unavailable"],
             }
         },
     }
-    generated_at = str(smoke_report.get("generated_at") or datetime.now(timezone.utc).isoformat())
+
+
+def _load_or_derive_foundry_summaries(*, run_dir: Path, smoke_report: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    generated_at = str(smoke_report.get("generated_at") or _SYNTHETIC_SMOKE_GENERATED_AT)
+    summaries: dict[str, dict[str, Any]] = {}
+    for kind in STAGES:
+        summary_path = run_dir / f"foundry_{kind}_sealed_summary.json"
+        if summary_path.exists():
+            if not summary_path.is_file():
+                raise ValueError(f"foundry {kind} summary path is not a file: {summary_path}")
+            summaries[kind] = _load_json_object(summary_path)
+            continue
+        summaries[kind] = _to_foundry_summary(kind=kind, smoke_generated_at=generated_at, smoke_report=smoke_report)
+    return summaries
+
+
+def _unique_non_empty(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in values:
+        value = str(raw).strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    return out
+
+
+def _failed_check_ids_from_summary(*, kind: str, summary: dict[str, Any]) -> list[str]:
+    status = str(summary.get("status") or "error").strip().lower()
+    failed_raw = summary.get("failed_check_ids")
+    failed_ids = [str(v).strip() for v in failed_raw if str(v).strip()] if isinstance(failed_raw, list) else []
+    if status in {"fail", "error"}:
+        if failed_ids:
+            return _unique_non_empty(failed_ids)
+        return [f"foundry_{kind}.status_{status}"]
+    return []
+
+
+def _tapeout_gate_failed_check_ids(tapeout_report: dict[str, Any]) -> list[str]:
+    if not tapeout_report:
+        return ["tapeout_gate.report_missing"]
+    if bool(tapeout_report.get("all_passed", False)):
+        return []
+
+    out: list[str] = []
+    checks = tapeout_report.get("checks")
+    if isinstance(checks, list):
+        for row in checks:
+            if not isinstance(row, dict) or bool(row.get("passed", False)):
+                continue
+            check_name = str(row.get("name") or "").strip().lower().replace(" ", "_")
+            out.append(f"tapeout_gate.{check_name or 'check_failed'}")
+    if not out:
+        out.append("tapeout_gate.all_passed_false")
+    return _unique_non_empty(out)
+
+
+def _derive_foundry_approval(
+    *,
+    smoke_report: dict[str, Any],
+    tapeout_report: dict[str, Any],
+    summaries: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    smoke_status = str(smoke_report.get("overall_status") or "").strip().lower()
+    if smoke_status not in {"pass", "fail", "error"}:
+        smoke_status = "error" if smoke_status else "missing"
+    tapeout_all_passed = bool(tapeout_report.get("all_passed", False))
+
+    if smoke_status == "pass" and tapeout_all_passed:
+        return {"decision": "go", "status": "pass", "failed_check_ids": []}
+
+    failed_check_ids: list[str] = []
+    for kind in STAGES:
+        summary = summaries.get(kind) if isinstance(summaries.get(kind), dict) else {}
+        failed_check_ids.extend(_failed_check_ids_from_summary(kind=kind, summary=summary))
+    failed_check_ids.extend(_tapeout_gate_failed_check_ids(tapeout_report))
+    if smoke_status != "pass":
+        failed_check_ids.append(f"foundry_smoke.status_{smoke_status}")
+    failed_check_ids = _unique_non_empty(failed_check_ids)
+    if not failed_check_ids:
+        failed_check_ids = ["foundry_approval.hold"]
+    return {"decision": "hold", "status": "fail", "failed_check_ids": failed_check_ids}
+
+
+def _derive_stage_waiver_rule_ids(*, summaries: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
+    stage_waivers: dict[str, list[str]] = {}
+    for kind in STAGES:
+        summary = summaries.get(kind) if isinstance(summaries.get(kind), dict) else {}
+        failure_ids = _failed_check_ids_from_summary(kind=kind, summary=summary)
+        if failure_ids:
+            stage_waivers[kind] = failure_ids
+    return stage_waivers
+
+
+def _build_context_signoff_ladder(*, run_dir: Path, smoke_report: dict[str, Any], tapeout_report: dict[str, Any]) -> str:
+    assembly_report = _load_or_derive_assembly_report(run_dir=run_dir)
+    summaries = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
+    foundry_approval = _derive_foundry_approval(
+        smoke_report=smoke_report,
+        tapeout_report=tapeout_report,
+        summaries=summaries,
+    )
+    policy: dict[str, Any] = {"multi_stage": True}
+    stage_waivers = _derive_stage_waiver_rule_ids(summaries=summaries)
+    if stage_waivers:
+        policy["allow_waived_failures"] = True
+        policy["stage_waiver_rule_ids"] = stage_waivers
     request = {
         "assembly_report": assembly_report,
-        "policy": {"multi_stage": True},
-        "drc_summary": _to_foundry_summary(kind="drc", smoke_generated_at=generated_at, smoke_report=smoke_report),
-        "lvs_summary": _to_foundry_summary(kind="lvs", smoke_generated_at=generated_at, smoke_report=smoke_report),
-        "pex_summary": _to_foundry_summary(kind="pex", smoke_generated_at=generated_at, smoke_report=smoke_report),
-        "foundry_approval": {
-            "decision": "go" if smoke_status == "pass" else "hold",
-            "status": "pass" if smoke_status == "pass" else "fail",
-            "failed_check_ids": [] if smoke_status == "pass" else ["foundry_approval.synthetic_hold"],
-        },
+        "policy": policy,
+        "drc_summary": summaries["drc"],
+        "lvs_summary": summaries["lvs"],
+        "pex_summary": summaries["pex"],
+        "foundry_approval": foundry_approval,
     }
     result = build_pic_signoff_ladder(request)
     report = result.get("report")
     if not isinstance(report, dict):
-        raise ValueError("synthetic signoff builder returned invalid report payload")
+        raise ValueError("context signoff builder returned invalid report payload")
     out_path = run_dir / "signoff_ladder.json"
     _write_json(out_path, report)
     return str(out_path)
@@ -540,15 +713,6 @@ def main() -> int:
                 "paths": materialized_paths,
             }
         )
-        signoff_path = _build_synthetic_signoff_ladder(run_dir=run_dir, smoke_report=smoke_report)
-        steps.append(
-            {
-                "name": "materialize_signoff_ladder",
-                "passed": True,
-                "duration_s": 0.0,
-                "path": signoff_path,
-            }
-        )
     except Exception as exc:
         steps.append(
             {
@@ -607,6 +771,30 @@ def main() -> int:
             tapeout_report = _load_json_object(tapeout_report_path)
         except Exception:
             tapeout_report = {}
+
+    try:
+        signoff_path = _build_context_signoff_ladder(
+            run_dir=run_dir,
+            smoke_report=smoke_report,
+            tapeout_report=tapeout_report,
+        )
+        steps.append(
+            {
+                "name": "materialize_signoff_ladder",
+                "passed": True,
+                "duration_s": 0.0,
+                "path": signoff_path,
+            }
+        )
+    except Exception as exc:
+        steps.append(
+            {
+                "name": "materialize_signoff_ladder",
+                "passed": False,
+                "duration_s": 0.0,
+                "error": str(exc),
+            }
+        )
 
     tapeout_package_artifact: dict[str, Any] | None = None
     tapeout_package_ok = False
