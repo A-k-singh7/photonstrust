@@ -199,10 +199,16 @@ def test_day10_rehearsal_synthetic_pass_emits_go_packet(tmp_path: Path) -> None:
     assert Path(foundry_paths["drc"]).exists()
     assert Path(foundry_paths["lvs"]).exists()
     assert Path(foundry_paths["pex"]).exists()
+    assert Path(foundry_paths["foundry_approval"]).exists()
     drc_summary = json.loads(Path(foundry_paths["drc"]).read_text(encoding="utf-8"))
     rule_results = drc_summary.get("rule_results")
     assert isinstance(rule_results, dict)
     assert sorted(rule_results.keys()) == sorted(_MANDATORY_DRC_RULE_IDS)
+    foundry_approval_summary = json.loads(Path(foundry_paths["foundry_approval"]).read_text(encoding="utf-8"))
+    assert foundry_approval_summary["kind"] == "pic.foundry_approval_sealed_summary"
+    assert foundry_approval_summary["decision"] == "GO"
+    assert foundry_approval_summary["status"] == "pass"
+    assert foundry_approval_summary["failed_check_ids"] == []
     tapeout_package = artifacts.get("tapeout_package", {})
     assert isinstance(tapeout_package, dict)
     assert Path(tapeout_package["package_dir"]).exists()
@@ -242,6 +248,12 @@ def test_day10_rehearsal_synthetic_fail_returns_hold_in_strict_mode(tmp_path: Pa
     assert smoke_report["stages"]["lvs"]["status"] == "pass"
     assert smoke_report["stages"]["pex"]["status"] == "pass"
     assert smoke_report["stages"]["drc"]["failed_check_ids"] == ["DRC.SYNTH.FAIL"]
+    foundry_paths = packet["artifacts"]["foundry_summary_paths"]
+    foundry_approval_summary = _load_json(Path(foundry_paths["foundry_approval"]))
+    assert foundry_approval_summary["decision"] == "HOLD"
+    assert foundry_approval_summary["status"] == "fail"
+    assert "DRC.SYNTH.FAIL" in foundry_approval_summary["failed_check_ids"]
+    assert "foundry_approval.hold" not in foundry_approval_summary["failed_check_ids"]
 
 
 def test_day10_rehearsal_synthetic_fail_can_exit_zero_in_non_strict_mode(tmp_path: Path) -> None:
@@ -357,14 +369,14 @@ def test_day10_rehearsal_real_mode_can_use_local_smoke_backend_without_runner_co
     foundry_paths = artifacts.get("foundry_summary_paths", {})
     summary_run_ids = {
         kind: str(_load_json(Path(foundry_paths[kind])).get("run_id") or "")
-        for kind in ("drc", "lvs", "pex")
+        for kind in ("drc", "lvs", "pex", "foundry_approval")
     }
     signoff_run_ids = {
         str(stage.get("stage")): str(stage.get("run_id") or "")
         for stage in ladder
-        if str(stage.get("stage")) in {"drc", "lvs", "pex"}
+        if str(stage.get("stage")) in {"drc", "lvs", "pex", "foundry_approval"}
     }
-    for kind in ("drc", "lvs", "pex"):
+    for kind in ("drc", "lvs", "pex", "foundry_approval"):
         assert summary_run_ids[kind]
         assert signoff_run_ids[kind] == summary_run_ids[kind]
 
@@ -404,6 +416,11 @@ def test_day10_rehearsal_real_mode_local_backend_hold_signoff_foundry_approval_u
 
     artifacts = packet.get("artifacts", {})
     smoke_report = _load_json(Path(artifacts["foundry_smoke_report_json"]))
+    foundry_paths = artifacts.get("foundry_summary_paths", {})
+    foundry_approval_summary = _load_json(Path(foundry_paths["foundry_approval"]))
+    assert foundry_approval_summary["decision"] == "HOLD"
+    assert foundry_approval_summary["status"] == "fail"
+    assert "foundry_approval.hold" not in foundry_approval_summary["failed_check_ids"]
     smoke_failed_ids = sorted(
         {
             str(check_id)
@@ -432,6 +449,7 @@ def test_day10_rehearsal_real_mode_local_backend_hold_signoff_foundry_approval_u
     assert list(foundry_approval_stage.get("failure_rule_ids") or []) == []
     all_failure_ids = [str(v) for row in ladder if isinstance(row, dict) for v in (row.get("failure_rule_ids") or [])]
     assert "foundry_approval.synthetic_hold" not in all_failure_ids
+    assert "foundry_approval.hold" not in all_failure_ids
 
 
 def test_day10_rehearsal_real_mode_bootstrap_local_backend_end_to_end(tmp_path: Path) -> None:
@@ -487,6 +505,10 @@ def test_day10_rehearsal_real_mode_bootstrap_local_backend_end_to_end(tmp_path: 
     assert Path(foundry_paths["drc"]).exists()
     assert Path(foundry_paths["lvs"]).exists()
     assert Path(foundry_paths["pex"]).exists()
+    assert Path(foundry_paths["foundry_approval"]).exists()
+    foundry_approval_summary = _load_json(Path(foundry_paths["foundry_approval"]))
+    assert foundry_approval_summary["decision"] == "GO"
+    assert foundry_approval_summary["status"] == "pass"
 
     tapeout_package = artifacts.get("tapeout_package", {})
     assert isinstance(tapeout_package, dict)
@@ -630,6 +652,120 @@ def test_day10_rehearsal_real_mode_bootstrap_local_run_dir_records_step_and_inpu
     ordered_step_names = [str(step.get("name")) for step in steps]
     assert ordered_step_names.index("bootstrap_local_run_dir") < ordered_step_names.index("foundry_smoke")
     assert run_dir.exists()
+    foundry_paths = packet["artifacts"]["foundry_summary_paths"]
+    foundry_approval_summary = _load_json(Path(foundry_paths["foundry_approval"]))
+    assert foundry_approval_summary["decision"] == "GO"
+    assert foundry_approval_summary["status"] == "pass"
+
+
+def test_day10_rehearsal_synthetic_gate_failure_signoff_uses_materialized_foundry_approval_summary(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = _load_day10_module()
+    packet_path = tmp_path / "day10_packet_synthetic_gate_hold.json"
+    run_dir = tmp_path / "run_pkg_synthetic_gate_hold"
+
+    args = argparse.Namespace(
+        mode="synthetic",
+        output_json=packet_path,
+        run_dir=run_dir,
+        runner_config=None,
+        smoke_local_backend=False,
+        bootstrap_local_run_dir=False,
+        waiver_file=None,
+        allow_waived_failures=False,
+        require_non_mock_backend=True,
+        run_pic_gate=False,
+        pic_gate_args="--dry-run",
+        deck_fingerprint="sha256:day10-synthetic-gate-hold",
+        timeout_sec=60.0,
+        fail_stage="none",
+        strict=True,
+        dry_run=False,
+        allow_ci=False,
+    )
+    monkeypatch.setattr(module, "parse_args", lambda: args)
+
+    def _fake_build_synthetic_tapeout_gate_report(**kwargs) -> dict:
+        return {
+            "schema_version": "0.1",
+            "kind": "photonstrust.pic_tapeout_gate_report",
+            "generated_at": SYNTHETIC_SMOKE_GENERATED_AT,
+            "run_dir": str(kwargs["run_dir"]),
+            "all_passed": False,
+            "checks": [
+                {
+                    "name": "require_non_mock_backend",
+                    "passed": False,
+                }
+            ],
+            "policy": {
+                "require_non_mock_backend": True,
+                "allow_waived_failures": False,
+                "run_pic_gate": False,
+            },
+        }
+
+    def _fake_assembly_report(*, run_dir: Path) -> dict:
+        return {
+            "schema_version": "0.1",
+            "kind": "pic.chip_assembly",
+            "assembly_run_id": "abc12345",
+            "outputs": {
+                "summary": {
+                    "status": "pass",
+                    "output_hash": "a" * 64,
+                }
+            },
+            "stitch": {
+                "summary": {
+                    "status": "pass",
+                    "failed_links": 0,
+                    "stitched_links": 1,
+                    "warnings": [],
+                }
+            },
+        }
+
+    def _fake_build_tapeout_package(payload: dict, *, repo_root: Path) -> dict:
+        package_dir = Path(payload["output_root"]) / "pkg"
+        package_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = package_dir / "manifest.json"
+        package_manifest_path = package_dir / "package_manifest.json"
+        manifest_path.write_text("{}", encoding="utf-8")
+        package_manifest_path.write_text("{}", encoding="utf-8")
+        return {
+            "package_dir": str(package_dir),
+            "manifest_path": str(manifest_path),
+            "package_manifest_path": str(package_manifest_path),
+        }
+
+    monkeypatch.setattr(module, "_build_synthetic_tapeout_gate_report", _fake_build_synthetic_tapeout_gate_report)
+    monkeypatch.setattr(module, "_load_or_derive_assembly_report", _fake_assembly_report)
+    monkeypatch.setattr(module, "build_tapeout_package", _fake_build_tapeout_package)
+
+    returncode = module.main()
+    assert returncode == 1
+    assert packet_path.exists()
+
+    packet = _load_json(packet_path)
+    assert packet["decision"] == "HOLD"
+    foundry_paths = packet["artifacts"]["foundry_summary_paths"]
+    foundry_approval_summary = _load_json(Path(foundry_paths["foundry_approval"]))
+    assert foundry_approval_summary["decision"] == "HOLD"
+    assert foundry_approval_summary["status"] == "fail"
+    assert foundry_approval_summary["failed_check_ids"] == ["tapeout_gate.require_non_mock_backend"]
+    assert "foundry_approval.hold" not in foundry_approval_summary["failed_check_ids"]
+
+    signoff = _load_json(run_dir / "signoff_ladder.json")
+    ladder = signoff.get("ladder", [])
+    foundry_approval_stage = next(row for row in ladder if row.get("stage") == "foundry_approval")
+    assert str(foundry_approval_stage.get("status")) == "fail"
+    assert sorted(list(foundry_approval_stage.get("failure_rule_ids") or [])) == sorted(
+        foundry_approval_summary["failed_check_ids"]
+    )
+    assert "foundry_approval.hold" not in list(foundry_approval_stage.get("failure_rule_ids") or [])
 
 
 def test_day10_rehearsal_bootstrap_flag_requires_real_mode(tmp_path: Path) -> None:

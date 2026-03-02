@@ -151,7 +151,8 @@
           "required": [
             "drc",
             "lvs",
-            "pex"
+            "pex",
+            "foundry_approval"
           ],
           "properties": {
             "drc": {
@@ -163,6 +164,10 @@
               "minLength": 1
             },
             "pex": {
+              "type": "string",
+              "minLength": 1
+            },
+            "foundry_approval": {
               "type": "string",
               "minLength": 1
               }

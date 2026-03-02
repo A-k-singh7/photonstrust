@@ -32,6 +32,7 @@ _MANDATORY_DRC_RULE_IDS = (
     "DRC.WG.MIN_ENCLOSURE",
 )
 _HEX_CHARS = set("0123456789abcdef")
+_RUN_ID_CHARS = set("abcdefghijklmnopqrstuvwxyz0123456789_")
 
 
 def parse_args() -> argparse.Namespace:
@@ -309,6 +310,11 @@ def _is_lower_hex(value: str, *, min_len: int = 8, max_len: int = 64) -> bool:
     return min_len <= len(text) <= max_len and all(ch in _HEX_CHARS for ch in text)
 
 
+def _is_lower_run_id(value: str, *, min_len: int = 8, max_len: int = 64) -> bool:
+    text = str(value or "").strip().lower()
+    return min_len <= len(text) <= max_len and all(ch in _RUN_ID_CHARS for ch in text)
+
+
 def _to_foundry_summary(
     *,
     kind: str,
@@ -521,7 +527,7 @@ def _derive_foundry_approval(
     tapeout_all_passed = bool(tapeout_report.get("all_passed", False))
 
     if smoke_status == "pass" and tapeout_all_passed:
-        return {"decision": "go", "status": "pass", "failed_check_ids": []}
+        return {"decision": "GO", "status": "pass", "failed_check_ids": []}
 
     failed_check_ids: list[str] = []
     for kind in STAGES:
@@ -532,17 +538,103 @@ def _derive_foundry_approval(
         failed_check_ids.append(f"foundry_smoke.status_{smoke_status}")
     failed_check_ids = _unique_non_empty(failed_check_ids)
     if not failed_check_ids:
-        failed_check_ids = ["foundry_approval.hold"]
-    return {"decision": "hold", "status": "fail", "failed_check_ids": failed_check_ids}
+        failed_check_ids = ["tapeout_gate.all_passed_false"]
+    return {"decision": "HOLD", "status": "fail", "failed_check_ids": failed_check_ids}
 
 
-def _build_context_signoff_ladder(*, run_dir: Path, smoke_report: dict[str, Any], tapeout_report: dict[str, Any]) -> str:
-    assembly_report = _load_or_derive_assembly_report(run_dir=run_dir)
-    summaries = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
-    foundry_approval = _derive_foundry_approval(
+def _resolve_source_run_ids(summaries: dict[str, dict[str, Any]]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for kind in STAGES:
+        summary = summaries.get(kind) if isinstance(summaries.get(kind), dict) else {}
+        run_id = str(summary.get("run_id") or "").strip().lower()
+        if not _is_lower_run_id(run_id):
+            run_id = _stable_digest(
+                {
+                    "kind": f"day10_{kind}_source_run_id",
+                    "summary_hash": _stable_digest(summary),
+                }
+            )[:12]
+        out[kind] = run_id
+    return out
+
+
+def _to_foundry_approval_summary(
+    *,
+    smoke_report: dict[str, Any],
+    tapeout_report: dict[str, Any],
+    summaries: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    decision_data = _derive_foundry_approval(
         smoke_report=smoke_report,
         tapeout_report=tapeout_report,
         summaries=summaries,
+    )
+    failed_check_ids = _unique_non_empty([str(v) for v in decision_data.get("failed_check_ids", []) if str(v).strip()])
+    started_at = str(smoke_report.get("generated_at") or _SYNTHETIC_SMOKE_GENERATED_AT)
+    finished_at = str(tapeout_report.get("generated_at") or started_at)
+    source_run_ids = _resolve_source_run_ids(summaries)
+    run_id = _stable_digest(
+        {
+            "kind": "day10_foundry_approval_run_id",
+            "decision": str(decision_data.get("decision") or "HOLD"),
+            "status": str(decision_data.get("status") or "fail"),
+            "failed_check_ids": failed_check_ids,
+            "source_run_ids": source_run_ids,
+            "smoke_overall_status": str(smoke_report.get("overall_status") or ""),
+            "tapeout_all_passed": bool(tapeout_report.get("all_passed", False)),
+        }
+    )[:12]
+
+    return {
+        "schema_version": "0.1",
+        "kind": "pic.foundry_approval_sealed_summary",
+        "run_id": run_id,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "decision": str(decision_data.get("decision") or "HOLD"),
+        "status": str(decision_data.get("status") or "fail"),
+        "failed_check_ids": failed_check_ids,
+        "failed_check_names": list(failed_check_ids),
+        "source_run_ids": source_run_ids,
+        "deck_fingerprint": smoke_report.get("deck_fingerprint"),
+        "error_code": None,
+    }
+
+
+def _materialize_foundry_approval_summary(
+    *,
+    run_dir: Path,
+    smoke_report: dict[str, Any],
+    tapeout_report: dict[str, Any],
+    summaries: dict[str, dict[str, Any]],
+) -> tuple[str, dict[str, Any]]:
+    payload = _to_foundry_approval_summary(
+        smoke_report=smoke_report,
+        tapeout_report=tapeout_report,
+        summaries=summaries,
+    )
+    path = run_dir / "foundry_approval_sealed_summary.json"
+    _write_json(path, payload)
+    return str(path), payload
+
+
+def _build_context_signoff_ladder(
+    *,
+    run_dir: Path,
+    smoke_report: dict[str, Any],
+    tapeout_report: dict[str, Any],
+    foundry_approval_summary: dict[str, Any] | None = None,
+) -> str:
+    assembly_report = _load_or_derive_assembly_report(run_dir=run_dir)
+    summaries = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
+    foundry_approval = (
+        dict(foundry_approval_summary)
+        if isinstance(foundry_approval_summary, dict)
+        else _to_foundry_approval_summary(
+            smoke_report=smoke_report,
+            tapeout_report=tapeout_report,
+            summaries=summaries,
+        )
     )
     request = {
         "assembly_report": assembly_report,
@@ -757,11 +849,40 @@ def main() -> int:
         except Exception:
             tapeout_report = {}
 
+    foundry_approval_summary: dict[str, Any] = {}
+    try:
+        summaries_for_approval = _load_or_derive_foundry_summaries(run_dir=run_dir, smoke_report=smoke_report)
+        foundry_approval_path, foundry_approval_summary = _materialize_foundry_approval_summary(
+            run_dir=run_dir,
+            smoke_report=smoke_report,
+            tapeout_report=tapeout_report,
+            summaries=summaries_for_approval,
+        )
+        materialized_paths["foundry_approval"] = foundry_approval_path
+        steps.append(
+            {
+                "name": "materialize_foundry_approval_summary",
+                "passed": True,
+                "duration_s": 0.0,
+                "path": foundry_approval_path,
+            }
+        )
+    except Exception as exc:
+        steps.append(
+            {
+                "name": "materialize_foundry_approval_summary",
+                "passed": False,
+                "duration_s": 0.0,
+                "error": str(exc),
+            }
+        )
+
     try:
         signoff_path = _build_context_signoff_ladder(
             run_dir=run_dir,
             smoke_report=smoke_report,
             tapeout_report=tapeout_report,
+            foundry_approval_summary=foundry_approval_summary if foundry_approval_summary else None,
         )
         steps.append(
             {

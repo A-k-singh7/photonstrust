@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from photonstrust.benchmarks.schema import validate_instance
+import copy
+
+import pytest
+
+from photonstrust.benchmarks.schema import SchemaValidationError, validate_instance
 from photonstrust.workflow.schema import day10_tapeout_rehearsal_packet_schema_path
 
 
@@ -35,6 +39,7 @@ def _minimal_day10_tapeout_rehearsal_packet() -> dict:
                 "drc": "results/day10/run_pkg/foundry_drc_sealed_summary.json",
                 "lvs": "results/day10/run_pkg/foundry_lvs_sealed_summary.json",
                 "pex": "results/day10/run_pkg/foundry_pex_sealed_summary.json",
+                "foundry_approval": "results/day10/run_pkg/foundry_approval_sealed_summary.json",
             },
         },
         "smoke_overall_status": "pass",
@@ -50,3 +55,11 @@ def _minimal_day10_tapeout_rehearsal_packet() -> dict:
 
 def test_day10_tapeout_rehearsal_packet_schema_accepts_minimal_valid_instance() -> None:
     validate_instance(_minimal_day10_tapeout_rehearsal_packet(), day10_tapeout_rehearsal_packet_schema_path())
+
+
+def test_day10_tapeout_rehearsal_packet_schema_rejects_missing_foundry_approval_path() -> None:
+    bad = copy.deepcopy(_minimal_day10_tapeout_rehearsal_packet())
+    bad["artifacts"]["foundry_summary_paths"].pop("foundry_approval")
+
+    with pytest.raises(SchemaValidationError):
+        validate_instance(bad, day10_tapeout_rehearsal_packet_schema_path())
