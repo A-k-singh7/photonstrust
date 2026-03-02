@@ -136,6 +136,51 @@ def main() -> None:
     certify_parser.add_argument("--require-go", action="store_true", help="Exit non-zero if decision is HOLD")
     certify_parser.add_argument("--signing-key", default=None, help="Optional Ed25519 private key PEM")
 
+    compliance_parser = subparsers.add_parser("compliance", help="ETSI QKD compliance tools")
+    compliance_subparsers = compliance_parser.add_subparsers(dest="compliance_command")
+
+    compliance_check = compliance_subparsers.add_parser(
+        "check",
+        help="Build an ETSI compliance report from scenario YAML or PIC certificate JSON",
+    )
+    compliance_check.add_argument("input", help="Path to scenario YAML or PIC certificate JSON")
+    compliance_check.add_argument(
+        "--standards",
+        nargs="+",
+        default=None,
+        help="Standards to assess (space/comma separated)",
+    )
+    compliance_check.add_argument(
+        "--use-case",
+        default=None,
+        help="Optional ETSI GS QKD 002 use case ID (for example UC-1)",
+    )
+    compliance_check.add_argument(
+        "--k-min",
+        type=float,
+        default=1000.0,
+        help="Minimum key rate threshold in bps",
+    )
+    compliance_check.add_argument(
+        "--d-spec",
+        type=float,
+        default=None,
+        help="Specified operational distance override (km)",
+    )
+    compliance_check.add_argument(
+        "--output",
+        default=None,
+        help="Output path for compliance report JSON",
+    )
+    compliance_check.add_argument(
+        "--format",
+        choices=("json", "pdf", "text"),
+        default="json",
+        help="Primary output format",
+    )
+    compliance_check.add_argument("--signing-key", default=None, help="Optional Ed25519 private key PEM")
+    compliance_check.add_argument("--strict", action="store_true", help="Exit with code 1 if any FAIL is present")
+
     args = parser.parse_args()
 
     if args.command == "fmt":
@@ -413,6 +458,44 @@ def main() -> None:
             raise SystemExit(1)
         return
 
+    if args.command == "compliance":
+        if args.compliance_command != "check":
+            compliance_parser.print_help()
+            return
+
+        from photonstrust.compliance.cli_compliance import run_compliance_check
+
+        standards = _parse_text_values(args.standards)
+        result = run_compliance_check(
+            Path(args.input),
+            standards=standards,
+            use_case_id=str(args.use_case).strip() if args.use_case else None,
+            k_min_bps=float(args.k_min),
+            d_spec_km=float(args.d_spec) if args.d_spec is not None else None,
+            output_path=Path(args.output) if args.output else None,
+            output_format=str(args.format),
+            signing_key=Path(args.signing_key) if args.signing_key else None,
+            strict=bool(args.strict),
+        )
+
+        report = result.get("report") if isinstance(result.get("report"), dict) else {}
+        summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+        output = {
+            "ok": not bool(result.get("has_failures")),
+            "strict_violation": bool(result.get("strict_violation")),
+            "failure_count": int(result.get("failure_count", 0)),
+            "overall_status": str(report.get("overall_status") or report.get("status") or ""),
+            "input_kind": result.get("input_kind"),
+            "output_format": result.get("output_format"),
+            "output_path": result.get("output_path"),
+            "pdf_path": result.get("pdf_path"),
+            "summary": summary,
+        }
+        print(json.dumps(output, separators=(",", ":"), sort_keys=True))
+        if bool(result.get("strict_violation")):
+            raise SystemExit(1)
+        return
+
     if args.command != "run":
         parser.print_help()
         return
@@ -493,6 +576,22 @@ def _parse_float_values(raw_values: list[str] | None, *, default: list[float]) -
                 continue
             out.append(float(chunk))
     return out if out else list(default)
+
+
+def _parse_text_values(raw_values: list[str] | None) -> list[str] | None:
+    if not raw_values:
+        return None
+
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in raw_values:
+        chunks = [part.strip() for part in str(raw).split(",")]
+        for chunk in chunks:
+            if not chunk or chunk in seen:
+                continue
+            seen.add(chunk)
+            out.append(chunk)
+    return out or None
 
 
 def _write_json(path: Path, payload: dict) -> None:

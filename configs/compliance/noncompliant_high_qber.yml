@@ -1,0 +1,44 @@
+schema_version: "0.1"
+
+scenario:
+  id: noncompliant_high_qber
+  distance_km: 50
+  band: c_1550
+  wavelength_nm: 1550
+
+source:
+  type: wcp
+  rep_rate_mhz: 100
+  collection_efficiency: 0.8
+  coupling_efficiency: 0.5
+
+channel:
+  model: fiber
+  fiber_loss_db_per_km: 0.3
+  connector_loss_db: 2.0
+  dispersion_ps_per_km: 0.0
+  background_counts_cps: 1000.0
+
+detector:
+  class: ingaas
+  pde: 0.05
+  dark_counts_cps: 20000
+  background_counts_cps: 1000.0
+  jitter_ps_fwhm: 220
+  dead_time_ns: 10000
+  afterpulsing_prob: 0.05
+
+timing:
+  sync_drift_ps_rms: 20.0
+  coincidence_window_ps: 200
+
+protocol:
+  name: BB84_DECOY
+  mu: 1.1
+  nu: 0.2
+  omega: 0.0
+  sifting_factor: 0.5
+  ec_efficiency: 1.16
+  misalignment_prob: 0.25
+
+uncertainty: {}

@@ -1,0 +1,44 @@
+schema_version: "0.1"
+
+scenario:
+  id: marginal_bb84_ingaas
+  distance_km: 50
+  band: c_1550
+  wavelength_nm: 1550
+
+source:
+  type: wcp
+  rep_rate_mhz: 150
+  collection_efficiency: 0.95
+  coupling_efficiency: 0.75
+
+channel:
+  model: fiber
+  fiber_loss_db_per_km: 0.24
+  connector_loss_db: 1.5
+  dispersion_ps_per_km: 0.0
+  background_counts_cps: 0.0
+
+detector:
+  class: ingaas
+  pde: 0.09
+  dark_counts_cps: 9500
+  background_counts_cps: 0.0
+  jitter_ps_fwhm: 170
+  dead_time_ns: 10000
+  afterpulsing_prob: 0.02
+
+timing:
+  sync_drift_ps_rms: 10.0
+  coincidence_window_ps: 200
+
+protocol:
+  name: BB84_DECOY
+  mu: 0.65
+  nu: 0.1
+  omega: 0.0
+  sifting_factor: 0.5
+  ec_efficiency: 1.16
+  misalignment_prob: 0.02
+
+uncertainty: {}

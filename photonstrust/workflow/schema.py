@@ -80,3 +80,7 @@ def pic_tapeout_gate_schema_path() -> Path:
 
 def pic_qkd_certificate_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.pic_qkd_certificate.v0.schema.json").resolve()
+
+
+def etsi_qkd_compliance_report_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.etsi_qkd_compliance_report.v0.schema.json").resolve()

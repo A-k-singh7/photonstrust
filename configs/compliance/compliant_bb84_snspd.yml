@@ -1,0 +1,51 @@
+schema_version: "0.1"
+
+scenario:
+  id: compliant_bb84_snspd
+  distance_km: 50
+  band: c_1550
+  wavelength_nm: 1550
+
+source:
+  type: wcp
+  rep_rate_mhz: 200
+  collection_efficiency: 1.0
+  coupling_efficiency: 0.9
+
+channel:
+  model: fiber
+  fiber_loss_db_per_km: 0.2
+  connector_loss_db: 1.0
+  dispersion_ps_per_km: 0.0
+  background_counts_cps: 0.0
+
+detector:
+  class: snspd
+  pde: 0.75
+  dark_counts_cps: 100
+  background_counts_cps: 0.0
+  jitter_ps_fwhm: 30
+  dead_time_ns: 20
+  afterpulsing_prob: 0.0
+
+timing:
+  sync_drift_ps_rms: 5.0
+  coincidence_window_ps: 200
+
+protocol:
+  name: BB84_DECOY
+  mu: 0.5
+  nu: 0.1
+  omega: 0.0
+  sifting_factor: 0.5
+  ec_efficiency: 1.16
+  misalignment_prob: 0.01
+
+finite_key:
+  enabled: true
+  signals_per_block: 1000000000
+  security_epsilon: 1.0e-11
+  epsilon_correctness: 5.0e-12
+  epsilon_secrecy: 5.0e-12
+
+uncertainty: {}

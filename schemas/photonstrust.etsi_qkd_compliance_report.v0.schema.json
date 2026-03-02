@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.etsi_qkd_compliance_report.v0.schema.json",
+  "title": "PhotonTrust ETSI QKD compliance report schema v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "standards",
+    "requirements",
+    "summary",
+    "overall_status",
+    "scenario_summary",
+    "signature",
+    "hashes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "etsi_qkd_compliance_report"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "standards": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "req_id",
+          "standard",
+          "clause",
+          "description",
+          "status",
+          "computed_value",
+          "threshold",
+          "unit",
+          "notes"
+        ],
+        "properties": {
+          "req_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standard": {
+            "type": "string",
+            "minLength": 1
+          },
+          "clause": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "WARNING",
+              "NOT_ASSESSED"
+            ]
+          },
+          "computed_value": {},
+          "threshold": {},
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "pass",
+        "fail",
+        "warning",
+        "not_assessed"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pass": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fail": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warning": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_assessed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "overall_status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "CONDITIONAL_PASS",
+        "FAIL",
+        "PARTIAL"
+      ]
+    },
+    "scenario_summary": {
+      "type": "object",
+      "required": [
+        "row_count",
+        "target_distance_km"
+      ],
+      "properties": {
+        "row_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_distance_km": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "signature": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "key_path",
+        "signature_b64",
+        "message_sha256"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "ed25519"
+        },
+        "key_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature_b64": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_sha256"
+      ],
+      "properties": {
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
