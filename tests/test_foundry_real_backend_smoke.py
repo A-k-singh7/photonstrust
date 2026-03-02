@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -120,6 +121,7 @@ def _run_smoke(
 ) -> subprocess.CompletedProcess[str]:
     script = REPO_ROOT / "scripts" / "run_foundry_smoke.py"
     run_env = os.environ.copy()
+    run_env.pop("CI", None)
     if env:
         run_env.update(env)
     return subprocess.run(
@@ -241,6 +243,68 @@ def test_foundry_smoke_local_backend_from_run_dir_context_without_runner_config(
     assert report["stages"]["pex"]["execution_backend"] == "local_pex"
     for stage in ("drc", "lvs", "pex"):
         assert report["stages"][stage]["status"] == "pass"
+
+
+@pytest.mark.parametrize(
+    ("case", "expected_fragment"),
+    [
+        ("missing_graph", "graph must be a json object"),
+        ("empty_routes", "routes must be non-empty"),
+        ("empty_ports", "ports must be non-empty"),
+        ("missing_pdk", "pdk manifest must be a json object"),
+    ],
+)
+def test_foundry_smoke_local_backend_invalid_run_dir_context_fails_preflight(
+    tmp_path: Path,
+    case: str,
+    expected_fragment: str,
+) -> None:
+    run_dir = _make_local_layout_run_dir(tmp_path)
+    inputs = run_dir / "inputs"
+
+    if case == "missing_graph":
+        (inputs / "graph.json").unlink()
+    elif case == "empty_routes":
+        _write_json(
+            inputs / "routes.json",
+            {
+                "schema_version": "0.1",
+                "kind": "pic.routes",
+                "routes": [],
+            },
+        )
+    elif case == "empty_ports":
+        _write_json(
+            inputs / "ports.json",
+            {
+                "schema_version": "0.1",
+                "kind": "pic.ports",
+                "ports": [],
+            },
+        )
+    elif case == "missing_pdk":
+        (run_dir / "pdk_manifest.json").unlink()
+    else:
+        raise AssertionError(f"unsupported case: {case}")
+
+    output_json = tmp_path / f"{case}_local_backend_report.json"
+    completed = _run_smoke(
+        [
+            "--use-local-backend",
+            "--run-dir",
+            str(run_dir),
+            "--allow-ci",
+            "--output-json",
+            str(output_json),
+        ]
+    )
+
+    combined = (completed.stdout + completed.stderr).lower()
+    assert completed.returncode == 1, combined
+    assert "foundry_smoke error:" in combined
+    assert "local run-dir context invalid" in combined
+    assert expected_fragment in combined
+    assert output_json.exists() is False
 
 
 def test_foundry_smoke_local_backend_from_materialized_run_dir_has_required_enrichment(tmp_path: Path) -> None:

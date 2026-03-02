@@ -181,12 +181,36 @@ def _load_optional_run_context_json(run_dir: Path, rel_paths: tuple[Path, ...]) 
     return None
 
 
+def _context_locations(name: str) -> str:
+    rel_paths = RUN_DIR_CONTEXT_PATHS[name]
+    return ", ".join(str(path).replace("\\", "/") for path in rel_paths)
+
+
 def _as_named_object(payload: Any, *, key: str) -> dict[str, Any] | None:
     if isinstance(payload, dict):
         return dict(payload)
     if isinstance(payload, list):
         return {key: payload}
     return None
+
+
+def _required_named_rows(payload: Any, *, key: str, label: str) -> list[Any]:
+    rows: list[Any] | None = None
+    if isinstance(payload, list):
+        rows = list(payload)
+    elif isinstance(payload, dict) and isinstance(payload.get(key), list):
+        rows = list(payload.get(key) or [])
+
+    if rows is None:
+        raise ValueError(
+            f"local run-dir context invalid: {label} must be a JSON list or object.{key} list at one of: "
+            f"{_context_locations(label)}"
+        )
+    if len(rows) == 0:
+        raise ValueError(
+            f"local run-dir context invalid: {label} must be non-empty at one of: {_context_locations(label)}"
+        )
+    return rows
 
 
 def _extract_pdk_payload(payload: Any) -> dict[str, Any] | None:
@@ -204,37 +228,58 @@ def _build_local_stage_requests(run_dir: Path) -> dict[str, dict[str, Any]]:
     ports_raw = _load_optional_run_context_json(run_dir, RUN_DIR_CONTEXT_PATHS["ports"])
     pdk_raw = _load_optional_run_context_json(run_dir, RUN_DIR_CONTEXT_PATHS["pdk"])
 
-    graph = dict(graph_raw) if isinstance(graph_raw, dict) else {}
+    if not isinstance(graph_raw, dict):
+        raise ValueError(
+            f"local run-dir context invalid: graph must be a JSON object at one of: {_context_locations('graph')}"
+        )
+    graph = dict(graph_raw)
+    routes_rows = _required_named_rows(routes_raw, key="routes", label="routes")
+    ports_rows = _required_named_rows(ports_raw, key="ports", label="ports")
+    if not isinstance(pdk_raw, dict):
+        raise ValueError(
+            "local run-dir context invalid: pdk manifest must be a JSON object at one of: "
+            f"{_context_locations('pdk')}"
+        )
+
     routes_for_drc_pex: dict[str, Any] | list[Any]
+    routes_for_lvs: dict[str, Any]
     if isinstance(routes_raw, dict):
         routes_for_drc_pex = dict(routes_raw)
-    elif isinstance(routes_raw, list):
-        routes_for_drc_pex = list(routes_raw)
+        routes_for_lvs = dict(routes_raw)
     else:
-        routes_for_drc_pex = {}
-    routes_for_lvs = _as_named_object(routes_raw, key="routes") or {}
-    ports = _as_named_object(ports_raw, key="ports")
+        routes_for_drc_pex = list(routes_rows)
+        routes_for_lvs = {"routes": list(routes_rows)}
+
+    ports: dict[str, Any]
+    if isinstance(ports_raw, dict):
+        ports = dict(ports_raw)
+    else:
+        ports = {"ports": list(ports_rows)}
+
     pdk = _extract_pdk_payload(pdk_raw)
+    if pdk is None:
+        raise ValueError(
+            "local run-dir context invalid: pdk manifest must be a JSON object at one of: "
+            f"{_context_locations('pdk')}"
+        )
 
     drc_request: dict[str, Any] = {
         "backend": STAGE_LOCAL_BACKENDS["drc"],
         "routes": routes_for_drc_pex,
+        "pdk": pdk,
     }
     lvs_request: dict[str, Any] = {
         "backend": STAGE_LOCAL_BACKENDS["lvs"],
         "graph": graph,
         "routes": routes_for_lvs,
+        "ports": ports,
     }
     pex_request: dict[str, Any] = {
         "backend": STAGE_LOCAL_BACKENDS["pex"],
         "graph": graph,
         "routes": routes_for_drc_pex,
+        "pdk": pdk,
     }
-    if ports is not None:
-        lvs_request["ports"] = ports
-    if pdk is not None:
-        drc_request["pdk"] = pdk
-        pex_request["pdk"] = pdk
 
     return {
         "drc": drc_request,
