@@ -23,6 +23,10 @@ def _minimal_day10_tapeout_rehearsal_packet() -> dict:
             "deck_fingerprint": "sha256:day10-rehearsal",
             "timeout_sec": 60.0,
             "fail_stage": "none",
+            "smoke_local_backend": False,
+            "bootstrap_local_run_dir": False,
+            "bootstrap_local_run_dir_used": False,
+            "allow_ci": False,
         },
         "artifacts": {
             "foundry_smoke_report_json": "results/day10/foundry_smoke_report.json",

@@ -66,7 +66,11 @@
         "run_pic_gate",
         "deck_fingerprint",
         "timeout_sec",
-        "fail_stage"
+        "fail_stage",
+        "smoke_local_backend",
+        "bootstrap_local_run_dir",
+        "bootstrap_local_run_dir_used",
+        "allow_ci"
       ],
       "properties": {
         "run_dir": {
@@ -109,6 +113,18 @@
             "lvs",
             "pex"
           ]
+        },
+        "smoke_local_backend": {
+          "type": "boolean"
+        },
+        "bootstrap_local_run_dir": {
+          "type": "boolean"
+        },
+        "bootstrap_local_run_dir_used": {
+          "type": "boolean"
+        },
+        "allow_ci": {
+          "type": "boolean"
         }
       }
     },
