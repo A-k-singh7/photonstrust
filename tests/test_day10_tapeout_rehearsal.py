@@ -335,6 +335,68 @@ def test_day10_rehearsal_real_mode_can_use_local_smoke_backend_without_runner_co
     assert smoke_report["stages"]["pex"]["execution_backend"] == "local_pex"
 
 
+def test_day10_rehearsal_real_mode_bootstrap_local_backend_end_to_end(tmp_path: Path) -> None:
+    packet_path = tmp_path / "day10_packet_real_bootstrap_go.json"
+    run_dir = tmp_path / "real_bootstrap_run_pkg"
+
+    completed = _run_day10(
+        [
+            "--mode",
+            "real",
+            "--output-json",
+            str(packet_path),
+            "--run-dir",
+            str(run_dir),
+            "--smoke-local-backend",
+            "--bootstrap-local-run-dir",
+            "--allow-ci",
+        ]
+    )
+
+    combined_output = completed.stdout + completed.stderr
+    assert completed.returncode == 0, combined_output
+    assert packet_path.exists()
+
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    assert packet["decision"] == "GO"
+    assert packet["smoke_overall_status"] == "pass"
+    assert packet["tapeout_all_passed"] is True
+    assert packet["inputs"]["smoke_local_backend"] is True
+    assert packet["inputs"]["bootstrap_local_run_dir"] is True
+    assert packet["inputs"]["bootstrap_local_run_dir_used"] is True
+
+    steps = packet.get("steps", [])
+    bootstrap_step = next(step for step in steps if step.get("name") == "bootstrap_local_run_dir")
+    smoke_step = next(step for step in steps if step.get("name") == "foundry_smoke")
+    assert bootstrap_step["passed"] is True
+    assert smoke_step["passed"] is True
+    assert "--use-local-backend" in smoke_step.get("command", [])
+    assert "--allow-ci" in smoke_step.get("command", [])
+
+    step_names = [str(step.get("name")) for step in steps]
+    assert step_names.index("bootstrap_local_run_dir") < step_names.index("foundry_smoke")
+
+    artifacts = packet.get("artifacts", {})
+    smoke_report = json.loads(Path(artifacts["foundry_smoke_report_json"]).read_text(encoding="utf-8"))
+    assert smoke_report["mode"] == "local"
+    assert smoke_report["overall_status"] == "pass"
+    assert smoke_report["stages"]["drc"]["execution_backend"] == "local_rules"
+    assert smoke_report["stages"]["lvs"]["execution_backend"] == "local_lvs"
+    assert smoke_report["stages"]["pex"]["execution_backend"] == "local_pex"
+
+    foundry_paths = artifacts.get("foundry_summary_paths", {})
+    assert Path(foundry_paths["drc"]).exists()
+    assert Path(foundry_paths["lvs"]).exists()
+    assert Path(foundry_paths["pex"]).exists()
+
+    tapeout_package = artifacts.get("tapeout_package", {})
+    assert isinstance(tapeout_package, dict)
+    assert Path(tapeout_package["package_dir"]).exists()
+    assert Path(tapeout_package["manifest_path"]).exists()
+    assert Path(tapeout_package["package_manifest_path"]).exists()
+    assert Path(tapeout_package["report_json"]).exists()
+
+
 def test_day10_rehearsal_real_mode_bootstrap_local_run_dir_records_step_and_inputs(
     tmp_path: Path,
     monkeypatch,
