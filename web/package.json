@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:ui": "playwright test",
+    "test:ui:ci": "playwright test --workers=2 --retries=1",
     "test:ui:headed": "playwright test --project=chromium --headed"
   },
   "dependencies": {
