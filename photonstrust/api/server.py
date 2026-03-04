@@ -165,6 +165,10 @@ _UI_TELEMETRY_EVENT_NAMES = {
     "ui_compare_completed",
     "ui_packet_exported",
     "ui_demo_mode_completed",
+    "newcomer_flow_entered",
+    "newcomer_step_completed",
+    "newcomer_flow_completed",
+    "newcomer_flow_exited",
 }
 _UI_TELEMETRY_USER_MODES = {"builder", "reviewer", "exec"}
 _UI_TELEMETRY_PROFILES = {"qkd_link", "pic_circuit", "orbit"}

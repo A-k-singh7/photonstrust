@@ -10,6 +10,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 import zipfile
 
 import streamlit as st
@@ -26,7 +27,9 @@ from ui.data import (
     list_runs,
     load_card,
     load_dataset_entry,
+    load_ui_product_state,
     promote_ui_project_baseline,
+    save_ui_product_state,
     save_ui_pic_run_bundle,
     save_ui_run_profile,
     stable_json_hash,
@@ -143,6 +146,41 @@ SESSION_LAST_PIC_REQUEST_KEY = "ui_last_pic_request"
 SESSION_LAST_PIC_BUNDLE_DIR_KEY = "ui_last_pic_bundle_dir"
 SESSION_CAPABILITY_LAST_RESULT_KEY = "ui_capability_last_result"
 SESSION_CAPABILITY_HISTORY_KEY = "ui_capability_history"
+SESSION_EXPERIENCE_MODE_KEY = "ui_experience_mode"
+SESSION_GUIDED_CHECKLIST_KEY = "ui_guided_checklist"
+SESSION_GUIDED_CHECKLIST_LOADED_KEY = "ui_guided_checklist_loaded"
+SESSION_UI_SESSION_ID_KEY = "ui_session_id"
+SESSION_FLOW_ENTERED_TS_KEY = "ui_newcomer_flow_entered_ts"
+SESSION_FLOW_COMPLETED_EMITTED_KEY = "ui_newcomer_flow_completed_emitted"
+SESSION_PREV_EXPERIENCE_MODE_KEY = "ui_prev_experience_mode"
+
+NEWCOMER_FLOW_VERSION = "2026-03-guided-power-v1"
+
+EXPERIENCE_MODES: tuple[str, ...] = ("Guided", "Power")
+
+GUIDED_CHECKLIST_STEPS: tuple[tuple[str, str], ...] = (
+    ("api_health_checked", "Check API health"),
+    ("first_run_completed", "Run first simulation"),
+    ("decision_reviewed", "Review decision summary"),
+    ("compare_decision", "Compare candidate vs baseline"),
+)
+
+GLOSSARY_TERMS: tuple[tuple[str, str], ...] = (
+    ("QBER", "Quantum bit error rate. Lower is generally better for secure key generation."),
+    ("Key rate", "Estimated secret key bits per second produced by the run."),
+    (
+        "Safe-use label",
+        "Trust posture label derived from thresholds and checks; use it to qualify deployment readiness.",
+    ),
+    (
+        "Reliability card",
+        "Primary report artifact summarizing assumptions, outputs, and trust-relevant diagnostics.",
+    ),
+    (
+        "Baseline",
+        "Reference run used for comparison and promotion decisions in the Run Registry.",
+    ),
+)
 
 CAPABILITY_API_SURFACE: list[dict[str, str]] = [
     {"domain": "Core API", "capability": "Health probe", "method": "GET", "path": "/healthz", "ui_status": "Console", "startup_value": "Runtime liveness and version check."},
@@ -244,6 +282,271 @@ def _ensure_builder_defaults() -> None:
         skey = _builder_key(key)
         if skey not in st.session_state:
             st.session_state[skey] = value
+
+    if SESSION_EXPERIENCE_MODE_KEY not in st.session_state:
+        st.session_state[SESSION_EXPERIENCE_MODE_KEY] = EXPERIENCE_MODES[0]
+
+    if SESSION_UI_SESSION_ID_KEY not in st.session_state:
+        st.session_state[SESSION_UI_SESSION_ID_KEY] = f"st_{uuid4().hex}"
+
+
+def _guided_step_index(step_id: str) -> int:
+    sid = str(step_id or "").strip()
+    for idx, (candidate, _) in enumerate(GUIDED_CHECKLIST_STEPS, start=1):
+        if candidate == sid:
+            return int(idx)
+    return 0
+
+
+def _is_guided_complete(checklist: dict[str, Any]) -> bool:
+    for step_id, _ in GUIDED_CHECKLIST_STEPS:
+        if checklist.get(step_id) is not True:
+            return False
+    return True
+
+
+def _newcomer_payload_base(*, results_root: Path) -> dict[str, Any]:
+    state = load_ui_product_state(results_root)
+    onboarding = state.get("guided_onboarding") if isinstance(state.get("guided_onboarding"), dict) else {}
+
+    newcomer_id = str(onboarding.get("newcomer_id", "")).strip()
+    if not newcomer_id:
+        newcomer_id = f"st_newcomer_{uuid4().hex[:16]}"
+        onboarding["newcomer_id"] = newcomer_id
+        state["guided_onboarding"] = onboarding
+        save_ui_product_state(results_root, state)
+
+    session_id = str(st.session_state.get(SESSION_UI_SESSION_ID_KEY, "")).strip()
+    if not session_id:
+        session_id = f"st_{uuid4().hex}"
+        st.session_state[SESSION_UI_SESSION_ID_KEY] = session_id
+
+    return {
+        "flow": str(_experience_mode()).lower(),
+        "flow_version": NEWCOMER_FLOW_VERSION,
+        "newcomer_id": newcomer_id,
+        "session_id": session_id,
+        "is_newcomer": True,
+    }
+
+
+def _emit_newcomer_event(
+    *,
+    results_root: Path,
+    event_name: str,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    base = _newcomer_payload_base(results_root=results_root)
+    merged: dict[str, Any] = dict(base)
+    extra = payload if isinstance(payload, dict) else {}
+    for key, value in extra.items():
+        merged[str(key)] = value
+    _log_ui_event(results_root=results_root, event_name=event_name, payload=merged)
+
+
+def _load_guided_checklist_from_state(*, results_root: Path) -> dict[str, bool]:
+    state = load_ui_product_state(results_root)
+    onboarding = state.get("guided_onboarding") if isinstance(state.get("guided_onboarding"), dict) else {}
+    raw = onboarding.get("checklist") if isinstance(onboarding.get("checklist"), dict) else {}
+    out: dict[str, bool] = {}
+    for step_id, _ in GUIDED_CHECKLIST_STEPS:
+        out[step_id] = bool(raw.get(step_id) is True)
+    return out
+
+
+def _save_guided_checklist_to_state(*, results_root: Path, checklist: dict[str, Any]) -> None:
+    state = load_ui_product_state(results_root)
+    onboarding = state.get("guided_onboarding") if isinstance(state.get("guided_onboarding"), dict) else {}
+    stored: dict[str, bool] = {}
+    for step_id, _ in GUIDED_CHECKLIST_STEPS:
+        stored[step_id] = bool(checklist.get(step_id) is True)
+
+    onboarding["checklist"] = stored
+    onboarding["updated_at"] = datetime.now(timezone.utc).isoformat()
+    onboarding["completed"] = _is_guided_complete(stored)
+    state["guided_onboarding"] = onboarding
+    save_ui_product_state(results_root, state)
+
+
+def _ensure_guided_checklist_defaults(*, results_root: Path | None = None) -> None:
+    if results_root is not None and not bool(st.session_state.get(SESSION_GUIDED_CHECKLIST_LOADED_KEY, False)):
+        persisted = _load_guided_checklist_from_state(results_root=results_root)
+        st.session_state[SESSION_GUIDED_CHECKLIST_KEY] = dict(persisted)
+        st.session_state[SESSION_GUIDED_CHECKLIST_LOADED_KEY] = True
+
+    existing = st.session_state.get(SESSION_GUIDED_CHECKLIST_KEY)
+    if isinstance(existing, dict):
+        for step_id, _ in GUIDED_CHECKLIST_STEPS:
+            if step_id not in existing:
+                existing[step_id] = False
+        return
+
+    st.session_state[SESSION_GUIDED_CHECKLIST_KEY] = {
+        step_id: False for step_id, _ in GUIDED_CHECKLIST_STEPS
+    }
+
+
+def _experience_mode() -> str:
+    value = str(st.session_state.get(SESSION_EXPERIENCE_MODE_KEY, EXPERIENCE_MODES[0])).strip()
+    return value if value in EXPERIENCE_MODES else EXPERIENCE_MODES[0]
+
+
+def _mark_guided_step(*, results_root: Path, step_id: str) -> None:
+    _ensure_guided_checklist_defaults(results_root=results_root)
+    checklist = st.session_state.get(SESSION_GUIDED_CHECKLIST_KEY)
+    if not isinstance(checklist, dict):
+        return
+    if checklist.get(step_id) is True:
+        return
+
+    checklist[step_id] = True
+    _save_guided_checklist_to_state(results_root=results_root, checklist=checklist)
+
+    _log_ui_event(
+        results_root=results_root,
+        event_name="guided_step_completed",
+        payload={"step_id": step_id, "experience_mode": _experience_mode().lower()},
+    )
+    entered_ts = float(st.session_state.get(SESSION_FLOW_ENTERED_TS_KEY, time.time()))
+    _emit_newcomer_event(
+        results_root=results_root,
+        event_name="newcomer_step_completed",
+        payload={
+            "step_id": str(step_id),
+            "step_index": _guided_step_index(step_id),
+            "time_from_enter_ms": int(max(0.0, (time.time() - entered_ts) * 1000.0)),
+        },
+    )
+
+    if _is_guided_complete(checklist) and not bool(st.session_state.get(SESSION_FLOW_COMPLETED_EMITTED_KEY, False)):
+        _emit_newcomer_event(
+            results_root=results_root,
+            event_name="newcomer_flow_completed",
+            payload={
+                "time_from_enter_ms": int(max(0.0, (time.time() - entered_ts) * 1000.0)),
+            },
+        )
+        st.session_state[SESSION_FLOW_COMPLETED_EMITTED_KEY] = True
+
+
+def _render_glossary_help(*, title: str = "Glossary (quick help)") -> None:
+    with st.expander(title, expanded=False):
+        for term, meaning in GLOSSARY_TERMS:
+            st.markdown(f"- **{term}**: {meaning}")
+
+
+def _newcomer_completion_metrics(*, results_root: Path) -> dict[str, float]:
+    path = Path(results_root) / "ui_metrics" / "events.jsonl"
+    if not path.exists():
+        return {
+            "started": 0.0,
+            "completed": 0.0,
+            "completion_rate_pct": 0.0,
+        }
+
+    started_ids: set[str] = set()
+    completed_ids: set[str] = set()
+    try:
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = str(raw).strip()
+            if not line:
+                continue
+            payload = json.loads(line)
+            if not isinstance(payload, dict):
+                continue
+            event_name = str(payload.get("event", "")).strip()
+            details = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
+            newcomer_id = str(details.get("newcomer_id", "")).strip()
+            if not newcomer_id:
+                continue
+            if event_name == "newcomer_flow_entered":
+                started_ids.add(newcomer_id)
+            elif event_name == "newcomer_flow_completed":
+                completed_ids.add(newcomer_id)
+    except Exception:
+        return {
+            "started": 0.0,
+            "completed": 0.0,
+            "completion_rate_pct": 0.0,
+        }
+
+    started = float(len(started_ids))
+    completed = float(len(started_ids.intersection(completed_ids)))
+    rate = 0.0 if started <= 0.0 else (completed / started) * 100.0
+    return {
+        "started": started,
+        "completed": completed,
+        "completion_rate_pct": rate,
+    }
+
+
+def _render_start_here_guide(*, results_root: Path) -> None:
+    _ensure_guided_checklist_defaults(results_root=results_root)
+    mode = _experience_mode()
+    checklist = st.session_state.get(SESSION_GUIDED_CHECKLIST_KEY)
+    if not isinstance(checklist, dict):
+        checklist = {step_id: False for step_id, _ in GUIDED_CHECKLIST_STEPS}
+
+    st.markdown("**Start Here**")
+    if mode == "Guided":
+        st.caption(
+            "New here? Follow this rail: check API -> run first simulation -> review decision -> compare baseline."
+        )
+        newcomer_metrics = _newcomer_completion_metrics(results_root=results_root)
+        st.metric(
+            "Newcomer completion rate",
+            f"{float(newcomer_metrics.get('completion_rate_pct', 0.0)):.1f}%",
+            help=(
+                "Share of newcomers who started the guided flow and completed all onboarding checklist steps."
+            ),
+        )
+        st.caption(
+            f"started={int(newcomer_metrics.get('started', 0.0))} | "
+            f"completed={int(newcomer_metrics.get('completed', 0.0))}"
+        )
+        for step_id, label in GUIDED_CHECKLIST_STEPS:
+            done = bool(checklist.get(step_id) is True)
+            marker = "[x]" if done else "[ ]"
+            st.write(f"{marker} {label}")
+
+        action_cols = st.columns([1, 1])
+        with action_cols[0]:
+            if st.button("Load beginner defaults", key="guided_load_defaults"):
+                _apply_preset("BBM92 Quick")
+                _log_ui_event(
+                    results_root=results_root,
+                    event_name="guided_defaults_loaded",
+                    payload={"preset": "BBM92 Quick"},
+                )
+                st.rerun()
+        with action_cols[1]:
+            if st.button("Reset checklist", key="guided_reset_checklist"):
+                st.session_state[SESSION_GUIDED_CHECKLIST_KEY] = {
+                    step: False for step, _ in GUIDED_CHECKLIST_STEPS
+                }
+                _save_guided_checklist_to_state(
+                    results_root=results_root,
+                    checklist=st.session_state[SESSION_GUIDED_CHECKLIST_KEY],
+                )
+                st.session_state[SESSION_FLOW_COMPLETED_EMITTED_KEY] = False
+                st.session_state[SESSION_FLOW_ENTERED_TS_KEY] = time.time()
+                _log_ui_event(
+                    results_root=results_root,
+                    event_name="guided_checklist_reset",
+                    payload={"experience_mode": mode.lower()},
+                )
+                _emit_newcomer_event(
+                    results_root=results_root,
+                    event_name="newcomer_flow_entered",
+                    payload={
+                        "time_from_enter_ms": 0,
+                    },
+                )
+                st.rerun()
+    else:
+        st.caption(
+            "Power mode keeps all controls visible. Use Golden Path for quick onboarding or jump straight into Expert/PIC lanes."
+        )
 
 
 def _apply_preset(name: str) -> None:
@@ -622,6 +925,7 @@ def _execute_qkd_run(*, state: dict[str, Any], graph: dict[str, Any], results_ro
                 "time_to_first_value_s": float(ttfv_seconds),
             },
         )
+        _mark_guided_step(results_root=results_root, step_id="first_run_completed")
         st.success(f"Run completed: {run_payload.get('run_id', 'unknown')}")
     except Exception as exc:
         diag = diagnose_api_runtime_error(exc)
@@ -1259,6 +1563,9 @@ def _render_capabilities_console(results_root: Path) -> None:
 
 def _render_run_builder(results_root: Path) -> None:
     _ensure_builder_defaults()
+    _ensure_guided_checklist_defaults()
+    experience_mode = _experience_mode()
+
     if SESSION_FIRST_VISIT_TS_KEY not in st.session_state:
         st.session_state[SESSION_FIRST_VISIT_TS_KEY] = datetime.now(timezone.utc).timestamp()
         _log_ui_event(
@@ -1271,6 +1578,9 @@ def _render_run_builder(results_root: Path) -> None:
 
     st.subheader("Run Builder")
     st.caption("Build a QKD graph from form inputs, submit to API, and inspect the generated reliability card.")
+    st.caption(f"Experience mode: **{experience_mode}**")
+    _render_start_here_guide(results_root=results_root)
+    _render_glossary_help(title="Run Builder glossary")
 
     left, right = st.columns([2, 1])
     with left:
@@ -1279,6 +1589,7 @@ def _render_run_builder(results_root: Path) -> None:
         if st.button("Check API health"):
             try:
                 health = api_get_json(st.session_state[_builder_key("api_base_url")], "/healthz")
+                _mark_guided_step(results_root=results_root, step_id="api_health_checked")
                 st.success(f"API OK (version: {health.get('version', 'unknown')})")
             except Exception as exc:
                 diag = diagnose_api_runtime_error(exc)
@@ -1329,7 +1640,11 @@ def _render_run_builder(results_root: Path) -> None:
         if event_log_path:
             st.caption(f"Telemetry log: `{event_log_path}`")
 
-    basic, advanced = st.tabs(["Basic", "Expert"])
+    if experience_mode == "Guided":
+        basic = st.container()
+        advanced = st.expander("Advanced settings (optional)", expanded=False)
+    else:
+        basic, advanced = st.tabs(["Basic", "Expert"])
 
     with basic:
         c1, c2 = st.columns(2)
@@ -1495,6 +1810,7 @@ def _render_run_builder(results_root: Path) -> None:
         if isinstance(first_card, dict):
             render_card_summary(first_card)
             render_decision_summary(first_card)
+            _mark_guided_step(results_root=results_root, step_id="decision_reviewed")
             artifacts = first_card.get("artifacts") if isinstance(first_card.get("artifacts"), dict) else {}
             card_path = str(artifacts.get("card_path", "")).strip()
             if card_path and Path(card_path).exists():
@@ -1530,6 +1846,7 @@ def _render_run_builder(results_root: Path) -> None:
 
 
 def _render_run_registry(results_root: Path) -> None:
+    _ensure_guided_checklist_defaults()
     run_paths = list_runs(results_root)
     st.caption(f"Found {len(run_paths)} reliability cards under `{results_root}`.")
     if not run_paths:
@@ -1673,6 +1990,7 @@ def _render_run_registry(results_root: Path) -> None:
         else:
             render_card_delta(baseline_card, candidate_card)
             decision = _promotion_decision(baseline_card, candidate_card)
+            _mark_guided_step(results_root=results_root, step_id="compare_decision")
             metrics = decision.get("metrics") if isinstance(decision.get("metrics"), dict) else {}
             st.caption(
                 "Policy metrics: "
@@ -1713,7 +2031,9 @@ def _render_run_registry(results_root: Path) -> None:
     for card in cards:
         render_card_summary(card)
         render_decision_summary(card)
-        plot_path = card["artifacts"]["plots"].get("key_rate_vs_distance_path")
+        artifacts = card.get("artifacts") if isinstance(card.get("artifacts"), dict) else {}
+        plots = artifacts.get("plots") if isinstance(artifacts.get("plots"), dict) else {}
+        plot_path = str(plots.get("key_rate_vs_distance_path", "")).strip()
         if plot_path:
             st.image(plot_path, caption="Key rate vs distance")
 
@@ -1845,6 +2165,7 @@ def _render_pic_workbench(results_root: Path) -> None:
 
     st.subheader("PIC Workbench")
     st.caption("Load a PIC template or edit graph JSON, then run `/v0/pic/simulate` from this UI.")
+    _render_glossary_help(title="PIC and reliability glossary")
 
     top_left, top_right = st.columns([2, 1])
     with top_left:
@@ -2053,22 +2374,94 @@ def _render_pic_workbench(results_root: Path) -> None:
                 st.warning(f"Could not package latest bundle as zip: {exc}")
 
 
+def _handle_newcomer_flow_mode_transition(*, results_root: Path, mode_now: str) -> None:
+    prev_mode = str(st.session_state.get(SESSION_PREV_EXPERIENCE_MODE_KEY, mode_now)).strip() or mode_now
+    checklist_now = st.session_state.get(SESSION_GUIDED_CHECKLIST_KEY)
+    complete_now = _is_guided_complete(checklist_now) if isinstance(checklist_now, dict) else False
+
+    if prev_mode != mode_now:
+        _log_ui_event(
+            results_root=results_root,
+            event_name="experience_mode_changed",
+            payload={"from": prev_mode.lower(), "to": mode_now.lower()},
+        )
+
+        if prev_mode == "Guided" and mode_now != "Guided":
+            entered_ts = float(st.session_state.get(SESSION_FLOW_ENTERED_TS_KEY, time.time()))
+            completed = bool(st.session_state.get(SESSION_FLOW_COMPLETED_EMITTED_KEY, False) or complete_now)
+            _emit_newcomer_event(
+                results_root=results_root,
+                event_name="newcomer_flow_exited",
+                payload={
+                    "exit_reason": "mode_switch",
+                    "completed": completed,
+                    "time_from_enter_ms": int(max(0.0, (time.time() - entered_ts) * 1000.0)),
+                },
+            )
+
+        if mode_now == "Guided":
+            st.session_state[SESSION_FLOW_ENTERED_TS_KEY] = time.time()
+            st.session_state[SESSION_FLOW_COMPLETED_EMITTED_KEY] = bool(complete_now)
+            _emit_newcomer_event(
+                results_root=results_root,
+                event_name="newcomer_flow_entered",
+                payload={"time_from_enter_ms": 0},
+            )
+
+    if mode_now == "Guided" and SESSION_FLOW_ENTERED_TS_KEY not in st.session_state:
+        st.session_state[SESSION_FLOW_ENTERED_TS_KEY] = time.time()
+        st.session_state[SESSION_FLOW_COMPLETED_EMITTED_KEY] = bool(complete_now)
+        _emit_newcomer_event(
+            results_root=results_root,
+            event_name="newcomer_flow_entered",
+            payload={"time_from_enter_ms": 0},
+        )
+
+    st.session_state[SESSION_PREV_EXPERIENCE_MODE_KEY] = mode_now
+
+
 def main() -> None:
+    st.set_page_config(page_title="PhotonTrust Workbench", page_icon="PT", layout="wide")
+
+    _ensure_builder_defaults()
     st.title("PhotonTrust Workbench")
+
+    st.sidebar.radio(
+        "Experience mode",
+        list(EXPERIENCE_MODES),
+        key=SESSION_EXPERIENCE_MODE_KEY,
+        help="Guided highlights newcomer flow; Power keeps all advanced surfaces front and center.",
+    )
+
+    if _experience_mode() == "Guided":
+        st.sidebar.caption("Guided mode is active: follow Start Here rails in Run Builder.")
+    else:
+        st.sidebar.caption("Power mode is active: advanced controls are prioritized.")
+
     results_default = str(os.environ.get("PHOTONTRUST_RESULTS_ROOT", "results"))
     results_root = Path(st.sidebar.text_input("Results directory", results_default))
 
-    tabs = st.tabs(["Capabilities Console", "Run Builder", "PIC", "Run Registry", "Dataset Entries"])
-    with tabs[0]:
-        _render_capabilities_console(results_root)
-    with tabs[1]:
-        _render_run_builder(results_root)
-    with tabs[2]:
-        _render_pic_workbench(results_root)
-    with tabs[3]:
-        _render_run_registry(results_root)
-    with tabs[4]:
-        _render_dataset_entries(results_root)
+    _ensure_guided_checklist_defaults(results_root=results_root)
+    mode_now = _experience_mode()
+    _handle_newcomer_flow_mode_transition(results_root=results_root, mode_now=mode_now)
+
+    tab_order = ["Capabilities Console", "Run Builder", "PIC", "Run Registry", "Dataset Entries"]
+    if mode_now == "Guided":
+        tab_order = ["Run Builder", "Run Registry", "PIC", "Capabilities Console", "Dataset Entries"]
+
+    tabs = st.tabs(tab_order)
+    for tab, tab_name in zip(tabs, tab_order):
+        with tab:
+            if tab_name == "Capabilities Console":
+                _render_capabilities_console(results_root)
+            elif tab_name == "Run Builder":
+                _render_run_builder(results_root)
+            elif tab_name == "PIC":
+                _render_pic_workbench(results_root)
+            elif tab_name == "Run Registry":
+                _render_run_registry(results_root)
+            else:
+                _render_dataset_entries(results_root)
 
 
 if __name__ == "__main__":
