@@ -12,6 +12,7 @@ test.beforeEach(async ({ page }) => {
 test("keyboard tab order starts with skip link and top controls", async ({ page }) => {
   const skipLink = page.getByRole("link", { name: "Skip to workspace" }).first();
   const modeSelect = page.locator("header.ptTopbar label").filter({ hasText: "Mode" }).first().locator("select");
+  const experienceSelect = page.locator("header.ptTopbar label").filter({ hasText: "Experience" }).first().locator("select");
   const userModeSelect = page.locator("header.ptTopbar label").filter({ hasText: "User mode" }).first().locator("select");
   const viewPresetSelect = page.locator("header.ptTopbar label").filter({ hasText: "View preset" }).first().locator("select");
   const saveViewButton = page.locator("header.ptTopbar button", { hasText: "Save View" }).first();
@@ -21,6 +22,9 @@ test("keyboard tab order starts with skip link and top controls", async ({ page 
 
   await page.keyboard.press("Tab");
   await expect(modeSelect).toBeFocused();
+
+  await page.keyboard.press("Tab");
+  await expect(experienceSelect).toBeFocused();
 
   await page.keyboard.press("Tab");
   await expect(userModeSelect).toBeFocused();
@@ -33,9 +37,12 @@ test("keyboard tab order starts with skip link and top controls", async ({ page 
 });
 
 test("keyboard reverse tab returns to previous control", async ({ page }) => {
+  const experienceSelect = page.locator("header.ptTopbar label").filter({ hasText: "Experience" }).first().locator("select");
+  const userModeSelect = page.locator("header.ptTopbar label").filter({ hasText: "User mode" }).first().locator("select");
   const viewPresetSelect = page.locator("header.ptTopbar label").filter({ hasText: "View preset" }).first().locator("select");
   const saveViewButton = page.locator("header.ptTopbar button", { hasText: "Save View" }).first();
 
+  await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
@@ -45,6 +52,12 @@ test("keyboard reverse tab returns to previous control", async ({ page }) => {
 
   await page.keyboard.press("Shift+Tab");
   await expect(viewPresetSelect).toBeFocused();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(userModeSelect).toBeFocused();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(experienceSelect).toBeFocused();
 });
 
 test("skip link moves focus to main workspace", async ({ page }) => {

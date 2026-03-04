@@ -1114,14 +1114,25 @@ def test_api_ui_telemetry_ingest_writes_events_jsonl(tmp_path: Path, monkeypatch
     res = client.post("/v0/ui/telemetry/events", json=event_2)
     assert res.status_code == 200
 
+    event_3 = {
+        "event_name": "newcomer_step_completed",
+        "session_id": "ui_session_1",
+        "user_mode": "builder",
+        "profile": "qkd_link",
+        "payload": {"step_id": "api_health", "step_index": 1},
+    }
+    res = client.post("/v0/ui/telemetry/events", json=event_3)
+    assert res.status_code == 200
+
     events_path = tmp_path / "ui_metrics" / "events.jsonl"
     assert events_path.exists()
     lines = [ln for ln in events_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
-    assert len(lines) == 2
+    assert len(lines) == 3
     rows = [json.loads(ln) for ln in lines]
     assert rows[0].get("event_name") == "ui_session_started"
     assert rows[1].get("event_name") == "ui_run_succeeded"
     assert rows[1].get("duration_ms") == 420
+    assert rows[2].get("event_name") == "newcomer_step_completed"
 
 
 def test_api_ui_telemetry_ingest_rejects_invalid_payload(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
