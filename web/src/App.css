@@ -174,6 +174,95 @@
   line-height: 1.35;
 }
 
+.ptGuidanceStrip {
+  margin: 12px 14px 0;
+}
+
+.ptGuidanceTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ptGuidanceChecklist {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ptGuidanceStep {
+  border-radius: var(--pt-radius-sm);
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  padding: 8px 9px;
+  color: var(--pt-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ptGuidanceLabel {
+  flex: 1;
+}
+
+.ptGuidanceStep .ptBtn {
+  padding: 4px 8px;
+  min-height: 24px;
+  font-size: 11px;
+}
+
+.ptGuidanceStep.done {
+  border-color: rgba(46, 230, 214, 0.58);
+  background: rgba(46, 230, 214, 0.14);
+  color: rgba(6, 32, 29, 0.96);
+}
+
+.ptGuidanceDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.ptGlossaryBox {
+  margin-top: 10px;
+  border-top: 1px solid rgba(15, 20, 23, 0.1);
+  padding-top: 10px;
+}
+
+.ptGlossaryBox summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pt-muted);
+}
+
+.ptGlossaryList {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.ptGlossaryRow {
+  border: 1px solid rgba(15, 20, 23, 0.1);
+  border-radius: var(--pt-radius-sm);
+  background: rgba(255, 255, 255, 0.62);
+  padding: 8px 9px;
+}
+
+.ptGlossaryTerm {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
 .ptGuidedFlow {
   margin: 12px 14px 0;
   border-radius: 16px;
@@ -1147,6 +1236,9 @@
   .ptLandingStages {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .ptGuidanceChecklist {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .ptGuidedFlowSteps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1182,6 +1274,12 @@
   .ptStatusbar,
   .ptModal {
     backdrop-filter: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ptGuidanceChecklist {
+    grid-template-columns: 1fr;
   }
 }
 

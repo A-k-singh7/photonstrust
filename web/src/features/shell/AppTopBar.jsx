@@ -5,6 +5,8 @@ export default function AppTopBar({
   programStageSubtitle,
   mode,
   onModeChange,
+  experienceMode,
+  onExperienceModeChange,
   userMode,
   onUserModeChange,
   selectedViewPresetId,
@@ -53,6 +55,18 @@ export default function AppTopBar({
             <option value="graph">Graph Editor</option>
             <option value="orbit">Orbit Pass</option>
             <option value="runs">Runs</option>
+          </select>
+        </label>
+
+        <label className="ptField">
+          <span>Experience</span>
+          <select
+            value={experienceMode}
+            disabled={demoModeOpen}
+            onChange={(e) => onExperienceModeChange(String(e.target.value))}
+          >
+            <option value="guided">Guided</option>
+            <option value="power">Power</option>
           </select>
         </label>
 

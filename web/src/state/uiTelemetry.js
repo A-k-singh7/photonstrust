@@ -9,6 +9,10 @@ export const UI_TELEMETRY_EVENTS = [
   "ui_compare_completed",
   "ui_packet_exported",
   "ui_demo_mode_completed",
+  "newcomer_flow_entered",
+  "newcomer_step_completed",
+  "newcomer_flow_completed",
+  "newcomer_flow_exited",
 ];
 
 const LOCAL_BUFFER_KEY = "pt_ui_events_buffer_v1";
@@ -92,6 +96,7 @@ export function createUiTelemetrySink({ apiBase, getContext }) {
       run_id: fields.run_id ? String(fields.run_id) : null,
       duration_ms: Number.isFinite(duration) && duration >= 0 ? Math.round(duration) : null,
       outcome: _normalizeOutcome(fields.outcome),
+      payload: fields.payload && typeof fields.payload === "object" ? fields.payload : {},
     };
 
     _pushLocal(event);

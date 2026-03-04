@@ -9,6 +9,7 @@ import {
 import "./App.css";
 import ApprovalControls from "./features/runs/ApprovalControls";
 import AppTopBar from "./features/shell/AppTopBar";
+import GuidanceStrip from "./features/shell/GuidanceStrip";
 import GraphJsonModals from "./features/shell/GraphJsonModals";
 import LeftSidebarByMode from "./features/shell/LeftSidebarByMode";
 import RightSidebarTabs from "./features/shell/RightSidebarTabs";
@@ -165,6 +166,97 @@ const DEFAULT_ORBIT_PASS_CONFIG = {
   },
   uncertainty: {},
 };
+
+const GUIDED_GLOSSARY_TERMS = [
+  {
+    term: "QBER",
+    meaning: "Quantum bit error rate. Lower values generally indicate cleaner key generation conditions.",
+  },
+  {
+    term: "Key rate",
+    meaning: "Estimated secure key bits per second produced by a run.",
+  },
+  {
+    term: "Baseline",
+    meaning: "Reference run used for candidate comparison and promotion decisions.",
+  },
+  {
+    term: "Reliability card",
+    meaning: "Decision artifact summarizing assumptions, outputs, and trust posture.",
+  },
+  {
+    term: "Evidence bundle",
+    meaning: "Portable run package for integrity verification, audit, and review.",
+  },
+];
+
+const GUIDED_FLOW_VERSION = "2026-03-guided-power-v1";
+
+const GUIDED_STEP_ITEMS = [
+  { id: "api_health", label: "Check API health" },
+  { id: "first_run", label: "Run first simulation" },
+  { id: "compare", label: "Compare baseline vs candidate" },
+  { id: "decision", label: "Review decision and blockers" },
+];
+
+function _defaultGuidedProgress() {
+  const steps = {};
+  for (const step of GUIDED_STEP_ITEMS) {
+    steps[String(step.id)] = false;
+  }
+  return {
+    steps,
+    completed: false,
+    completed_at: null,
+  };
+}
+
+function _loadGuidedProgress() {
+  try {
+    const raw = localStorage.getItem("pt_guided_progress_v1");
+    if (!raw) return _defaultGuidedProgress();
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return _defaultGuidedProgress();
+    const out = _defaultGuidedProgress();
+    const sourceSteps = parsed.steps && typeof parsed.steps === "object" ? parsed.steps : {};
+    for (const step of GUIDED_STEP_ITEMS) {
+      out.steps[String(step.id)] = sourceSteps[String(step.id)] === true;
+    }
+    out.completed = Boolean(parsed.completed === true);
+    out.completed_at = parsed.completed_at ? String(parsed.completed_at) : null;
+    return out;
+  } catch {
+    return _defaultGuidedProgress();
+  }
+}
+
+function _saveGuidedProgress(progress) {
+  try {
+    const safe = _defaultGuidedProgress();
+    const source = progress && typeof progress === "object" ? progress : {};
+    const sourceSteps = source.steps && typeof source.steps === "object" ? source.steps : {};
+    for (const step of GUIDED_STEP_ITEMS) {
+      safe.steps[String(step.id)] = sourceSteps[String(step.id)] === true;
+    }
+    safe.completed = source.completed === true;
+    safe.completed_at = source.completed_at ? String(source.completed_at) : null;
+    localStorage.setItem("pt_guided_progress_v1", JSON.stringify(safe));
+    return safe;
+  } catch {
+    return _defaultGuidedProgress();
+  }
+}
+
+function _ensureNewcomerId() {
+  const existing = String(localStorage.getItem("pt_newcomer_id") || "").trim();
+  if (existing) return existing;
+  const generated =
+    typeof globalThis?.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : `anon-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  localStorage.setItem("pt_newcomer_id", generated);
+  return generated;
+}
 
 function _pretty(obj) {
   return JSON.stringify(obj ?? null, null, 2);
@@ -439,6 +531,9 @@ export default function App() {
   const [mode, setMode] = useState(() => localStorage.getItem("pt_mode") || "graph");
   const [programStage, setProgramStage] = useState(() => localStorage.getItem("pt_program_stage") || "build");
   const [showLanding, setShowLanding] = useState(() => localStorage.getItem("pt_show_landing") !== "0");
+  const [experienceMode, setExperienceMode] = useState(() => localStorage.getItem("pt_experience_mode") || "guided");
+  const [guidedProgress, setGuidedProgress] = useState(() => _loadGuidedProgress());
+  const [newcomerId] = useState(() => _ensureNewcomerId());
   const [userMode, setUserMode] = useState(() => localStorage.getItem("pt_user_mode") || "builder");
   const [savedViews, setSavedViews] = useState(() => loadViewPresets());
   const [selectedViewPresetId, setSelectedViewPresetId] = useState("");
@@ -454,6 +549,8 @@ export default function App() {
   const startupPingStartedRef = useRef(false);
   const [guidedFlowWizardOpen, setGuidedFlowWizardOpen] = useState(false);
   const [guidedFlowInitialGoal, setGuidedFlowInitialGoal] = useState("qkd");
+  const newcomerFlowRef = useRef({ active: false, startedAtMs: 0, completed: false });
+  const guidedStepSnapshotRef = useRef(guidedProgress?.steps || {});
 
   const [profile, setProfile] = useState("qkd_link");
   const [graphId, setGraphId] = useState("ui_qkd_link");
@@ -808,6 +905,30 @@ export default function App() {
     };
   }, [runResult, compileResult, runsDiffResult, projectApprovals, selectedRunManifest, uncertainty]);
 
+  const guidedRunId = useMemo(
+    () => String(runResult?.run_id || selectedRunManifest?.run_id || "").trim(),
+    [runResult?.run_id, selectedRunManifest?.run_id],
+  );
+
+  const guidedCompareDone = useMemo(
+    () =>
+      Boolean(
+        runsDiffResult?.diff ||
+          (runsDiffResult && typeof runsDiffResult === "object" && !String(runsDiffResult.error || "").trim()),
+      ),
+    [runsDiffResult],
+  );
+
+  const guidedChecklist = useMemo(
+    () =>
+      GUIDED_STEP_ITEMS.map((step) => ({
+        id: String(step.id),
+        label: String(step.label),
+        done: guidedProgress?.steps?.[String(step.id)] === true,
+      })),
+    [guidedProgress],
+  );
+
   const phaseNodeIds = useMemo(() => {
     if (profile !== "pic_circuit") return [];
     return (nodes || [])
@@ -823,6 +944,79 @@ export default function App() {
       .map((n) => String(n.id))
       .sort((a, b) => String(a).localeCompare(String(b)));
   }, [nodes, profile]);
+
+  const emitNewcomerEvent = useCallback(
+    (eventName, payload = {}, extras = {}) => {
+      emitUiEvent(eventName, {
+        profile,
+        outcome: String(extras?.outcome || "success"),
+        payload: {
+          newcomer_id: newcomerId,
+          flow: String(experienceMode || "guided"),
+          flow_version: GUIDED_FLOW_VERSION,
+          is_newcomer: true,
+          ...(payload && typeof payload === "object" ? payload : {}),
+        },
+      });
+    },
+    [emitUiEvent, experienceMode, newcomerId, profile],
+  );
+
+  const markGuidedStep = useCallback(
+    (stepId, { reason = "auto" } = {}) => {
+      const step = String(stepId || "").trim();
+      if (!step || !Object.prototype.hasOwnProperty.call(guidedStepSnapshotRef.current || {}, step)) return;
+
+      let stepped = false;
+      let completedNow = false;
+      let stepIndex = 0;
+      let completedAt = null;
+      setGuidedProgress((prev) => {
+        const base = _saveGuidedProgress(prev);
+        if (base.steps[step] === true) return base;
+
+        const next = {
+          ...base,
+          steps: { ...base.steps, [step]: true },
+          completed: false,
+          completed_at: base.completed_at || null,
+        };
+        const allDone = GUIDED_STEP_ITEMS.every((item) => next.steps[String(item.id)] === true);
+        if (allDone) {
+          next.completed = true;
+          next.completed_at = new Date().toISOString();
+          completedNow = base.completed !== true;
+          completedAt = next.completed_at;
+        }
+
+        stepped = true;
+        stepIndex = GUIDED_STEP_ITEMS.findIndex((item) => String(item.id) === step) + 1;
+        guidedStepSnapshotRef.current = next.steps;
+        return _saveGuidedProgress(next);
+      });
+
+      if (!stepped) return;
+      const enteredAt = Number(newcomerFlowRef.current?.startedAtMs || Date.now());
+      emitNewcomerEvent("newcomer_step_completed", {
+        step_id: step,
+        step_index: Math.max(0, stepIndex),
+        reason: String(reason || "auto"),
+        time_from_enter_ms: Math.max(0, Date.now() - enteredAt),
+      });
+
+      if (completedNow && newcomerFlowRef.current?.active) {
+        newcomerFlowRef.current = {
+          ...newcomerFlowRef.current,
+          completed: true,
+        };
+        emitNewcomerEvent("newcomer_flow_completed", {
+          completed_at: completedAt,
+          time_from_enter_ms: Math.max(0, Date.now() - enteredAt),
+        });
+      }
+    },
+    [emitNewcomerEvent],
+  );
 
   useEffect(() => {
     return () => {
@@ -1070,6 +1264,68 @@ export default function App() {
   }, [showLanding]);
 
   useEffect(() => {
+    localStorage.setItem("pt_experience_mode", String(experienceMode));
+  }, [experienceMode]);
+
+  useEffect(() => {
+    guidedStepSnapshotRef.current = guidedProgress?.steps || {};
+    _saveGuidedProgress(guidedProgress);
+  }, [guidedProgress]);
+
+  useEffect(() => {
+    if (experienceMode === "guided") {
+      if (!newcomerFlowRef.current.active) {
+        newcomerFlowRef.current = {
+          active: true,
+          startedAtMs: Date.now(),
+          completed: guidedProgress?.completed === true,
+        };
+        emitNewcomerEvent("newcomer_flow_entered", {
+          entered_at: new Date().toISOString(),
+        });
+      }
+      return;
+    }
+
+    if (newcomerFlowRef.current.active) {
+      const startedAt = Number(newcomerFlowRef.current.startedAtMs || Date.now());
+      const completed = newcomerFlowRef.current.completed === true || guidedProgress?.completed === true;
+      emitNewcomerEvent(
+        "newcomer_flow_exited",
+        {
+          completed,
+          time_from_enter_ms: Math.max(0, Date.now() - startedAt),
+        },
+        { outcome: completed ? "success" : "abandoned" },
+      );
+      newcomerFlowRef.current = {
+        active: false,
+        startedAtMs: 0,
+        completed,
+      };
+    }
+  }, [experienceMode, guidedProgress?.completed, emitNewcomerEvent]);
+
+  useEffect(() => {
+    if (apiHealth.status === "ok") markGuidedStep("api_health", { reason: "api_health_ok" });
+  }, [apiHealth.status, markGuidedStep]);
+
+  useEffect(() => {
+    if (guidedRunId) markGuidedStep("first_run", { reason: "run_detected" });
+  }, [guidedRunId, markGuidedStep]);
+
+  useEffect(() => {
+    if (guidedCompareDone) markGuidedStep("compare", { reason: "diff_detected" });
+  }, [guidedCompareDone, markGuidedStep]);
+
+  useEffect(() => {
+    if (String(activeRightTab || "") !== "run") return;
+    if (mode === "runs") return;
+    if (!guidedRunId && !guidedCompareDone) return;
+    markGuidedStep("decision", { reason: "run_tab_reviewed" });
+  }, [activeRightTab, mode, guidedRunId, guidedCompareDone, markGuidedStep]);
+
+  useEffect(() => {
     localStorage.setItem("pt_user_mode", String(userMode));
   }, [userMode]);
 
@@ -1130,6 +1386,13 @@ export default function App() {
     if (projectsIndex.status === "idle") refreshProjects();
     if (runsIndex.status === "idle") refreshRuns();
   }, [mode, projectsIndex.status, runsIndex.status, refreshProjects, refreshRuns]);
+
+  useEffect(() => {
+    if (experienceMode !== "guided") return;
+    if (mode !== "graph" || profile !== "pic_circuit") return;
+    if (!["drc", "invdesign", "layout", "lvs", "klayout", "spice"].includes(String(activeRightTab || ""))) return;
+    setActiveRightTab("inspect");
+  }, [experienceMode, mode, profile, activeRightTab]);
 
   const onConnect = useCallback(
     (params) => {
@@ -1269,6 +1532,31 @@ export default function App() {
     [_setStatus],
   );
 
+  const applyExperienceMode = useCallback(
+    (nextValue) => {
+      const next = String(nextValue || "guided").toLowerCase() === "power" ? "power" : "guided";
+      setExperienceMode(next);
+      emitUiEvent("ui_experience_mode_changed", { experience_mode: next, mode, profile });
+
+      if (next === "guided") {
+        setUserMode("builder");
+        setShowLanding(true);
+        if (
+          mode === "graph" &&
+          profile === "pic_circuit" &&
+          ["drc", "invdesign", "layout", "lvs", "klayout", "spice"].includes(String(activeRightTab || ""))
+        ) {
+          setActiveRightTab("inspect");
+        }
+        _setStatus("Guided mode enabled. Start Here now prioritizes first-run and compare flow.");
+        return;
+      }
+
+      _setStatus("Power mode enabled. Full advanced controls are available.");
+    },
+    [activeRightTab, emitUiEvent, mode, profile, _setStatus],
+  );
+
   const openProgramStage = useCallback(
     (stageId, options = {}) => {
       const key = String(stageId || "build");
@@ -1284,6 +1572,65 @@ export default function App() {
       recordActivity("stage_change", `Opened ${stageLabel(key)} stage.`, { stage: key, mode: route.mode });
     },
     [switchOperationalMode, recordActivity],
+  );
+
+  const handleChecklistAction = useCallback(
+    (stepId) => {
+      const step = String(stepId || "").trim();
+      if (!step) return;
+
+      if (step === "api_health") {
+        openProgramStage("build", { statusText: "Checking API health for guided onboarding." });
+        pingApi();
+        return;
+      }
+
+      if (step === "first_run") {
+        openProgramStage("build", { statusText: "Prepare and run your first simulation." });
+        if (!guidedRunId && profile !== "qkd_link") {
+          loadTemplate("qkd");
+        }
+        setActiveRightTab("run");
+        return;
+      }
+
+      if (step === "compare") {
+        openProgramStage("compare", { statusText: "Compare baseline and candidate runs." });
+        const selectedId = String(selectedRunManifest?.run_id || runResult?.run_id || "").trim();
+        const orderedRuns = (Array.isArray(runsIndex?.runs) ? runsIndex.runs : [])
+          .map((run) => String(run?.run_id || "").trim())
+          .filter(Boolean);
+        if (!diffLhsRunId) {
+          const baseline = selectedId || orderedRuns[0] || "";
+          if (baseline) setDiffLhsRunId(baseline);
+        }
+        if (!diffRhsRunId) {
+          const baselineRef = String(diffLhsRunId || selectedId || "").trim();
+          const candidate = orderedRuns.find((rid) => rid && rid !== baselineRef) || "";
+          if (candidate) setDiffRhsRunId(candidate);
+        }
+        return;
+      }
+
+      if (step === "decision") {
+        openProgramStage("run", { statusText: "Review decision summary and blockers." });
+        setActiveRightTab("run");
+        markGuidedStep("decision", { reason: "checklist_action" });
+      }
+    },
+    [
+      diffLhsRunId,
+      diffRhsRunId,
+      guidedRunId,
+      loadTemplate,
+      markGuidedStep,
+      openProgramStage,
+      pingApi,
+      profile,
+      runResult?.run_id,
+      runsIndex?.runs,
+      selectedRunManifest?.run_id,
+    ],
   );
 
   const saveCurrentViewPreset = useCallback(() => {
@@ -2403,6 +2750,8 @@ export default function App() {
           switchOperationalMode(next, { nextStage: inferredStage });
           setShowLanding(false);
         }}
+        experienceMode={experienceMode}
+        onExperienceModeChange={applyExperienceMode}
         userMode={userMode}
         onUserModeChange={setUserMode}
         selectedViewPresetId={selectedViewPresetId}
@@ -2436,7 +2785,7 @@ export default function App() {
         onRunOrDiff={mode === "runs" ? diffRuns : runGraph}
         runOrDiffLabel={mode === "runs" ? "Diff" : "Run"}
         runOrDiffDisabled={mode === "runs" ? !diffLhsRunId || !diffRhsRunId : false}
-        showGraphDrc={mode === "graph" && profile === "pic_circuit"}
+        showGraphDrc={mode === "graph" && profile === "pic_circuit" && experienceMode !== "guided"}
         onGraphDrc={() => runCrosstalkDrc({ reason: "manual" })}
         showLanding={showLanding}
         onToggleLanding={() => setShowLanding((v) => !v)}
@@ -2492,6 +2841,16 @@ export default function App() {
         recentActivity={recentActivity}
         onRecentActivityClick={handleRecentActivityClick}
         disabled={demoModeOpen}
+      />
+
+      <GuidanceStrip
+        experienceMode={experienceMode}
+        checklist={guidedChecklist}
+        glossaryTerms={GUIDED_GLOSSARY_TERMS}
+        onStartGuidedFlow={startGuidedFlow}
+        onOpenStage={openProgramStage}
+        onExperienceModeChange={applyExperienceMode}
+        onChecklistAction={handleChecklistAction}
       />
 
       {showLanding ? (
@@ -2718,7 +3077,13 @@ export default function App() {
         </Suspense>
 
         <aside className="ptSidebar ptSidebarRight" aria-label="Details sidebar">
-          <RightSidebarTabs mode={mode} profile={profile} activeRightTab={activeRightTab} onChangeTab={setActiveRightTab} />
+          <RightSidebarTabs
+            mode={mode}
+            profile={profile}
+            experienceMode={experienceMode}
+            activeRightTab={activeRightTab}
+            onChangeTab={setActiveRightTab}
+          />
 
           {mode === "graph" ? (
             <Suspense fallback={<PanelLoading message="Loading graph sidebar..." />}>
@@ -2869,30 +3234,34 @@ export default function App() {
           ) : null}
 
           {mode !== "runs" && activeRightTab === "run" && (
-            <Suspense fallback={<PanelLoading message="Loading run guidance..." />}>
-              <RunModePanel
-                mode={mode}
-                decision={decisionContext}
-                compileResult={compileResult}
-                runResult={runResult}
-                apiBase={apiBase}
-                onOpenProgramStage={openProgramStage}
-                onSetActiveRightTab={setActiveRightTab}
-                onExportDecisionPacket={exportDecisionPacket}
-                onSaveCurrentViewPreset={saveCurrentViewPreset}
-                onSetUserMode={setUserMode}
-                onSetStatus={_setStatus}
-                buildRunArtifactUrl={_runArtifactUrl}
-                buildRunManifestUrl={_runManifestUrl}
-                prettyJson={_pretty}
-              />
-            </Suspense>
+            <div id={`pt-panel-${mode}-run`} role="tabpanel" aria-labelledby={`pt-tab-${mode}-run`} className="ptRightBody">
+              <Suspense fallback={<PanelLoading message="Loading run guidance..." />}>
+                <RunModePanel
+                  mode={mode}
+                  decision={decisionContext}
+                  compileResult={compileResult}
+                  runResult={runResult}
+                  apiBase={apiBase}
+                  onOpenProgramStage={openProgramStage}
+                  onSetActiveRightTab={setActiveRightTab}
+                  onExportDecisionPacket={exportDecisionPacket}
+                  onSaveCurrentViewPreset={saveCurrentViewPreset}
+                  onSetUserMode={setUserMode}
+                  onSetStatus={_setStatus}
+                  buildRunArtifactUrl={_runArtifactUrl}
+                  buildRunManifestUrl={_runManifestUrl}
+                  prettyJson={_pretty}
+                />
+              </Suspense>
+            </div>
           )}
 
           {mode === "orbit" && activeRightTab === "validate" && (
-            <Suspense fallback={<PanelLoading message="Loading orbit validation panel..." />}>
-              <OrbitValidatePanel orbitValidateResult={orbitValidateResult} prettyJson={_pretty} />
-            </Suspense>
+            <div id="pt-panel-orbit-validate" role="tabpanel" aria-labelledby="pt-tab-orbit-validate" className="ptRightBody">
+              <Suspense fallback={<PanelLoading message="Loading orbit validation panel..." />}>
+                <OrbitValidatePanel orbitValidateResult={orbitValidateResult} prettyJson={_pretty} />
+              </Suspense>
+            </div>
           )}
 
           {mode === "orbit" && activeRightTab === "orbit" && (

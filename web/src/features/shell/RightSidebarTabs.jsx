@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 
-function tabItemsForMode(mode, profile) {
+function tabItemsForMode(mode, profile, experienceMode) {
   if (mode === "graph") {
     const rows = [
       { id: "inspect", label: "Inspect" },
@@ -8,14 +8,16 @@ function tabItemsForMode(mode, profile) {
       { id: "run", label: "Run" },
     ];
     if (profile === "pic_circuit") {
-      rows.push(
-        { id: "drc", label: "DRC" },
-        { id: "invdesign", label: "InvDesign" },
-        { id: "layout", label: "Layout" },
-        { id: "lvs", label: "LVS-lite" },
-        { id: "klayout", label: "KLayout" },
-        { id: "spice", label: "SPICE" },
-      );
+      if (experienceMode !== "guided") {
+        rows.push(
+          { id: "drc", label: "DRC" },
+          { id: "invdesign", label: "InvDesign" },
+          { id: "layout", label: "Layout" },
+          { id: "lvs", label: "LVS-lite" },
+          { id: "klayout", label: "KLayout" },
+          { id: "spice", label: "SPICE" },
+        );
+      }
     }
     rows.push({ id: "graph", label: "Graph JSON" });
     return rows;
@@ -35,9 +37,9 @@ function tabItemsForMode(mode, profile) {
   ];
 }
 
-export default function RightSidebarTabs({ mode, profile, activeRightTab, onChangeTab }) {
+export default function RightSidebarTabs({ mode, profile, experienceMode = "power", activeRightTab, onChangeTab }) {
   const tabRefs = useRef({});
-  const tabs = useMemo(() => tabItemsForMode(mode, profile), [mode, profile]);
+  const tabs = useMemo(() => tabItemsForMode(mode, profile, experienceMode), [mode, profile, experienceMode]);
   const getTabId = (tab) => `pt-tab-${mode}-${tab}`;
   const getPanelId = (tab) => `pt-panel-${mode}-${tab}`;
 
