@@ -1,0 +1,86 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.maintainability_budget_policy",
+  "phase": "phase0",
+  "budgets": [
+    {
+      "label": "api-server-freeze",
+      "include_glob": "photonstrust/api/server.py",
+      "max_lines": 4500,
+      "description": "Freeze FastAPI monolith growth until router extraction lands."
+    },
+    {
+      "label": "react-app-freeze",
+      "include_glob": "web/src/App.jsx",
+      "max_lines": 3500,
+      "description": "Freeze React shell monolith growth until hook and feature extraction lands."
+    },
+    {
+      "label": "core-package-modules",
+      "include_glob": "photonstrust/**/*.py",
+      "exclude_globs": [
+        "photonstrust/api/server.py"
+      ],
+      "max_lines": 1400,
+      "description": "Keep non-server package modules below the current maintainability ceiling."
+    },
+    {
+      "label": "web-feature-components",
+      "include_glob": "web/src/features/**/*.jsx",
+      "max_lines": 1100,
+      "description": "Feature components stay under the largest current panel size during the split."
+    },
+    {
+      "label": "web-state-modules",
+      "include_glob": "web/src/state/*.js",
+      "max_lines": 300,
+      "description": "Persisted browser-state helpers remain small and focused."
+    },
+    {
+      "label": "automation-scripts",
+      "include_glob": "scripts/*.py",
+      "max_lines": 1250,
+      "description": "Operational scripts should not become new god files."
+    },
+    {
+      "label": "python-tests",
+      "include_glob": "tests/test_*.py",
+      "max_lines": 1300,
+      "description": "Characterization tests remain reviewable while preserving broad coverage."
+    },
+    {
+      "label": "future-api-routers",
+      "include_glob": "photonstrust/api/routers/**/*.py",
+      "max_lines": 900,
+      "allow_zero_matches": true,
+      "description": "Target ceiling for extracted API route families."
+    },
+    {
+      "label": "future-api-services",
+      "include_glob": "photonstrust/api/services/**/*.py",
+      "max_lines": 900,
+      "allow_zero_matches": true,
+      "description": "Target ceiling for extracted API service modules."
+    },
+    {
+      "label": "future-web-hooks-js",
+      "include_glob": "web/src/hooks/**/*.js",
+      "max_lines": 450,
+      "allow_zero_matches": true,
+      "description": "Target ceiling for extracted React hooks."
+    },
+    {
+      "label": "future-web-hooks-jsx",
+      "include_glob": "web/src/hooks/**/*.jsx",
+      "max_lines": 450,
+      "allow_zero_matches": true,
+      "description": "Target ceiling for extracted React hooks that stay in JSX."
+    }
+  ],
+  "characterization_commands": [
+    "python -m pytest -q tests/test_api_contract_v1.py tests/test_api_auth_rbac.py tests/test_api_server_optional.py",
+    "python -m pytest -q tests/test_evidence_bundle_manifest_schema.py tests/test_evidence_bundle_publish_manifest_schema.py tests/test_evidence_bundle_signature_schema.py tests/test_evidence_bundle_signing_verify.py",
+    "python -m pytest -q tests/test_api_phase57_pdk_manifest_and_foundry.py tests/test_api_phase58_invdesign_wave3.py tests/test_phase57_golden_chain_fixture.py tests/test_phase58_w36_flagship_invdesign_fixture.py",
+    "cd web && npm run build && npm run test:ui -- tests/ui.smoke.spec.js tests/ui.workspace.spec.js tests/ui.demo.spec.js tests/ui.a11y.spec.js"
+  ]
+}
