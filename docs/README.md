@@ -15,6 +15,8 @@ document set quickly.
   - End-user oriented entry points and quickstart paths.
 - `dev/README.md`
   - Contributor and maintainer oriented entry points.
+- `archive/README.md`
+  - Historical snapshots and archived documents retained for provenance.
 - `research/README.md`
   - Long-form technical, scientific, and roadmap documentation.
 - `operations/README.md`
@@ -38,3 +40,4 @@ document set quickly.
 - Product demo user: `operations/product/10_minute_quickstart_2026-02-18.md`
 - Research reader: `research/README.md`
 - Maintainer or contributor: `../CONTRIBUTING.md` -> `operations/README.md`
+- Historical repo context: `archive/README.md`

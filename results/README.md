@@ -22,6 +22,10 @@ PhotonTrust writes generated artifacts to `results/` by default.
 
 ## Useful Subdirectories
 
+- `release_gate/`
+  - Checked-in release-gate evidence retained for milestone and audit references.
+- `qutip_parity/`
+  - Checked-in backend parity artifacts retained as historical validation evidence.
 - `research_validation/`
   - Research-anchored validation and benchmark comparison outputs.
 - `product_local/`
@@ -30,3 +34,10 @@ PhotonTrust writes generated artifacts to `results/` by default.
   - Ad hoc example confirmation runs.
 - `validation/`
   - Canonical validation harness outputs.
+
+## Archive Guidance
+
+- Prefer keeping long-lived explanatory context in `docs/archive/` rather than
+  adding more standalone narrative files under `results/`.
+- Keep checked-in `results/` artifacts only when they serve as explicit release,
+  validation, or reproducibility evidence.
