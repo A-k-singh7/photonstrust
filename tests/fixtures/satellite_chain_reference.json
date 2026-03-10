@@ -9,7 +9,57 @@
     "protocol": "BB84_decoy",
     "accumulate_backend": "numpy",
     "output_dir": "<OUTPUT_DIR>",
-    "signing_key": null
+    "signing_key": null,
+    "execution_mode": "preview",
+    "seed_lineage": {
+      "seed": 0,
+      "source": "satellite_qkd_chain.runtime.rng_seed",
+      "deterministic": true
+    },
+    "model_metadata": {
+      "orbit.pass_geometry.effective_thickness": {
+        "citation": "Vallado, D. A. Fundamentals of Astrodynamics and Applications, 4th ed., Microcosm Press, 2013.",
+        "validity_domain": "LEO passes (300-1200 km), elevation 5-90 deg, dt >= 1 s.",
+        "uncertainty_model": "Parametric sensitivity over extinction and turbulence settings.",
+        "known_failure_regimes": [
+          "Non-LEO mission classes without dedicated orbit propagator validation.",
+          "Extreme weather not captured by effective-thickness atmosphere model."
+        ]
+      },
+      "channel.free_space.attenuation": {
+        "citation": "Bourgoin et al., Optics Express 21(1):1040-1062 (2013), doi:10.1364/OE.21.001040.",
+        "validity_domain": "Clear-sky free-space QKD links with fixed-parameter atmosphere model.",
+        "uncertainty_model": "Scintillation and background-rate perturbation with bounded inputs.",
+        "known_failure_regimes": [
+          "Cloud-obscured and heavy-aerosol conditions.",
+          "Adaptive optics feedback loops not represented in static attenuation model."
+        ]
+      },
+      "detector.click_model.stochastic": {
+        "citation": "Hadfield, Nature Photonics 3, 696-705 (2009), doi:10.1038/nphoton.2009.230.",
+        "validity_domain": "Single-photon detector click/noise simulation with calibrated PDE/DCR/jitter.",
+        "uncertainty_model": "Monte Carlo shot-noise and afterpulse perturbation with explicit seed lineage.",
+        "known_failure_regimes": [
+          "Detector saturation and latching outside calibrated count-rate envelope.",
+          "Cryogenic drift without updated calibration inputs."
+        ]
+      },
+      "qkd.bb84_decoy_asymptotic": {
+        "citation": "Lo, Ma, Chen, Phys. Rev. Lett. 94, 230504 (2005), doi:10.1103/PhysRevLett.94.230504.",
+        "validity_domain": "Asymptotic decoy-state BB84 analysis with trusted source assumptions.",
+        "uncertainty_model": "Propagation through channel and detector uncertainty bundles.",
+        "known_failure_regimes": [
+          "Finite-key regimes when asymptotic approximation dominates security margin.",
+          "Source side-channel leakage beyond modeled misalignment term."
+        ]
+      }
+    },
+    "orbit_provider": {
+      "provider_name": "analytic",
+      "provider_version": "geometry-v1",
+      "source_hash": "70b40c93931231abb227e842eba746b4004a1ea87a8bd4f56c2e4beb45236f3a",
+      "trust_status": "trusted"
+    }
   },
   "ground_station": {
     "latitude_deg": 52.5,
@@ -28,6 +78,34 @@
     "peak_key_rate_bps": 2298.0907009609978,
     "peak_elevation_deg": 89.62551770036197
   },
+  "uncertainty_budget": {
+    "enabled": true,
+    "rollup_method": "rss",
+    "required_components": [
+      "orbit_provider_sigma_cps",
+      "parity_derived_sigma_cps"
+    ],
+    "missing_components": [],
+    "components": [
+      {
+        "name": "orbit_provider_sigma_cps",
+        "sigma_cps": 0.0,
+        "present": true,
+        "source": "orbit_provider.uncertainty_sigma_cps"
+      },
+      {
+        "name": "parity_derived_sigma_cps",
+        "sigma_cps": 0.0,
+        "present": true,
+        "source": "orbit_provider.parity_report.derived_uncertainty_sigma_cps"
+      }
+    ],
+    "total_sigma_cps": 0.0,
+    "max_allowed_sigma_cps": 1000.0,
+    "is_complete": true,
+    "within_threshold": true,
+    "pass": true
+  },
   "annual_estimate": {
     "passes_per_day": 3.691775991406375,
     "clear_sky_probability": 0.4,
@@ -38,12 +116,33 @@
   "signoff": {
     "decision": "GO",
     "key_rate_positive_at_zenith": true,
-    "annual_key_above_1mbit": true
+    "annual_key_above_1mbit": true,
+    "provider_trusted": true,
+    "provider_parity_ok": true,
+    "provider_uncertainty_ok": true,
+    "uncertainty_budget_complete": true,
+    "uncertainty_budget_within_threshold": true,
+    "uncertainty_budget_ok": true,
+    "orbit_provider_trust_status": "trusted",
+    "hold_reasons": []
   },
   "signature": null,
   "artifacts": {
     "orbit_pass_id": "eagle1_analog_berlin",
     "orbit_case_id": "median",
-    "pic_certificate_path": null
+    "pic_certificate_path": null,
+    "orbit_provider": {
+      "requested_name": "analytic",
+      "selected_name": "analytic",
+      "used_fallback": false
+    }
+  },
+  "provenance": {
+    "orbit_provider": {
+      "provider_name": "analytic",
+      "provider_version": "geometry-v1",
+      "source_hash": "70b40c93931231abb227e842eba746b4004a1ea87a8bd4f56c2e4beb45236f3a",
+      "trust_status": "trusted"
+    }
   }
 }

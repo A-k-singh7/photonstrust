@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Any
+from typing import Any, Callable, cast
 
 from photonstrust.components.pic.crosstalk import predict_parallel_waveguide_xt_db
 from photonstrust.pdk import get_pdk
@@ -1153,19 +1153,24 @@ def estimate_process_yield(
         
         try:
             import photonstrust_rs
-            
+
+            rs_estimator_raw = getattr(photonstrust_rs, "estimate_process_yield_rs", None)
+            if not callable(rs_estimator_raw):
+                raise ImportError("photonstrust_rs missing estimate_process_yield_rs")
+            rs_estimator = cast(Callable[..., float], rs_estimator_raw)
+
             nominals = [float(row["nominal"]) for row in parsed]
             sigmas = [float(row["sigma_effective"]) for row in parsed]
             mins = [float(row["limits"]["min_allowed"]) for row in parsed]
             maxes = [float(row["limits"]["max_allowed"]) for row in parsed]
-            
+
             active_idx = corr_active_idx if use_correlation else None
             cov_c = cov_cholesky if use_correlation else None
-            
-            mc_yield = photonstrust_rs.estimate_process_yield_rs(
-                nominals, sigmas, mins, maxes, samples, int(seed), cov_c, active_idx
+
+            mc_yield = float(
+                rs_estimator(nominals, sigmas, mins, maxes, samples, int(seed), cov_c, active_idx)
             )
-        except ImportError:
+        except (ImportError, AttributeError):
             rng = random.Random(int(seed))
             pass_count = 0
 

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 import sys
+from typing import Any
 
 import pytest
 
@@ -23,7 +24,7 @@ def _base_config() -> dict:
 
 
 def _build_fake_optuna_module() -> ModuleType:
-    module = ModuleType("optuna")
+    module: Any = ModuleType("optuna")
 
     class _TPESampler:
         def __init__(self, *, seed: int) -> None:
@@ -82,10 +83,12 @@ def test_optimize_satellite_chain_config_with_fake_optuna_writes_report(
 
     def _fake_run_satellite_chain(config: dict, *, output_dir: Path) -> dict:
         _ = output_dir
-        sat = config.get("satellite_qkd_chain") if isinstance(config, dict) else None
-        sat_cfg = sat if isinstance(sat, dict) else {}
-        atmosphere = sat_cfg.get("atmosphere") if isinstance(sat_cfg.get("atmosphere"), dict) else {}
-        ground = sat_cfg.get("ground_station") if isinstance(sat_cfg.get("ground_station"), dict) else {}
+        sat_raw = config.get("satellite_qkd_chain") if isinstance(config, dict) else None
+        sat_cfg = sat_raw if isinstance(sat_raw, dict) else {}
+        atmosphere_raw = sat_cfg.get("atmosphere")
+        atmosphere = atmosphere_raw if isinstance(atmosphere_raw, dict) else {}
+        ground_raw = sat_cfg.get("ground_station")
+        ground = ground_raw if isinstance(ground_raw, dict) else {}
         detector = float(ground.get("detector_pde", 0.0) or 0.0)
         coupling = float(ground.get("fibre_coupling_efficiency", 0.0) or 0.0)
         jitter = float(atmosphere.get("pointing_jitter_urad", 0.0) or 0.0)
@@ -106,7 +109,15 @@ def test_optimize_satellite_chain_config_with_fake_optuna_writes_report(
     assert payload["study_name"] == "unit_optuna"
     assert payload["trial_count"] == 3
     assert isinstance(payload["best_params"], dict)
+    assert len(payload["trials"]) == 3
     assert len(payload["top_trials"]) == 3
+    assert payload["lineage"]["seed"] == 7
+    assert payload["lineage"]["objective_config_hash"]
+    assert payload["lineage"]["study_metadata"]["direction"] == "maximize"
+    assert payload["lineage"]["storage"]["enabled"] is False
+    assert payload["lineage"]["replay_fingerprint"]
+    assert all("seed" in row for row in payload["top_trials"])
+    assert all("trial_lineage" in row for row in payload["top_trials"])
     values = [float(row["value"]) for row in payload["top_trials"]]
     assert values == sorted(values, reverse=True)
 
@@ -135,3 +146,12 @@ def test_optimize_satellite_chain_config_without_optuna_raises_runtime_error(
 
     with pytest.raises(RuntimeError, match="optuna is required"):
         optuna_mod.optimize_satellite_chain_config(_base_config(), output_dir=tmp_path)
+
+
+def test_optimize_satellite_chain_config_resume_requires_storage(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="resume=true requires storage_url"):
+        optuna_mod.optimize_satellite_chain_config(
+            _base_config(),
+            output_dir=tmp_path,
+            resume=True,
+        )

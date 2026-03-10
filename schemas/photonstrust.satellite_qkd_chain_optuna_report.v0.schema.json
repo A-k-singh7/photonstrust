@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.satellite_qkd_chain_optuna_report.v0.schema.json",
+  "title": "PhotonTrust satellite QKD chain Optuna report v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "study_name",
+    "trial_count",
+    "best_value",
+    "best_params",
+    "trials",
+    "top_trials",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "satellite_qkd_chain_optuna_report"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "study_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trial_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_value": {
+      "type": "number"
+    },
+    "best_params": {
+      "type": "object"
+    },
+    "trials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trial",
+          "value",
+          "params",
+          "seed",
+          "state",
+          "trial_lineage"
+        ],
+        "properties": {
+          "trial": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "value": {
+            "type": "number"
+          },
+          "params": {
+            "type": "object"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trial_lineage": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "trial_id",
+              "candidate_config_hash",
+              "result_run_id",
+              "result_output_path"
+            ],
+            "properties": {
+              "trial_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "candidate_config_hash": {
+                "type": "string",
+                "minLength": 8
+              },
+              "result_run_id": {
+                "type": "string"
+              },
+              "result_output_path": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "top_trials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trial",
+          "value",
+          "params",
+          "seed",
+          "state",
+          "trial_lineage"
+        ],
+        "properties": {
+          "trial": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "value": {
+            "type": "number"
+          },
+          "params": {
+            "type": "object"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trial_lineage": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "trial_id",
+              "candidate_config_hash",
+              "result_run_id",
+              "result_output_path"
+            ],
+            "properties": {
+              "trial_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "candidate_config_hash": {
+                "type": "string",
+                "minLength": 8
+              },
+              "result_run_id": {
+                "type": "string"
+              },
+              "result_output_path": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "seed",
+        "seed_source",
+        "seed_strategy",
+        "objective_config_hash",
+        "study_metadata",
+        "storage",
+        "backend_metadata",
+        "replay_fingerprint"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seed_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed_strategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective_config_hash": {
+          "type": "string",
+          "minLength": 8
+        },
+        "study_metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "direction",
+            "sampler",
+            "optuna_version"
+          ],
+          "properties": {
+            "direction": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sampler": {
+              "type": "string",
+              "minLength": 1
+            },
+            "optuna_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "storage_url",
+            "resume"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "storage_url": {
+              "type": "string"
+            },
+            "resume": {
+              "type": "boolean"
+            }
+          }
+        },
+        "backend_metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "optimizer",
+            "python_version"
+          ],
+          "properties": {
+            "optimizer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "python_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "replay_fingerprint": {
+          "type": "string",
+          "minLength": 8
+        },
+        "tracking": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "run_id",
+            "tracking_uri"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string"
+            },
+            "run_id": {
+              "type": "string"
+            },
+            "tracking_uri": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "report_path": {
+      "type": "string"
+    }
+  }
+}

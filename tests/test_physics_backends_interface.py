@@ -108,3 +108,5 @@ def test_backend_applicability_and_provenance_payload_shapes() -> None:
     assert provenance["backend_name"] == "stochastic"
     assert provenance["backend_version"] == "0.1"
     assert provenance["seed"] == 77
+    assert isinstance(provenance.get("model_metadata"), dict)
+    assert provenance["model_metadata"]

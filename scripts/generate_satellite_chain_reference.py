@@ -26,6 +26,8 @@ def _round_floats(obj: Any) -> Any:
         return round(float(obj), 15)
     if isinstance(obj, list):
         return [_round_floats(item) for item in obj]
+    if isinstance(obj, tuple):
+        return [_round_floats(item) for item in obj]
     if isinstance(obj, dict):
         return {str(key): _round_floats(value) for key, value in obj.items()}
     return obj

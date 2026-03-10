@@ -70,6 +70,14 @@ def _minimal_chain_certificate() -> dict:
         "run_id": "abcd1234ef56",
         "generated_at": "2026-03-02T00:00:00Z",
         "mission": "m5_minimal",
+        "inputs": {
+            "orbit_provider": {
+                "provider_name": "analytic",
+                "provider_version": "geometry-v1",
+                "source_hash": "1" * 64,
+                "trust_status": "trusted",
+            }
+        },
         "ground_station": {
             "latitude_deg": 52.5,
             "pic_cert_run_id": None,
@@ -94,12 +102,60 @@ def _minimal_chain_certificate() -> dict:
             "key_mbits_per_year": 25.874,
             "notes": "night passes only",
         },
+        "uncertainty_budget": {
+            "enabled": True,
+            "rollup_method": "rss",
+            "required_components": ["orbit_provider_sigma_cps", "parity_derived_sigma_cps"],
+            "missing_components": [],
+            "components": [
+                {
+                    "name": "orbit_provider_sigma_cps",
+                    "sigma_cps": 12.0,
+                    "present": True,
+                    "source": "orbit_provider.uncertainty_sigma_cps",
+                },
+                {
+                    "name": "parity_derived_sigma_cps",
+                    "sigma_cps": 8.0,
+                    "present": True,
+                    "source": "orbit_provider.parity_report.derived_uncertainty_sigma_cps",
+                },
+            ],
+            "total_sigma_cps": 14.422205101855956,
+            "max_allowed_sigma_cps": 100.0,
+            "is_complete": True,
+            "within_threshold": True,
+            "pass": True,
+        },
         "signoff": {
             "decision": "GO",
             "key_rate_positive_at_zenith": True,
             "annual_key_above_1mbit": True,
+            "provider_trusted": True,
+            "provider_parity_ok": True,
+            "provider_uncertainty_ok": True,
+            "uncertainty_budget_complete": True,
+            "uncertainty_budget_within_threshold": True,
+            "uncertainty_budget_ok": True,
+            "orbit_provider_trust_status": "trusted",
+            "hold_reasons": [],
         },
         "signature": None,
+        "artifacts": {
+            "orbit_provider": {
+                "requested_name": "analytic",
+                "selected_name": "analytic",
+                "used_fallback": False,
+            }
+        },
+        "provenance": {
+            "orbit_provider": {
+                "provider_name": "analytic",
+                "provider_version": "geometry-v1",
+                "source_hash": "1" * 64,
+                "trust_status": "trusted",
+            }
+        },
     }
 
 
@@ -114,6 +170,31 @@ def test_satellite_chain_schema_rejects_missing_required_field() -> None:
         validate_instance(bad, satellite_qkd_chain_schema_path())
 
 
+def test_satellite_chain_schema_accepts_orbit_provider_block() -> None:
+    payload = _minimal_chain_config()
+    payload["satellite_qkd_chain"]["orbit_provider"] = {
+        "name": "analytic",
+        "allow_fallback": True,
+        "trusted_providers": ["analytic"],
+        "max_uncertainty_sigma_cps": 100.0,
+    }
+    validate_instance(payload, satellite_qkd_chain_schema_path())
+
+
+def test_satellite_chain_schema_accepts_runtime_uncertainty_budget_block() -> None:
+    payload = _minimal_chain_config()
+    payload["satellite_qkd_chain"]["runtime"] = {
+        "uncertainty_budget": {
+            "enabled": True,
+            "rollup_method": "rss",
+            "max_total_sigma_cps": 120.0,
+            "require_complete": True,
+            "required_components": ["orbit_provider_sigma_cps", "parity_derived_sigma_cps"],
+        }
+    }
+    validate_instance(payload, satellite_qkd_chain_schema_path())
+
+
 def test_satellite_chain_certificate_schema_accepts_minimal_valid_instance() -> None:
     validate_instance(_minimal_chain_certificate(), satellite_qkd_chain_certificate_schema_path())
 
@@ -123,4 +204,3 @@ def test_satellite_chain_certificate_schema_rejects_missing_pass_object() -> Non
     bad.pop("pass")
     with pytest.raises(SchemaValidationError):
         validate_instance(bad, satellite_qkd_chain_certificate_schema_path())
-

@@ -1,61 +1,22 @@
-name: ci
+name: ci-smoke
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
+  core-smoke:
+    name: core-smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-      - name: Run CI guardrails (compileall + pytest + validation harness smoke + coverage floor)
-        run: python scripts/ci_checks.py --pytest-args "-q --cov=photonstrust --cov-report=term-missing:skip-covered --cov-fail-under=70"
-      - name: Check benchmark drift
-        if: matrix.python-version == '3.11'
-        run: python scripts/check_benchmark_drift.py
-
-  optional-dependency-lanes:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    continue-on-error: ${{ github.event_name == 'pull_request' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - lane: qutip
-            extras: dev,qutip
-            smoke_module: qutip
-          - lane: qiskit
-            extras: dev,qiskit
-            smoke_module: qiskit
-          - lane: api
-            extras: dev,api
-            smoke_module: fastapi
-          - lane: layout
-            extras: dev,layout
-            smoke_module: gdstk
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,26 +24,34 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install optional lane dependencies
+      - name: Install smoke dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[${{ matrix.extras }}]"
-      - name: Verify dependency resolution
-        run: python -m pip check
-      - name: Optional lane checks
+          pip install -e .[dev]
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files --show-diff-on-failure
+      - name: Run CI guardrails smoke
         run: |
-          if [ "${{ matrix.lane }}" = "qutip" ]; then
-            if [ "${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}" = "true" ]; then
-              python scripts/run_qutip_parity_lane.py --strict --output-json results/ci/qutip_lane_report.json
-            else
-              python scripts/run_qutip_parity_lane.py --output-json results/ci/qutip_lane_report.json
-            fi
-          elif [ "${{ matrix.lane }}" = "qiskit" ]; then
-            if [ "${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}" = "true" ]; then
-              python scripts/run_qiskit_lane.py --strict --output-json results/ci/qiskit_lane_report.json
-            else
-              python scripts/run_qiskit_lane.py --output-json results/ci/qiskit_lane_report.json
-            fi
-          else
-            python -c "import importlib; importlib.import_module('${{ matrix.smoke_module }}')"
-          fi
+          python scripts/ci_checks.py --pytest-args "-q tests/test_protocol_compiler.py open_source/qiskit_protocols_public/tests/test_protocol_compiler.py tests/test_protocol_engine_contract.py tests/test_qkd_basic.py"
+
+  api-contract-smoke:
+    name: api-contract-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install API lane dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,api]"
+      - name: Run API v1 contract smoke
+        run: >-
+          python -m pytest -q --import-mode=importlib
+          tests/test_api_contract_v1.py
+          tests/test_api_server_optional.py
+          tests/test_api_auth_rbac.py

@@ -5,8 +5,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
-_EARTH_RADIUS_KM = 6371.0
-_EARTH_MU_KM3_S2 = 3.986004418e5
+_EARTH_RADIUS_KM = 6371.0  # physics-constant-ok: WGS84-equivalent spherical Earth radius for planning estimator
+_EARTH_MU_KM3_S2 = 3.986004418e5  # physics-constant-ok: standard gravitational parameter in km^3/s^2
 
 
 def slant_range_km(el_deg: float, altitude_km: float) -> float:

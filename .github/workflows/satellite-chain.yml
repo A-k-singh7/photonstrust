@@ -10,9 +10,11 @@ on:
       - "photonstrust/workflow/schema.py"
       - "schemas/photonstrust.satellite_qkd_chain*.json"
       - "scripts/run_satellite_chain_demo.py"
+      - "scripts/run_orbit_provider_parity.py"
       - "scripts/generate_satellite_chain_reference.py"
       - "tests/test_satellite_chain*.py"
       - "tests/test_satellite_geometry.py"
+      - "tests/test_run_orbit_provider_parity_script.py"
       - "tests/fixtures/satellite_chain_reference.json"
   pull_request:
     paths:
@@ -23,9 +25,11 @@ on:
       - "photonstrust/workflow/schema.py"
       - "schemas/photonstrust.satellite_qkd_chain*.json"
       - "scripts/run_satellite_chain_demo.py"
+      - "scripts/run_orbit_provider_parity.py"
       - "scripts/generate_satellite_chain_reference.py"
       - "tests/test_satellite_chain*.py"
       - "tests/test_satellite_geometry.py"
+      - "tests/test_run_orbit_provider_parity_script.py"
       - "tests/fixtures/satellite_chain_reference.json"
   workflow_dispatch:
 
@@ -62,7 +66,8 @@ jobs:
             tests/test_satellite_chain_schema.py \
             tests/test_satellite_chain_pipeline.py \
             tests/test_satellite_chain_cli.py \
-            tests/test_satellite_chain_reference.py
+            tests/test_satellite_chain_reference.py \
+            tests/test_run_orbit_provider_parity_script.py
 
       - name: Run satellite-chain scenarios
         run: |
@@ -86,6 +91,14 @@ jobs:
               print(f"validated: {cert_path}")
           PY
 
+      - name: Run orbit provider parity lane
+        run: |
+          python scripts/run_orbit_provider_parity.py \
+            configs/satellite/eagle1_analog_berlin.yml \
+            configs/satellite/eagle1_analog_snspd.yml \
+            configs/satellite/micius_analog.yml \
+            --output-dir results/satellite_chain_ci/parity
+
       - name: Upload satellite-chain artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,3 +106,11 @@ jobs:
           name: satellite-chain-artifacts
           path: |
             results/satellite_chain_ci/
+
+      - name: Upload orbit provider parity artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: satellite-chain-parity-artifacts
+          path: |
+            results/satellite_chain_ci/parity/

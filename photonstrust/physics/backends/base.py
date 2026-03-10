@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from photonstrust.physics.model_metadata import model_metadata_for_backend
+
 
 _APPLICABILITY_STATUSES = {"pass", "warn", "fail"}
 
@@ -66,11 +68,13 @@ class PhysicsBackend(ABC):
         raise NotImplementedError
 
     def provenance(self, *, seed: int | None = None, details: Mapping[str, Any] | None = None) -> BackendProvenance:
+        merged = dict(details or {})
+        merged.setdefault("model_metadata", model_metadata_for_backend(self.backend_name))
         return BackendProvenance(
             backend_name=self.backend_name,
             backend_version=self.backend_version,
             seed=int(seed) if seed is not None else None,
-            details=dict(details or {}),
+            details=merged,
         )
 
 

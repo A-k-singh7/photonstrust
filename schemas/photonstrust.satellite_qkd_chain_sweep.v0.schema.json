@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://photonstrust.dev/schemas/photonstrust.satellite_qkd_chain_sweep.v0.schema.json",
+  "title": "PhotonTrust satellite QKD chain sweep report v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "summary",
+    "runs",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "satellite_qkd_chain_sweep"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "run_count",
+        "decision_counts",
+        "error_count",
+        "key_bits_total",
+        "mean_key_rate_bps_avg",
+        "backend",
+        "seed",
+        "status"
+      ],
+      "properties": {
+        "run_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "GO",
+            "HOLD"
+          ],
+          "properties": {
+            "GO": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "HOLD": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "error_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "key_bits_total": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "mean_key_rate_bps_avg": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "backend": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "failed"
+          ]
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "row_index",
+          "mission_id",
+          "config_path",
+          "config_hash",
+          "decision",
+          "key_bits_accumulated",
+          "mean_key_rate_bps",
+          "output_path",
+          "seed",
+          "status",
+          "attempts"
+        ],
+        "properties": {
+          "row_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mission_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "config_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "config_hash": {
+            "type": "string",
+            "minLength": 8
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "GO",
+              "HOLD"
+            ]
+          },
+          "key_bits_accumulated": {
+            "type": "number",
+            "minimum": 0.0
+          },
+          "mean_key_rate_bps": {
+            "type": "number",
+            "minimum": 0.0
+          },
+          "output_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "seed",
+        "seed_source",
+        "seed_strategy",
+        "input_order_fingerprint",
+        "backend_metadata",
+        "execution_policy"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seed_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed_strategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_order_fingerprint": {
+          "type": "string",
+          "minLength": 8
+        },
+        "backend_metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "name",
+            "version",
+            "python_version"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "python_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "execution_policy": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "job_timeout_s",
+            "max_retries",
+            "max_workers",
+            "ray_num_cpus",
+            "ray_memory_mb",
+            "ray_max_in_flight",
+            "require_complete_results"
+          ],
+          "properties": {
+            "job_timeout_s": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "max_retries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_workers": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "ray_num_cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0.0
+            },
+            "ray_memory_mb": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ray_max_in_flight": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "require_complete_results": {
+              "type": "boolean"
+            }
+          }
+        },
+        "tracking": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "run_id",
+            "tracking_uri"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string"
+            },
+            "run_id": {
+              "type": "string"
+            },
+            "tracking_uri": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "report_path": {
+      "type": "string"
+    }
+  }
+}

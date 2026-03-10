@@ -235,6 +235,128 @@
             }
           }
         },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "execution_mode": {
+              "type": "string",
+              "enum": ["preview", "certification"]
+            },
+            "rng_seed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "enforce_trusted_backends": {
+              "type": "boolean"
+            },
+            "trusted_backends": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": ["numpy", "jax", "auto"]
+              }
+            },
+            "uncertainty_budget": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "rollup_method": {
+                  "type": "string",
+                  "enum": ["rss"]
+                },
+                "max_total_sigma_cps": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "require_complete": {
+                  "type": "boolean"
+                },
+                "required_components": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+          }
+        },
+        "orbit_provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allow_fallback": {
+              "type": "boolean"
+            },
+            "trusted_providers": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "expected_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_source_hash": {
+              "type": "string",
+              "minLength": 8
+            },
+            "max_uncertainty_sigma_cps": {
+              "type": "number",
+              "minimum": 0
+            },
+            "reference_provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "require_parity": {
+              "type": "boolean"
+            },
+            "tle_line1": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tle_line2": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tle_source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parity_max_start_end_delta_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "parity_max_peak_elevation_delta_deg": {
+              "type": "number",
+              "minimum": 0
+            },
+            "parity_max_peak_slant_range_delta_km": {
+              "type": "number",
+              "minimum": 0
+            },
+            "parity_max_sample_count_delta": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
         "target_security_epsilon": {
           "type": "number",
           "exclusiveMinimum": 0

@@ -2,8 +2,10 @@
 
 Runs:
 1) compileall bytecode checks
-2) pytest suite
-3) validation harness smoke (single canonical baseline case)
+2) ruff lint gate
+3) model metadata + hardcoded-constant contract checks
+4) pytest suite
+5) validation harness smoke (single canonical baseline case)
 """
 
 from __future__ import annotations
@@ -69,6 +71,18 @@ def main() -> int:
         (
             "compileall",
             [sys.executable, "-m", "compileall", "-q", "photonstrust", "scripts", "tests"],
+        ),
+        (
+            "ruff",
+            [sys.executable, "-m", "ruff", "check", "photonstrust", "scripts", "tests"],
+        ),
+        (
+            "model_metadata_contract",
+            [sys.executable, "scripts/check_model_metadata_contract.py"],
+        ),
+        (
+            "hardcoded_physics_constants",
+            [sys.executable, "scripts/check_hardcoded_physics_constants.py"],
         ),
         (
             "pytest",

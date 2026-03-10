@@ -12,6 +12,7 @@
     "mission",
     "ground_station",
     "pass",
+    "uncertainty_budget",
     "signoff"
   ],
   "properties": {
@@ -37,7 +38,37 @@
     },
     "inputs": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": true,
+      "properties": {
+        "orbit_provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider_name",
+            "provider_version",
+            "source_hash",
+            "trust_status"
+          ],
+          "properties": {
+            "provider_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_hash": {
+              "type": "string",
+              "minLength": 8
+            },
+            "trust_status": {
+              "type": "string",
+              "enum": ["trusted", "untrusted", "unavailable"]
+            }
+          }
+        }
+      }
     },
     "ground_station": {
       "type": "object",
@@ -155,13 +186,109 @@
         }
       }
     },
+    "uncertainty_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "rollup_method",
+        "required_components",
+        "missing_components",
+        "components",
+        "total_sigma_cps",
+        "max_allowed_sigma_cps",
+        "is_complete",
+        "within_threshold",
+        "pass"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "rollup_method": {
+          "type": "string",
+          "enum": ["rss"]
+        },
+        "required_components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "missing_components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "sigma_cps",
+              "present",
+              "source"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sigma_cps": {
+                "type": ["number", "null"],
+                "minimum": 0
+              },
+              "present": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "total_sigma_cps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_allowed_sigma_cps": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "is_complete": {
+          "type": "boolean"
+        },
+        "within_threshold": {
+          "type": "boolean"
+        },
+        "pass": {
+          "type": "boolean"
+        }
+      }
+    },
     "signoff": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "decision",
         "key_rate_positive_at_zenith",
-        "annual_key_above_1mbit"
+        "annual_key_above_1mbit",
+        "provider_trusted",
+        "provider_parity_ok",
+        "provider_uncertainty_ok",
+        "uncertainty_budget_complete",
+        "uncertainty_budget_within_threshold",
+        "uncertainty_budget_ok",
+        "orbit_provider_trust_status",
+        "hold_reasons"
       ],
       "properties": {
         "decision": {
@@ -173,6 +300,35 @@
         },
         "annual_key_above_1mbit": {
           "type": "boolean"
+        },
+        "provider_trusted": {
+          "type": "boolean"
+        },
+        "provider_parity_ok": {
+          "type": "boolean"
+        },
+        "provider_uncertainty_ok": {
+          "type": "boolean"
+        },
+        "uncertainty_budget_complete": {
+          "type": "boolean"
+        },
+        "uncertainty_budget_within_threshold": {
+          "type": "boolean"
+        },
+        "uncertainty_budget_ok": {
+          "type": "boolean"
+        },
+        "orbit_provider_trust_status": {
+          "type": "string",
+          "enum": ["trusted", "untrusted", "unavailable"]
+        },
+        "hold_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -182,7 +338,63 @@
     },
     "artifacts": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": true,
+      "properties": {
+        "orbit_provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested_name",
+            "selected_name",
+            "used_fallback"
+          ],
+          "properties": {
+            "requested_name": {
+              "type": "string"
+            },
+            "selected_name": {
+              "type": "string"
+            },
+            "used_fallback": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "orbit_provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider_name",
+            "provider_version",
+            "source_hash",
+            "trust_status"
+          ],
+          "properties": {
+            "provider_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_hash": {
+              "type": "string",
+              "minLength": 8
+            },
+            "trust_status": {
+              "type": "string",
+              "enum": ["trusted", "untrusted", "unavailable"]
+            }
+          }
+        }
+      }
     }
   }
 }

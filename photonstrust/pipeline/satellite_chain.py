@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from photonstrust.evidence.signing import sign_bytes_ed25519
 from photonstrust.orbit import annual_pass_count, generate_elevation_profile, simulate_orbit_pass
+from photonstrust.orbit.provider_manager import resolve_orbit_provider
+from photonstrust.physics.model_metadata import model_metadata_for_keys
 from photonstrust.pdk.registry import get_pdk
 from photonstrust.pipeline.certify import run_certify
 from photonstrust.pipeline.satellite_chain_accel import accumulate_key_bits
@@ -18,6 +21,10 @@ from photonstrust.utils import hash_dict
 from photonstrust.workflow.schema import (
     satellite_qkd_chain_certificate_schema_path,
     satellite_qkd_chain_schema_path,
+)
+from photonstrust.workflow.runtime_models import (
+    validate_satellite_chain_certificate,
+    validate_satellite_chain_config,
 )
 
 
@@ -33,31 +40,76 @@ def run_satellite_chain(
         raise TypeError("run_satellite_chain expects config as dict")
 
     _validate_chain_config_schema_if_available(config)
-    sat_cfg = config.get("satellite_qkd_chain")
-    if not isinstance(sat_cfg, dict):
-        raise ValueError("config.satellite_qkd_chain is required")
+    validated_config = validate_satellite_chain_config(config)
+    sat_cfg = validated_config.satellite_qkd_chain.model_dump(exclude_none=True)
+    runtime_cfg = validated_config.satellite_qkd_chain.runtime
+    compute_cfg = validated_config.satellite_qkd_chain.compute
+    orbit_provider_cfg = validated_config.satellite_qkd_chain.orbit_provider
 
-    mission_id = str(sat_cfg.get("id") or "satellite_chain").strip() or "satellite_chain"
+    mission_id = str(validated_config.satellite_qkd_chain.id).strip() or "satellite_chain"
     out_root = Path(output_dir).expanduser().resolve() if output_dir is not None else None
     if out_root is not None:
         out_root.mkdir(parents=True, exist_ok=True)
 
     eta_chip, pic_cert_meta = _resolve_eta_chip(sat_cfg=sat_cfg, output_dir=out_root)
-    orbit_cfg, eta_ground_terminal = _build_orbit_pass_config(sat_cfg=sat_cfg, eta_chip=eta_chip)
+    accumulate_backend = str(compute_cfg.accumulate_backend)
+    execution_mode = str(runtime_cfg.execution_mode)
+    _enforce_trusted_compute_backend(
+        execution_mode=execution_mode,
+        accumulate_backend=accumulate_backend,
+        trusted_backends=runtime_cfg.trusted_backends,
+        enforce=bool(runtime_cfg.enforce_trusted_backends),
+    )
+
+    default_samples = _generate_default_orbit_samples(sat_cfg=sat_cfg)
+    provider_selection = resolve_orbit_provider(
+        provider_cfg=orbit_provider_cfg.model_dump(exclude_none=True),
+        execution_mode=execution_mode,
+        sat_cfg=sat_cfg,
+        fallback_samples=default_samples,
+    )
+    orbit_cfg, eta_ground_terminal = _build_orbit_pass_config(
+        sat_cfg=sat_cfg,
+        eta_chip=eta_chip,
+        orbit_samples=list(provider_selection.get("samples") or default_samples),
+        execution_mode=execution_mode,
+    )
     orbit_result = simulate_orbit_pass(orbit_cfg)
-    compute_cfg = sat_cfg.get("compute")
-    if not isinstance(compute_cfg, dict):
-        compute_cfg = {}
-    accumulate_backend = str(compute_cfg.get("accumulate_backend") or "numpy").strip().lower() or "numpy"
+
+    seed_lineage = {
+        "seed": int(runtime_cfg.rng_seed),
+        "source": "satellite_qkd_chain.runtime.rng_seed",
+        "deterministic": True,
+    }
+    model_metadata = _model_metadata_for_chain(protocol=str(sat_cfg.get("protocol") or "BB84_decoy"))
 
     pass_metrics = _accumulate_pass_metrics(orbit_result, accumulate_backend=accumulate_backend)
     annual = _estimate_annual_yield(sat_cfg=sat_cfg, pass_metrics=pass_metrics)
-    signoff = _build_signoff(pass_metrics=pass_metrics, annual=annual)
+    uncertainty_budget = _build_uncertainty_budget(
+        provider_selection=provider_selection,
+        runtime_cfg=runtime_cfg.model_dump(exclude_none=True),
+    )
+    signoff = _build_signoff(
+        pass_metrics=pass_metrics,
+        annual=annual,
+        provider_selection=provider_selection,
+        uncertainty_budget=uncertainty_budget,
+    )
+    provider_provenance = _provider_provenance(provider_selection)
 
     certificate: dict[str, Any] = {
         "schema_version": "0.1",
         "kind": "satellite_qkd_chain_certificate",
-        "run_id": _run_id_for(mission_id=mission_id, payload={"orbit": orbit_result, "pass": pass_metrics}),
+        "run_id": _run_id_for(
+            mission_id=mission_id,
+            payload={
+                "orbit": orbit_result,
+                "pass": pass_metrics,
+                "execution_mode": execution_mode,
+                "seed_lineage": seed_lineage,
+                "orbit_provider": _provider_provenance(provider_selection),
+            },
+        ),
         "generated_at": _now_iso(),
         "mission": mission_id,
         "inputs": {
@@ -66,6 +118,10 @@ def run_satellite_chain(
             "accumulate_backend": accumulate_backend,
             "output_dir": str(out_root) if out_root is not None else None,
             "signing_key": str(Path(signing_key).expanduser().resolve()) if signing_key is not None else None,
+            "execution_mode": execution_mode,
+            "seed_lineage": seed_lineage,
+            "model_metadata": model_metadata,
+            "orbit_provider": provider_provenance,
         },
         "ground_station": {
             "latitude_deg": float(((sat_cfg.get("ground_station") or {}).get("latitude_deg") or 0.0)),
@@ -84,6 +140,7 @@ def run_satellite_chain(
             "peak_key_rate_bps": float(pass_metrics["peak_key_rate_bps"]),
             "peak_elevation_deg": float(pass_metrics["peak_elevation_deg"]),
         },
+        "uncertainty_budget": uncertainty_budget,
         "annual_estimate": annual,
         "signoff": signoff,
         "signature": None,
@@ -91,6 +148,14 @@ def run_satellite_chain(
             "orbit_pass_id": orbit_result.get("pass_id"),
             "orbit_case_id": pass_metrics.get("case_id"),
             "pic_certificate_path": pic_cert_meta.get("certificate_path"),
+            "orbit_provider": {
+                "requested_name": str(provider_selection.get("requested_name") or ""),
+                "selected_name": str(provider_selection.get("selected_name") or ""),
+                "used_fallback": bool(provider_selection.get("used_fallback", False)),
+            },
+        },
+        "provenance": {
+            "orbit_provider": provider_provenance,
         },
     }
 
@@ -106,6 +171,7 @@ def run_satellite_chain(
             "message_sha256": hashlib.sha256(message).hexdigest(),
         }
 
+    validate_satellite_chain_certificate(certificate)
     _validate_chain_certificate_schema_if_available(certificate)
 
     output_path: str | None = None
@@ -148,9 +214,10 @@ def _resolve_eta_chip(*, sat_cfg: dict[str, Any], output_dir: Path | None) -> tu
         eta_chip = _coerce_float((target or {}).get("eta_chip"), default=None)
         if eta_chip is None:
             eta_chip = _coerce_float(raw_eta_chip, default=1.0)
+        eta_chip_value = float(eta_chip if eta_chip is not None else 1.0)
 
         return (
-            float(max(0.0, min(1.0, eta_chip))),
+            float(max(0.0, min(1.0, eta_chip_value))),
             {
                 "run_id": str(((certificate or {}).get("signoff") or {}).get("run_id") or "") or None,
                 "certificate_path": cert_result.get("output_path") if isinstance(cert_result, dict) else None,
@@ -158,13 +225,12 @@ def _resolve_eta_chip(*, sat_cfg: dict[str, Any], output_dir: Path | None) -> tu
         )
 
     eta_chip = _coerce_float(raw_eta_chip, default=1.0)
-    return float(max(0.0, min(1.0, eta_chip))), {"run_id": None, "certificate_path": None}
+    eta_chip_value = float(eta_chip if eta_chip is not None else 1.0)
+    return float(max(0.0, min(1.0, eta_chip_value))), {"run_id": None, "certificate_path": None}
 
 
-def _build_orbit_pass_config(*, sat_cfg: dict[str, Any], eta_chip: float) -> tuple[dict[str, Any], float]:
+def _generate_default_orbit_samples(*, sat_cfg: dict[str, Any]) -> list[dict[str, Any]]:
     sat = sat_cfg.get("satellite") or {}
-    atm = sat_cfg.get("atmosphere") or {}
-    ground = sat_cfg.get("ground_station") or {}
     pass_geo = sat_cfg.get("pass_geometry") or {}
 
     altitude_km = float(sat.get("altitude_km") or 600.0)
@@ -174,14 +240,34 @@ def _build_orbit_pass_config(*, sat_cfg: dict[str, Any], eta_chip: float) -> tup
 
     low_bg = 5000.0 if day_night == "day" else 200.0
     high_bg = 2000.0 if day_night == "day" else 50.0
-    samples = generate_elevation_profile(
-        altitude_km=altitude_km,
-        el_min_deg=el_min_deg,
-        dt_s=dt_s,
-        day_night=day_night,
-        low_el_background_cps=low_bg,
-        high_el_background_cps=high_bg,
+    return list(
+        generate_elevation_profile(
+            altitude_km=altitude_km,
+            el_min_deg=el_min_deg,
+            dt_s=dt_s,
+            day_night=day_night,
+            low_el_background_cps=low_bg,
+            high_el_background_cps=high_bg,
+        )
     )
+
+
+def _build_orbit_pass_config(
+    *,
+    sat_cfg: dict[str, Any],
+    eta_chip: float,
+    orbit_samples: list[dict[str, Any]],
+    execution_mode: str,
+) -> tuple[dict[str, Any], float]:
+    sat = sat_cfg.get("satellite") or {}
+    atm = sat_cfg.get("atmosphere") or {}
+    ground = sat_cfg.get("ground_station") or {}
+    pass_geo = sat_cfg.get("pass_geometry") or {}
+
+    altitude_km = float(sat.get("altitude_km") or 600.0)
+    el_min_deg = float(pass_geo.get("elevation_min_deg") or 15.0)
+    dt_s = float(pass_geo.get("dt_s") or 5.0)
+    day_night = str(pass_geo.get("day_night") or "night").strip().lower() or "night"
 
     pdk_name = str(ground.get("pic_pdk") or "generic_silicon_photonics")
     eta_coupler = pdk_coupler_efficiency(get_pdk(pdk_name))
@@ -206,9 +292,10 @@ def _build_orbit_pass_config(*, sat_cfg: dict[str, Any], eta_chip: float) -> tup
             "band": _wavelength_to_band(float(sat.get("wavelength_nm") or 1550.0)),
             "wavelength_nm": float(sat.get("wavelength_nm") or 1550.0),
             "dt_s": float(dt_s),
-            "samples": samples,
+            "samples": list(orbit_samples),
             "background_model": "fixed",
             "background_day_night": day_night,
+            "execution_mode": str(execution_mode or "preview"),
             "availability": {
                 "clear_fraction": float(
                     ((sat_cfg.get("ground_station") or {}).get("clear_sky_probability"))
@@ -301,8 +388,8 @@ def _accumulate_pass_metrics(
         qkd = point.get("qkd")
         key = _coerce_float((qkd or {}).get("key_rate_bps"), default=0.0) if isinstance(qkd, dict) else 0.0
         el = _coerce_float(point.get("elevation_deg"), default=0.0)
-        key_rates.append(max(0.0, float(key)))
-        elevations.append(max(0.0, float(el)))
+        key_rates.append(max(0.0, float(key if key is not None else 0.0)))
+        elevations.append(max(0.0, float(el if el is not None else 0.0)))
 
     total_key_bits = float(
         accumulate_key_bits(
@@ -364,19 +451,186 @@ def _estimate_annual_yield(*, sat_cfg: dict[str, Any], pass_metrics: dict[str, A
     }
 
 
-def _build_signoff(*, pass_metrics: dict[str, Any], annual: dict[str, Any] | None) -> dict[str, Any]:
+def _build_signoff(
+    *,
+    pass_metrics: dict[str, Any],
+    annual: dict[str, Any] | None,
+    provider_selection: dict[str, Any],
+    uncertainty_budget: dict[str, Any],
+) -> dict[str, Any]:
     key_positive_at_zenith = float(pass_metrics.get("peak_key_rate_bps") or 0.0) > 0.0
     if annual is None:
         annual_above_1mbit = float(pass_metrics.get("key_bits_accumulated") or 0.0) >= 1.0e6
     else:
         annual_above_1mbit = float(annual.get("key_bits_per_year") or 0.0) >= 1.0e6
 
-    decision = "GO" if key_positive_at_zenith and annual_above_1mbit else "HOLD"
+    provider_trusted = str(provider_selection.get("trust_status") or "untrusted") == "trusted"
+    provider_parity_ok = bool(provider_selection.get("parity_ok", False))
+    provider_uncertainty_ok = bool(provider_selection.get("uncertainty_ok", False))
+    uncertainty_budget_complete = bool(uncertainty_budget.get("is_complete", False))
+    uncertainty_budget_within_threshold = bool(uncertainty_budget.get("within_threshold", False))
+    uncertainty_budget_ok = bool(uncertainty_budget.get("pass", False))
+
+    hold_reasons: list[str] = []
+    if not key_positive_at_zenith:
+        hold_reasons.append("key_rate_not_positive_at_zenith")
+    if not annual_above_1mbit:
+        hold_reasons.append("annual_key_below_1mbit")
+    if not provider_trusted:
+        hold_reasons.append("provider_not_trusted")
+    if not provider_parity_ok:
+        hold_reasons.append("provider_parity_check_failed")
+    if not provider_uncertainty_ok:
+        hold_reasons.append("provider_uncertainty_out_of_bounds")
+    if not uncertainty_budget_complete:
+        hold_reasons.append("uncertainty_budget_incomplete")
+    if uncertainty_budget_complete and not uncertainty_budget_within_threshold:
+        hold_reasons.append("uncertainty_budget_over_threshold")
+
+    decision = "GO" if not hold_reasons else "HOLD"
     return {
         "decision": decision,
         "key_rate_positive_at_zenith": bool(key_positive_at_zenith),
         "annual_key_above_1mbit": bool(annual_above_1mbit),
+        "provider_trusted": bool(provider_trusted),
+        "provider_parity_ok": bool(provider_parity_ok),
+        "provider_uncertainty_ok": bool(provider_uncertainty_ok),
+        "uncertainty_budget_complete": bool(uncertainty_budget_complete),
+        "uncertainty_budget_within_threshold": bool(uncertainty_budget_within_threshold),
+        "uncertainty_budget_ok": bool(uncertainty_budget_ok),
+        "orbit_provider_trust_status": str(provider_selection.get("trust_status") or "untrusted"),
+        "hold_reasons": hold_reasons,
     }
+
+
+def _build_uncertainty_budget(*, provider_selection: dict[str, Any], runtime_cfg: dict[str, Any]) -> dict[str, Any]:
+    runtime_block = runtime_cfg if isinstance(runtime_cfg, dict) else {}
+    budget_cfg = runtime_block.get("uncertainty_budget") if isinstance(runtime_block.get("uncertainty_budget"), dict) else {}
+
+    enabled = bool(budget_cfg.get("enabled", True))
+    required_components = [
+        str(item).strip()
+        for item in (budget_cfg.get("required_components") or ())
+        if str(item).strip()
+    ]
+    rollup_method = str(budget_cfg.get("rollup_method") or "rss").strip().lower() or "rss"
+    if rollup_method != "rss":
+        rollup_method = "rss"
+    require_complete = bool(budget_cfg.get("require_complete", True))
+
+    max_allowed_cfg = _coerce_float(budget_cfg.get("max_total_sigma_cps"), default=None)
+    max_allowed_provider = _coerce_float(provider_selection.get("max_uncertainty_sigma_cps"), default=None)
+    max_allowed = max_allowed_cfg if max_allowed_cfg is not None else max_allowed_provider
+
+    component_catalog: dict[str, tuple[Any, str]] = {
+        "orbit_provider_sigma_cps": (
+            provider_selection.get("uncertainty_sigma_cps"),
+            "orbit_provider.uncertainty_sigma_cps",
+        ),
+        "parity_derived_sigma_cps": (
+            ((provider_selection.get("parity_report") or {}).get("derived_uncertainty_sigma_cps")),
+            "orbit_provider.parity_report.derived_uncertainty_sigma_cps",
+        ),
+    }
+
+    if not required_components:
+        required_components = ["orbit_provider_sigma_cps", "parity_derived_sigma_cps"]
+
+    components: list[dict[str, Any]] = []
+    missing_components: list[str] = []
+    sigma_values: list[float] = []
+
+    for name in required_components:
+        raw_value, source = component_catalog.get(name, (None, f"runtime.uncertainty_budget.{name}"))
+        sigma_value = _coerce_float(raw_value, default=None)
+        present = sigma_value is not None
+        components.append(
+            {
+                "name": str(name),
+                "sigma_cps": float(sigma_value) if sigma_value is not None else None,
+                "present": bool(present),
+                "source": str(source),
+            }
+        )
+        if present and sigma_value is not None:
+            sigma_values.append(float(max(0.0, sigma_value)))
+        else:
+            missing_components.append(str(name))
+
+    if not enabled:
+        return {
+            "enabled": False,
+            "rollup_method": "rss",
+            "required_components": required_components,
+            "missing_components": [],
+            "components": components,
+            "total_sigma_cps": 0.0,
+            "max_allowed_sigma_cps": float(max_allowed) if max_allowed is not None else None,
+            "is_complete": True,
+            "within_threshold": True,
+            "pass": True,
+        }
+
+    total_sigma_cps = float(math.sqrt(sum((value * value) for value in sigma_values)))
+    is_complete = len(missing_components) == 0 if require_complete else True
+    within_threshold = (total_sigma_cps <= float(max_allowed)) if max_allowed is not None else True
+    passed = bool(is_complete and within_threshold)
+
+    return {
+        "enabled": True,
+        "rollup_method": str(rollup_method),
+        "required_components": required_components,
+        "missing_components": missing_components,
+        "components": components,
+        "total_sigma_cps": float(total_sigma_cps),
+        "max_allowed_sigma_cps": float(max_allowed) if max_allowed is not None else None,
+        "is_complete": bool(is_complete),
+        "within_threshold": bool(within_threshold),
+        "pass": bool(passed),
+    }
+
+
+def _provider_provenance(provider_selection: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "provider_name": str(provider_selection.get("provider_name") or "analytic"),
+        "provider_version": str(provider_selection.get("provider_version") or "0"),
+        "source_hash": str(provider_selection.get("source_hash") or ""),
+        "trust_status": str(provider_selection.get("trust_status") or "untrusted"),
+    }
+
+
+def _enforce_trusted_compute_backend(
+    *,
+    execution_mode: str,
+    accumulate_backend: str,
+    trusted_backends: tuple[str, ...],
+    enforce: bool,
+) -> None:
+    if not enforce:
+        return
+    if str(execution_mode).strip().lower() != "certification":
+        return
+
+    backend = str(accumulate_backend or "").strip().lower()
+    trusted = {str(row).strip().lower() for row in trusted_backends if str(row).strip()}
+    if backend not in trusted:
+        raise ValueError(
+            "certification mode requires a trusted accumulate backend; "
+            f"requested {backend!r}, trusted={sorted(trusted)!r}"
+        )
+
+
+def _model_metadata_for_chain(*, protocol: str) -> dict[str, dict[str, Any]]:
+    protocol_norm = str(protocol or "bb84_decoy").strip().lower().replace("-", "_")
+    protocol_key = "qkd.bbm92_asymptotic" if protocol_norm in {"bbm92", "e91"} else "qkd.bb84_decoy_asymptotic"
+    return model_metadata_for_keys(
+        (
+            "orbit.pass_geometry.effective_thickness",
+            "channel.free_space.attenuation",
+            "detector.click_model.stochastic",
+            protocol_key,
+        )
+    )
 
 
 def _validate_chain_config_schema_if_available(config: dict[str, Any]) -> None:

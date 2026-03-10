@@ -2,8 +2,11 @@
 
 import copy
 
+import pytest
+
 from photonstrust.benchmarks.schema import validate_instance
 from photonstrust.pipeline.satellite_chain import run_satellite_chain
+from photonstrust.workflow.runtime_models import validate_satellite_chain_certificate
 from photonstrust.workflow.schema import satellite_qkd_chain_certificate_schema_path
 
 
@@ -57,8 +60,10 @@ def _base_config() -> dict:
 
 
 def _key_bits(payload: dict) -> float:
-    cert = payload.get("certificate") if isinstance(payload.get("certificate"), dict) else {}
-    section = cert.get("pass") if isinstance(cert.get("pass"), dict) else {}
+    cert_raw = payload.get("certificate")
+    cert = cert_raw if isinstance(cert_raw, dict) else {}
+    section_raw = cert.get("pass")
+    section = section_raw if isinstance(section_raw, dict) else {}
     return float(section.get("key_bits_accumulated", 0.0) or 0.0)
 
 
@@ -97,3 +102,145 @@ def test_satellite_chain_certificate_validates_against_schema_helper() -> None:
     result = run_satellite_chain(_base_config())
     schema_path = satellite_qkd_chain_certificate_schema_path()
     validate_instance(result["certificate"], schema_path)
+
+
+def test_satellite_chain_certificate_includes_seed_lineage_and_model_metadata() -> None:
+    cfg = _base_config()
+    cfg["satellite_qkd_chain"]["runtime"] = {
+        "execution_mode": "certification",
+        "rng_seed": 17,
+    }
+
+    result = run_satellite_chain(cfg)
+    certificate = result["certificate"]
+    inputs = certificate["inputs"]
+
+    assert inputs["execution_mode"] == "certification"
+    assert inputs["seed_lineage"] == {
+        "seed": 17,
+        "source": "satellite_qkd_chain.runtime.rng_seed",
+        "deterministic": True,
+    }
+    assert "qkd.bb84_decoy_asymptotic" in inputs["model_metadata"]
+    provider = inputs["orbit_provider"]
+    assert provider["provider_name"] == "analytic"
+    assert provider["trust_status"] == "trusted"
+    assert provider["source_hash"]
+    assert certificate["provenance"]["orbit_provider"] == provider
+    budget = certificate["uncertainty_budget"]
+    assert budget["rollup_method"] == "rss"
+    assert budget["required_components"] == ["orbit_provider_sigma_cps", "parity_derived_sigma_cps"]
+    assert budget["missing_components"] == []
+    assert budget["is_complete"] is True
+    assert budget["within_threshold"] is True
+    assert budget["pass"] is True
+    assert len(budget["components"]) == 2
+    assert certificate["signoff"]["provider_trusted"] is True
+    assert certificate["signoff"]["provider_parity_ok"] is True
+    assert certificate["signoff"]["provider_uncertainty_ok"] is True
+    assert certificate["signoff"]["uncertainty_budget_complete"] is True
+    assert certificate["signoff"]["uncertainty_budget_within_threshold"] is True
+    assert certificate["signoff"]["uncertainty_budget_ok"] is True
+    assert certificate["signoff"]["hold_reasons"] == []
+    validate_satellite_chain_certificate(certificate)
+
+
+def test_satellite_chain_certification_requires_trusted_compute_backend() -> None:
+    cfg = _base_config()
+    cfg["satellite_qkd_chain"]["compute"] = {"accumulate_backend": "jax"}
+    cfg["satellite_qkd_chain"]["runtime"] = {
+        "execution_mode": "certification",
+        "trusted_backends": ["numpy"],
+    }
+
+    with pytest.raises(ValueError, match="trusted accumulate backend"):
+        run_satellite_chain(cfg)
+
+
+def test_satellite_chain_certification_fail_closed_when_provider_unavailable() -> None:
+    cfg = _base_config()
+    cfg["satellite_qkd_chain"]["runtime"] = {
+        "execution_mode": "certification",
+    }
+    cfg["satellite_qkd_chain"]["orbit_provider"] = {
+        "name": "provider_that_does_not_exist",
+        "allow_fallback": True,
+        "trusted_providers": ["analytic"],
+    }
+
+    result = run_satellite_chain(cfg)
+    cert = result["certificate"]
+    signoff = cert["signoff"]
+    assert signoff["decision"] == "HOLD"
+    assert signoff["orbit_provider_trust_status"] == "unavailable"
+    assert "provider_not_trusted" in signoff["hold_reasons"]
+    assert "provider_parity_check_failed" in signoff["hold_reasons"]
+    assert "provider_uncertainty_out_of_bounds" in signoff["hold_reasons"]
+
+
+def test_satellite_chain_certification_fail_closed_when_provider_untrusted() -> None:
+    cfg = _base_config()
+    cfg["satellite_qkd_chain"]["runtime"] = {
+        "execution_mode": "certification",
+    }
+    cfg["satellite_qkd_chain"]["orbit_provider"] = {
+        "name": "analytic",
+        "trusted_providers": ["external_provider"],
+    }
+
+    result = run_satellite_chain(cfg)
+    cert = result["certificate"]
+    signoff = cert["signoff"]
+    assert signoff["decision"] == "HOLD"
+    assert signoff["provider_trusted"] is False
+    assert signoff["orbit_provider_trust_status"] == "untrusted"
+    assert "provider_not_trusted" in signoff["hold_reasons"]
+
+
+def test_satellite_chain_signoff_holds_when_uncertainty_budget_over_threshold() -> None:
+    cfg = _base_config()
+    cfg["satellite_qkd_chain"]["runtime"] = {
+        "uncertainty_budget": {
+            "max_total_sigma_cps": 40.0,
+        }
+    }
+    cfg["satellite_qkd_chain"]["orbit_provider"] = {
+        "name": "analytic",
+        "reference_provider": "provider_that_does_not_exist",
+        "require_parity": True,
+    }
+
+    result = run_satellite_chain(cfg)
+    cert = result["certificate"]
+    budget = cert["uncertainty_budget"]
+    signoff = cert["signoff"]
+
+    assert budget["is_complete"] is True
+    assert budget["within_threshold"] is False
+    assert budget["pass"] is False
+    assert signoff["decision"] == "HOLD"
+    assert signoff["uncertainty_budget_within_threshold"] is False
+    assert signoff["uncertainty_budget_ok"] is False
+    assert "uncertainty_budget_over_threshold" in signoff["hold_reasons"]
+
+
+def test_satellite_chain_signoff_holds_when_uncertainty_budget_incomplete() -> None:
+    cfg = _base_config()
+    cfg["satellite_qkd_chain"]["runtime"] = {
+        "uncertainty_budget": {
+            "required_components": ["orbit_provider_sigma_cps", "unknown_component"],
+        }
+    }
+
+    result = run_satellite_chain(cfg)
+    cert = result["certificate"]
+    budget = cert["uncertainty_budget"]
+    signoff = cert["signoff"]
+
+    assert budget["is_complete"] is False
+    assert budget["pass"] is False
+    assert "unknown_component" in budget["missing_components"]
+    assert signoff["decision"] == "HOLD"
+    assert signoff["uncertainty_budget_complete"] is False
+    assert signoff["uncertainty_budget_ok"] is False
+    assert "uncertainty_budget_incomplete" in signoff["hold_reasons"]

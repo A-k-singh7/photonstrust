@@ -100,3 +100,11 @@ def satellite_qkd_chain_schema_path() -> Path:
 
 def satellite_qkd_chain_certificate_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.satellite_qkd_chain_certificate.v0.schema.json").resolve()
+
+
+def satellite_qkd_chain_sweep_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.satellite_qkd_chain_sweep.v0.schema.json").resolve()
+
+
+def satellite_qkd_chain_optuna_report_schema_path() -> Path:
+    return (_repo_root() / "schemas" / "photonstrust.satellite_qkd_chain_optuna_report.v0.schema.json").resolve()

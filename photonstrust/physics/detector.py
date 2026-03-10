@@ -143,21 +143,23 @@ def _process_events_heap_legacy(
     jitter_ps: float,
     rng: np.random.Generator,
 ) -> tuple[List[float], int, int]:
-    
+
     # Check if photonstrust_rs is available for blazing fast evaluation
     try:
         import photonstrust_rs
-        # Generate a seed equivalent
-        seed = int(rng.integers(0, max((1 << 63) - 1, 1)))  # Generate random u64 strictly using Python stdlib compatible methods
-        return photonstrust_rs.process_events_heap_rs(
-            signal_events, 
-            dark_events, 
-            float(dead_time_ps), 
-            float(afterpulse_prob), 
-            float(afterpulse_delay_ps), 
-            float(jitter_ps), 
-            seed
-        )
+
+        process_events = getattr(photonstrust_rs, "process_events_heap_rs", None)
+        if callable(process_events):
+            seed = int(rng.integers(0, max((1 << 63) - 1, 1)))
+            return process_events(
+                signal_events,
+                dark_events,
+                float(dead_time_ps),
+                float(afterpulse_prob),
+                float(afterpulse_delay_ps),
+                float(jitter_ps),
+                seed,
+            )
     except ImportError:
         pass
 

@@ -57,9 +57,12 @@ def test_satellite_chain_sweep_local_backend_with_minimal_configs(
     assert summary["decision_counts"] == {"GO": 1, "HOLD": 1}
     assert summary["key_bits_total"] == pytest.approx(150.0)
     assert summary["mean_key_rate_bps_avg"] == pytest.approx(7.5)
+    assert summary["seed"] == 42
 
     runs = payload["runs"]
     assert [row["mission_id"] for row in runs] == ["alpha", "beta"]
+    assert all("seed" in row for row in runs)
+    assert runs[0]["seed"] != runs[1]["seed"]
 
     report_path = Path(str(payload["report_path"]))
     assert report_path.is_file()
@@ -83,3 +86,65 @@ def test_satellite_chain_sweep_ray_backend_errors_when_ray_missing(
             max_workers=1,
         )
 
+
+def test_satellite_chain_sweep_retries_transient_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cfg_alpha = _write_minimal_config(tmp_path / "alpha.yml", "alpha")
+    attempts = {"count": 0}
+
+    def _flaky_run_satellite_chain(config: dict, *, output_dir: Path):
+        _ = config
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise RuntimeError("transient failure")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        cert_path = output_dir / "satellite_qkd_chain_certificate.json"
+        cert_path.write_text("{}", encoding="utf-8")
+        return {
+            "decision": "GO",
+            "key_bits_accumulated": 10.0,
+            "mean_key_rate_bps": 2.0,
+            "output_path": str(cert_path),
+        }
+
+    monkeypatch.setattr(sweep_mod, "run_satellite_chain", _flaky_run_satellite_chain)
+
+    payload = sweep_mod.run_satellite_chain_sweep(
+        [cfg_alpha],
+        output_root=tmp_path / "sweep_retry",
+        backend="local",
+        max_workers=1,
+        max_retries=1,
+    )
+
+    assert payload["summary"]["status"] == "ok"
+    assert payload["runs"][0]["attempts"] == 2
+    assert payload["runs"][0]["status"] == "ok"
+
+
+def test_satellite_chain_sweep_fail_closed_on_corrupt_row(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cfg_alpha = _write_minimal_config(tmp_path / "alpha.yml", "alpha")
+
+    def _corrupt_run_satellite_chain(config: dict, *, output_dir: Path):
+        _ = config, output_dir
+        return {
+            "decision": "GO",
+            "key_bits_accumulated": float("nan"),
+            "mean_key_rate_bps": 1.0,
+            "output_path": "broken.json",
+        }
+
+    monkeypatch.setattr(sweep_mod, "run_satellite_chain", _corrupt_run_satellite_chain)
+
+    with pytest.raises(RuntimeError, match="failed closed"):
+        sweep_mod.run_satellite_chain_sweep(
+            [cfg_alpha],
+            output_root=tmp_path / "sweep_corrupt",
+            backend="local",
+            max_workers=1,
+        )
