@@ -261,7 +261,8 @@ Files:
 
 Implemented Week-4 product scripts:
 - `scripts/start_product_local.py`
-  - One-command local boot for API + Streamlit.
+  - One-command local boot for API + React web surface by default.
+  - Optional `--surface streamlit` fallback.
   - Port preflight checks.
   - API health wait and smoke-mode auto stop.
 - `scripts/run_product_pilot_demo.py`

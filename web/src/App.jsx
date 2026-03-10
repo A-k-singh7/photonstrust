@@ -18,6 +18,12 @@ import { PRODUCT_STAGE_ITEMS, PRODUCT_STAGE_ROUTES, stageLabel, stageSubtitle } 
 import WorkspaceContextBar from "./features/workspace/WorkspaceContextBar";
 import { createUiSessionId, createUiTelemetrySink } from "./state/uiTelemetry";
 import {
+  buildProjectWorkspaceSnapshot,
+  getProjectWorkspaceSyncDelayMs,
+} from "./state/projectWorkspace";
+import { useProjectReviewActions } from "./hooks/useProjectReviewActions";
+import { useProjectWorkspaceActions } from "./hooks/useProjectWorkspaceActions";
+import {
   addTagToRun,
   createCollection,
   loadCollectionsState,
@@ -43,8 +49,6 @@ import {
   apiInvdesignCouplerRatio,
   apiRunPicInvdesignWorkflowChain,
   apiReplayPicInvdesignWorkflowChain,
-  apiCreateProjectApproval,
-  apiDiffRuns,
   apiGetKindRegistry,
   apiGetRunManifest,
   apiHealthz,
@@ -54,6 +58,7 @@ import {
   apiRunOrbitPass,
   apiRunQkd,
   apiSimulatePic,
+  apiUpdateProjectWorkspace,
   apiValidateOrbitPass,
 } from "./photontrust/api";
 
@@ -72,6 +77,10 @@ const CenterWorkspacePane = lazy(() => import("./features/shell/CenterWorkspaceP
 const LandingWorkspace = lazy(() => import("./features/shell/LandingWorkspace"));
 const ProvenanceTimeline = lazy(() => import("./features/trust/ProvenanceTimeline"));
 const RunCollectionsPanel = lazy(() => import("./features/workspace/RunCollectionsPanel"));
+
+const DEFAULT_API_BASE = import.meta.env.VITE_PHOTONTRUST_API_BASE_URL || "http://127.0.0.1:8000";
+const DEFAULT_LANDING_PROJECT_ID = "pilot_demo";
+const DEFAULT_LANDING_DEMO_CASE_ID = "bbm92_metro_50km";
 
 const DEFAULT_QKD_SCENARIO = {
   id: "ui_qkd_link",
@@ -293,6 +302,11 @@ function _runArtifactUrl(baseUrl, runId, relPath) {
 function _runBundleUrl(baseUrl, runId) {
   const base = _baseUrl(baseUrl);
   return `${base}/v0/runs/${encodeURIComponent(String(runId || ""))}/bundle`;
+}
+
+function _publishedBundleUrl(baseUrl, digest) {
+  const base = _baseUrl(baseUrl);
+  return `${base}/v0/evidence/bundle/by-digest/${encodeURIComponent(String(digest || ""))}`;
 }
 
 function _nextNodeId(kind, existingNodes) {
@@ -518,7 +532,7 @@ function PanelLoading({ message }) {
 export default function App() {
   const nodeTypes = useMemo(() => ({ ptNode: PtNode }), []);
 
-  const [apiBase, setApiBase] = useState(() => localStorage.getItem("pt_api_base") || "http://127.0.0.1:8000");
+  const [apiBase, setApiBase] = useState(() => localStorage.getItem("pt_api_base") || DEFAULT_API_BASE);
   const [apiHealth, setApiHealth] = useState({ status: "unknown", version: null, error: null });
   const [kindRegistry, setKindRegistry] = useState({
     status: "unknown",
@@ -547,6 +561,10 @@ export default function App() {
   const demoResumeRef = useRef({ mode: "graph", stage: "build", tab: "inspect", userMode: "builder" });
   const telemetrySessionStartedRef = useRef(false);
   const startupPingStartedRef = useRef(false);
+  const landingWorkspacePreparedRef = useRef(false);
+  const projectWorkspaceLoadRef = useRef("");
+  const projectWorkspaceSyncTimerRef = useRef(null);
+  const projectWorkspacePauseUntilRef = useRef(0);
   const [guidedFlowWizardOpen, setGuidedFlowWizardOpen] = useState(false);
   const [guidedFlowInitialGoal, setGuidedFlowInitialGoal] = useState("qkd");
   const newcomerFlowRef = useRef({ active: false, startedAtMs: 0, completed: false });
@@ -643,6 +661,8 @@ export default function App() {
   const [approvalActor, setApprovalActor] = useState(() => localStorage.getItem("pt_approval_actor") || "ui");
   const [approvalNote, setApprovalNote] = useState("");
   const [approvalResult, setApprovalResult] = useState(null);
+  const [bundlePublishResult, setBundlePublishResult] = useState(null);
+  const [bundleVerifyResult, setBundleVerifyResult] = useState(null);
   const [projectApprovals, setProjectApprovals] = useState({
     status: "idle",
     error: null,
@@ -706,6 +726,24 @@ export default function App() {
       edges,
     });
   }, [profile, graphId, metadata, scenario, circuit, uncertainty, finiteKey, nodes, edges]);
+
+  const projectWorkspaceSnapshot = useMemo(() => {
+    return buildProjectWorkspaceSnapshot({
+      projectId: selectedProjectId,
+      title: metadata?.title,
+      templateId: profile === "pic_circuit" ? "pic_mzi" : "qkd",
+      profile,
+      stage: programStage,
+      mode,
+      activeRightTab,
+      userMode,
+      selectedRunId: selectedRunManifest?.run_id || selectedRunId,
+      baselineRunId: diffLhsRunId,
+      candidateRunId: diffRhsRunId,
+      diffScope,
+      graph: graphPayload,
+    });
+  }, [selectedProjectId, metadata, profile, programStage, mode, activeRightTab, userMode, selectedRunManifest, selectedRunId, diffLhsRunId, diffRhsRunId, diffScope, graphPayload]);
 
   const selectedRunGdsArtifacts = useMemo(() => {
     const arts = selectedRunManifest?.artifacts && typeof selectedRunManifest.artifacts === "object" ? selectedRunManifest.artifacts : null;
@@ -1022,6 +1060,7 @@ export default function App() {
     return () => {
       if (statusTimer.current) clearTimeout(statusTimer.current);
       if (xtDebounceTimer.current) clearTimeout(xtDebounceTimer.current);
+      if (projectWorkspaceSyncTimerRef.current) clearTimeout(projectWorkspaceSyncTimerRef.current);
     };
   }, []);
 
@@ -1174,78 +1213,101 @@ export default function App() {
     [apiBase, _setStatus],
   );
 
-  const approveSelectedRun = useCallback(async () => {
-    const rid = String(selectedRunManifest?.run_id || "").trim();
-    if (!rid) return;
-    const pid = String(selectedRunManifest?.input?.project_id || "default").trim() || "default";
-    setBusy(true);
-    setApprovalResult(null);
-    try {
-      const payload = await apiCreateProjectApproval(apiBase, pid, rid, {
-        actor: String(approvalActor || "ui"),
-        note: String(approvalNote || ""),
-      });
-      setApprovalResult(payload);
-      recordActivity("approval", "Approved selected run.", {
-        run_id: rid,
-        project_id: pid,
-      });
-      _setStatus(`Approved run (${rid}) in project=${pid}.`);
-      try {
-        const approvalsPayload = await apiListProjectApprovals(apiBase, pid, { limit: 50 });
-        const approvals = Array.isArray(approvalsPayload?.approvals) ? approvalsPayload.approvals : [];
-        setProjectApprovals({ status: "ok", error: null, projectId: pid, approvals });
-      } catch (err) {
-        setProjectApprovals((p) => ({ ...(p || {}), status: "error", error: String(err?.message || err) }));
+  const applyGraphObject = useCallback(
+    (graph, { statusText = "" } = {}) => {
+      if (!graph || typeof graph !== "object" || Array.isArray(graph)) {
+        return { ok: false, error: "Graph must be a JSON object." };
       }
-    } catch (err) {
-      setApprovalResult({ error: String(err?.message || err) });
-      recordActivity("approval", "Approval failed.", {
-        run_id: rid,
-        project_id: pid,
-      });
-      _setStatus(`Approve failed: ${String(err?.message || err)}`);
-    } finally {
-      setBusy(false);
-    }
-  }, [apiBase, selectedRunManifest, approvalActor, approvalNote, recordActivity, _setStatus]);
 
-  const diffRuns = useCallback(async () => {
-    const lhs = String(diffLhsRunId || "").trim();
-    const rhs = String(diffRhsRunId || "").trim();
-    if (!lhs || !rhs) return;
-    const startedAtMs = Date.now();
-    setBusy(true);
-    setRunsDiffResult(null);
-    try {
-      const payload = await apiDiffRuns(apiBase, lhs, rhs, { scope: String(diffScope || "input"), limit: 200 });
-      setRunsDiffResult(payload);
-      emitUiEvent("ui_compare_completed", {
-        duration_ms: Date.now() - startedAtMs,
-        outcome: "success",
-      });
-      recordActivity("compare", "Computed baseline-candidate diff.", {
-        lhs: lhs,
-        rhs: rhs,
-        scope: String(diffScope || "input"),
-      });
-      _setStatus(`Diff computed (${lhs} vs ${rhs}).`);
-    } catch (err) {
-      setRunsDiffResult({ error: String(err?.message || err) });
-      emitUiEvent("ui_compare_completed", {
-        duration_ms: Date.now() - startedAtMs,
-        outcome: "failure",
-      });
-      recordActivity("compare", "Diff failed.", {
-        lhs: lhs,
-        rhs: rhs,
-        scope: String(diffScope || "input"),
-      });
-      _setStatus(`Diff failed: ${String(err?.message || err)}`);
-    } finally {
-      setBusy(false);
-    }
-  }, [apiBase, diffLhsRunId, diffRhsRunId, diffScope, emitUiEvent, recordActivity, _setStatus]);
+      const nextProfile = String(graph.profile || "").trim();
+      if (nextProfile !== "qkd_link" && nextProfile !== "pic_circuit") {
+        return { ok: false, error: "Graph profile must be qkd_link or pic_circuit." };
+      }
+
+      setProfile(nextProfile);
+      setGraphId(String(graph.graph_id || _defaultGraphIdForProfile(nextProfile)));
+      setMetadata(graph.metadata && typeof graph.metadata === "object" ? graph.metadata : { title: "Imported Graph", description: "" });
+      if (nextProfile === "qkd_link") {
+        const nextScenario = graph.scenario && typeof graph.scenario === "object" ? graph.scenario : { ...DEFAULT_QKD_SCENARIO };
+        setScenario(nextScenario);
+        setQkdExecutionMode(String(nextScenario.execution_mode || "preview"));
+        setUncertainty(graph.uncertainty && typeof graph.uncertainty === "object" ? graph.uncertainty : {});
+        setFiniteKey(graph.finite_key && typeof graph.finite_key === "object" ? graph.finite_key : { enabled: false });
+      } else {
+        setCircuit(graph.circuit && typeof graph.circuit === "object" ? graph.circuit : { ...DEFAULT_PIC_CIRCUIT });
+      }
+
+      const flow = _flowFromGraph(graph, kindRegistry?.byKind);
+      setNodes(flow.nodes);
+      setEdges(flow.edges);
+      setSelectedNodeId(null);
+      setCompileResult(null);
+      setRunResult(null);
+      setXtResult(null);
+      setInvResult(null);
+      setWorkflowResult(null);
+      setRunsWorkflowReplayResult(null);
+      setLayoutBuildResult(null);
+      setLvsResult(null);
+      setKlayoutPackResult(null);
+      setSpiceResult(null);
+      if (statusText) _setStatus(statusText);
+      return { ok: true };
+    },
+    [kindRegistry.byKind, setNodes, setEdges, _setStatus],
+  );
+
+  const { hydrateProjectWorkspace, bootstrapProjectWorkspace } = useProjectWorkspaceActions({
+    apiBase,
+    applyGraphObject,
+    loadRunManifest,
+    projectWorkspaceLoadRef,
+    projectWorkspacePauseUntilRef,
+    refreshProjects,
+    refreshRuns,
+    setActiveRightTab,
+    setApprovalNote,
+    setApprovalResult,
+    setBundlePublishResult,
+    setBundleVerifyResult,
+    setBusy,
+    setDiffLhsRunId,
+    setDiffRhsRunId,
+    setDiffScope,
+    setMode,
+    setProgramStage,
+    setProjectApprovals,
+    setSelectedProjectId,
+    setSelectedRunId,
+    setSelectedRunManifest,
+    setRunsDiffResult,
+    setShowLanding,
+    setUserMode,
+    setStatus: _setStatus,
+  });
+
+  const { approveSelectedRun, diffRuns, exportDecisionPacket, publishDecisionPacket, verifyPublishedDecisionPacket } = useProjectReviewActions({
+    apiBase,
+    approvalActor,
+    approvalNote,
+    buildRunBundleUrl: _runBundleUrl,
+    bundlePublishResult,
+    diffLhsRunId,
+    diffRhsRunId,
+    diffScope,
+    emitUiEvent,
+    recordActivity,
+    runResult,
+    selectedRunManifest,
+    setApprovalResult,
+    setBusy,
+    setBundlePublishResult,
+    setBundleVerifyResult,
+    setProjectApprovals,
+    setRunsDiffResult,
+    setStatus: _setStatus,
+    workflowResult,
+  });
 
   useEffect(() => {
     localStorage.setItem("pt_api_base", String(apiBase));
@@ -1342,6 +1404,65 @@ export default function App() {
   }, [selectedProjectId]);
 
   useEffect(() => {
+    const pid = String(selectedProjectId || "").trim();
+    if (!pid) {
+      projectWorkspaceLoadRef.current = "";
+      return;
+    }
+    if (apiHealth.status !== "ok") return;
+    if (projectWorkspaceLoadRef.current === pid) return;
+    projectWorkspaceLoadRef.current = pid;
+    void hydrateProjectWorkspace(pid, { dismissLanding: false, loadRuns: true, silentMissing: true, statusText: "" });
+  }, [apiHealth.status, selectedProjectId, hydrateProjectWorkspace]);
+
+  useEffect(() => {
+    if (!showLanding || demoModeOpen) return;
+    if (landingWorkspacePreparedRef.current) return;
+    if (apiHealth.status !== "ok") return;
+    if (String(selectedProjectId || "").trim()) {
+      landingWorkspacePreparedRef.current = true;
+      return;
+    }
+    landingWorkspacePreparedRef.current = true;
+    void bootstrapProjectWorkspace({
+      projectId: DEFAULT_LANDING_PROJECT_ID,
+      demoCaseId: DEFAULT_LANDING_DEMO_CASE_ID,
+      title: "Pilot Demo Workspace",
+      templateId: "qkd",
+      workspace: {
+        stage: "build",
+        mode: "graph",
+        active_right_tab: "inspect",
+        user_mode: "builder",
+      },
+      dismissLanding: false,
+      loadRuns: true,
+      statusText: "Prepared sample project workspace.",
+    });
+  }, [apiHealth.status, bootstrapProjectWorkspace, demoModeOpen, selectedProjectId, showLanding]);
+
+  useEffect(() => {
+    if (!selectedProjectId || !projectWorkspaceSnapshot) return;
+    if (projectWorkspaceSyncTimerRef.current) clearTimeout(projectWorkspaceSyncTimerRef.current);
+    const delayMs = getProjectWorkspaceSyncDelayMs(projectWorkspacePauseUntilRef.current);
+    projectWorkspaceSyncTimerRef.current = setTimeout(async () => {
+      try {
+        await apiUpdateProjectWorkspace(apiBase, selectedProjectId, projectWorkspaceSnapshot);
+      } catch (err) {
+        _setStatus(`Workspace sync failed: ${String(err?.message || err)}`);
+      }
+    }, delayMs);
+    return () => {
+      if (projectWorkspaceSyncTimerRef.current) clearTimeout(projectWorkspaceSyncTimerRef.current);
+    };
+  }, [apiBase, selectedProjectId, projectWorkspaceSnapshot, _setStatus]);
+
+  useEffect(() => {
+    setBundlePublishResult(null);
+    setBundleVerifyResult(null);
+  }, [selectedRunManifest?.run_id]);
+
+  useEffect(() => {
     localStorage.setItem("pt_approval_actor", String(approvalActor));
   }, [approvalActor]);
 
@@ -1374,12 +1495,11 @@ export default function App() {
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    if (showLanding && !demoModeOpen) return;
     if (startupPingStartedRef.current) return;
     startupPingStartedRef.current = true;
-    // Best-effort API ping on first workspace load.
+    // Best-effort API ping on first app load.
     pingApi();
-  }, [pingApi, showLanding, demoModeOpen]);
+  }, [pingApi]);
 
   useEffect(() => {
     if (mode !== "runs") return;
@@ -1768,6 +1888,7 @@ export default function App() {
   const handleWorkspaceProjectChange = useCallback(
     (projectId) => {
       const pid = String(projectId || "");
+      projectWorkspaceLoadRef.current = "";
       setSelectedProjectId(pid);
       setSelectedRunId(null);
       setSelectedRunManifest(null);
@@ -1775,6 +1896,8 @@ export default function App() {
       setDiffRhsRunId("");
       setRunsDiffResult(null);
       setApprovalResult(null);
+      setBundlePublishResult(null);
+      setBundleVerifyResult(null);
       setApprovalNote("");
       setProjectApprovals({ status: "idle", error: null, projectId: null, approvals: [] });
       refreshRuns(pid || null);
@@ -1794,9 +1917,31 @@ export default function App() {
   );
 
   const startGuidedFlow = useCallback(
-    (templateId = "qkd") => {
+    async (templateId = "qkd") => {
       const nextTemplate = String(templateId || "qkd");
       const nextProfile = nextTemplate === "pic_mzi" ? "pic_circuit" : "qkd_link";
+      if (apiHealth.status === "ok") {
+        const prepared = await bootstrapProjectWorkspace({
+          projectId: nextTemplate === "pic_mzi" ? "guided_pic_demo" : "guided_qkd_demo",
+          title: nextTemplate === "pic_mzi" ? "Guided PIC Workspace" : "Guided QKD Workspace",
+          templateId: nextTemplate === "pic_mzi" ? "pic_mzi" : "qkd",
+          workspace: {
+            stage: "build",
+            mode: "graph",
+            active_right_tab: "inspect",
+            user_mode: "builder",
+          },
+          dismissLanding: true,
+          loadRuns: true,
+          statusText: nextTemplate === "pic_mzi" ? "Prepared guided PIC workspace." : "Prepared guided QKD workspace.",
+        });
+        loadTemplate(nextTemplate === "pic_mzi" ? "pic_mzi" : "qkd");
+        if (!prepared?.ok) {
+          _setStatus("Fell back to a local template while project bootstrap was unavailable.");
+        }
+      } else {
+        loadTemplate(nextTemplate === "pic_mzi" ? "pic_mzi" : "qkd");
+      }
       guidedFlowRef.current = { active: true, startedAtMs: Date.now() };
       emitUiEvent("ui_guided_flow_started", {
         user_mode: "builder",
@@ -1810,7 +1955,7 @@ export default function App() {
         statusText: "Guided flow started. Continue through goal, template, params, preflight, and run.",
       });
     },
-    [emitUiEvent, openProgramStage],
+    [apiHealth.status, bootstrapProjectWorkspace, emitUiEvent, loadTemplate, openProgramStage, _setStatus],
   );
 
   const closeGuidedFlowWizard = useCallback(
@@ -1938,13 +2083,32 @@ export default function App() {
     [applyDemoScene],
   );
 
-  const investorDemoCheckpoint = useCallback(() => {
+  const investorDemoCheckpoint = useCallback(async () => {
     demoResumeRef.current = {
       mode,
       stage: programStage,
       tab: activeRightTab,
       userMode,
     };
+    if (apiHealth.status === "ok") {
+      await bootstrapProjectWorkspace({
+        projectId: DEFAULT_LANDING_PROJECT_ID,
+        demoCaseId: DEFAULT_LANDING_DEMO_CASE_ID,
+        title: "Investor Demo Workspace",
+        templateId: "qkd",
+        workspace: {
+          stage: "compare",
+          mode: "runs",
+          active_right_tab: "manifest",
+          user_mode: "exec",
+        },
+        dismissLanding: true,
+        loadRuns: true,
+        statusText: "Prepared investor demo workspace.",
+      });
+    } else {
+      setShowLanding(false);
+    }
     setUserMode("exec");
     setDemoInitialScene("benchmark");
     setDemoScene("benchmark");
@@ -1953,7 +2117,7 @@ export default function App() {
       statusText: "Demo mode started. Walk through benchmark, trust, decision, and packet scenes.",
     });
     recordActivity("demo_start", "Demo mode started from landing workspace.", { stage: "compare" });
-  }, [activeRightTab, applyDemoScene, mode, programStage, recordActivity, userMode]);
+  }, [activeRightTab, apiHealth.status, applyDemoScene, bootstrapProjectWorkspace, mode, programStage, recordActivity, userMode]);
 
   const closeDemoMode = useCallback(
     ({ completed = false, scene = "packet" } = {}) => {
@@ -1976,28 +2140,6 @@ export default function App() {
     },
     [emitUiEvent, _setStatus, recordActivity],
   );
-
-  const exportDecisionPacket = useCallback(() => {
-    const rid = String(selectedRunManifest?.run_id || workflowResult?.run_id || runResult?.run_id || "").trim();
-    if (!rid) {
-      emitUiEvent("ui_packet_exported", { outcome: "abandoned" });
-      recordActivity("packet_export", "Packet export abandoned (no run selected).", {});
-      _setStatus("No run selected for packet export. Select a run manifest or execute a run first.");
-      return;
-    }
-
-    const url = _runBundleUrl(apiBase, rid);
-    try {
-      window.open(url, "_blank", "noopener,noreferrer");
-      emitUiEvent("ui_packet_exported", { run_id: rid, outcome: "success" });
-      recordActivity("packet_export", "Opened decision packet bundle.", { run_id: rid });
-      _setStatus(`Opened decision packet bundle (${rid}).`);
-    } catch (err) {
-      emitUiEvent("ui_packet_exported", { run_id: rid, outcome: "failure" });
-      recordActivity("packet_export", "Packet export failed.", { run_id: rid });
-      _setStatus(`Packet export failed: ${String(err?.message || err)}`);
-    }
-  }, [apiBase, selectedRunManifest, workflowResult, runResult, emitUiEvent, recordActivity, _setStatus]);
 
   const addKind = useCallback(
     (kind, overridePosition) => {
@@ -2161,6 +2303,10 @@ export default function App() {
         setRunResult(payload);
         setActiveRightTab("run");
         markRunSucceeded(payload);
+        if (payload?.run_id) {
+          await refreshRuns(selectedProjectId || null);
+          await loadRunManifest(payload.run_id);
+        }
         recordActivity("run", "Executed orbit pass run.", { run_id: String(payload?.run_id || "") });
         _setStatus(`Ran orbit pass (${payload?.run_id || "run"}).`);
         return { ok: true, payload };
@@ -2170,6 +2316,10 @@ export default function App() {
         setRunResult(payload);
         setActiveRightTab("run");
         markRunSucceeded(payload);
+        if (payload?.run_id) {
+          await refreshRuns(selectedProjectId || null);
+          await loadRunManifest(payload.run_id);
+        }
         recordActivity("run", "Executed QKD run.", { run_id: String(payload?.run_id || "") });
         _setStatus(`Ran QKD (${payload?.run_id || "run"}).`);
         return { ok: true, payload };
@@ -2184,6 +2334,10 @@ export default function App() {
         setRunResult(payload);
         setActiveRightTab("run");
         markRunSucceeded(payload);
+        if (payload?.run_id) {
+          await refreshRuns(selectedProjectId || null);
+          await loadRunManifest(payload.run_id);
+        }
         recordActivity("run", "Executed PIC simulation.", { run_id: String(payload?.run_id || "") });
         _setStatus("Simulated PIC netlist.");
         return { ok: true, payload };
@@ -2212,7 +2366,9 @@ export default function App() {
     emitUiEvent,
     markRunSucceeded,
     markRunFailed,
+    loadRunManifest,
     recordActivity,
+    refreshRuns,
     _setStatus,
   ]);
 
@@ -2680,36 +2836,14 @@ export default function App() {
       _setStatus("Import expects a graph JSON object.");
       return;
     }
-
-    const p = String(graph.profile || "");
-    if (p !== "qkd_link" && p !== "pic_circuit") {
-      _setStatus("Import graph.profile must be qkd_link or pic_circuit.");
+    const applied = applyGraphObject(graph, { statusText: "Imported graph into editor." });
+    if (!applied?.ok) {
+      _setStatus(String(applied?.error || "Import failed."));
       return;
     }
-
-    setProfile(p);
-    setGraphId(String(graph.graph_id || _defaultGraphIdForProfile(p)));
-    setMetadata(graph.metadata && typeof graph.metadata === "object" ? graph.metadata : { title: "Imported Graph", description: "" });
-    if (p === "qkd_link") {
-      setScenario(graph.scenario && typeof graph.scenario === "object" ? graph.scenario : { ...DEFAULT_QKD_SCENARIO });
-      setUncertainty(graph.uncertainty && typeof graph.uncertainty === "object" ? graph.uncertainty : {});
-      setFiniteKey(graph.finite_key && typeof graph.finite_key === "object" ? graph.finite_key : { enabled: false });
-    } else {
-      setCircuit(graph.circuit && typeof graph.circuit === "object" ? graph.circuit : { ...DEFAULT_PIC_CIRCUIT });
-    }
-
-    const flow = _flowFromGraph(graph, kindRegistry?.byKind);
-    setNodes(flow.nodes);
-    setEdges(flow.edges);
-    setSelectedNodeId(null);
-    setCompileResult(null);
-    setRunResult(null);
-    setXtResult(null);
-    setInvResult(null);
     setImportOpen(false);
     setActiveRightTab("inspect");
-    _setStatus("Imported graph into editor.");
-  }, [importText, setNodes, setEdges, kindRegistry.byKind, _setStatus]);
+  }, [importText, applyGraphObject, _setStatus]);
 
   const approvalControlsNode = selectedRunManifest?.run_id ? (
     <ApprovalControls
@@ -3298,6 +3432,13 @@ export default function App() {
                     selectedRunManifest?.run_id ? _runBundleUrl(apiBase, selectedRunManifest.run_id) : ""
                   }
                   onPacketExport={exportDecisionPacket}
+                  packetPublishHref={bundlePublishResult?.bundle_sha256 ? _publishedBundleUrl(apiBase, bundlePublishResult.bundle_sha256) : ""}
+                  onPacketPublish={publishDecisionPacket}
+                  packetPublishDisabled={busy || !selectedRunManifest?.run_id}
+                  packetPublishResult={bundlePublishResult}
+                  onPacketVerify={verifyPublishedDecisionPacket}
+                  packetVerifyDisabled={busy || !bundlePublishResult?.bundle_sha256}
+                  packetVerifyResult={bundleVerifyResult}
                   approvalControls={approvalControlsNode}
                   issues={decisionContext.blockers.map((message) => ({ level: "block", message }))}
                 />

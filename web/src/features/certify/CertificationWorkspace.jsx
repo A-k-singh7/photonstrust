@@ -107,6 +107,13 @@ export default function CertificationWorkspace({
   packetExportLabel = "Export decision packet",
   onPacketExport,
   packetExportDisabled,
+  packetPublishHref,
+  onPacketPublish,
+  packetPublishDisabled,
+  packetPublishResult,
+  onPacketVerify,
+  packetVerifyDisabled,
+  packetVerifyResult,
   issues,
 }) {
   const checklist = Array.isArray(readinessChecklist)
@@ -125,6 +132,10 @@ export default function CertificationWorkspace({
 
   const runId = _toText(selectedRunManifest?.run_id, "");
   const exportDisabled = Boolean(packetExportDisabled) || (!runId && !packetExportHref);
+  const publishDisabled = Boolean(packetPublishDisabled) || !runId;
+  const verifyDisabled = Boolean(packetVerifyDisabled) || !packetPublishResult?.bundle_sha256;
+  const publishDigest = _toText(packetPublishResult?.bundle_sha256, "");
+  const verifyOk = packetVerifyResult?.verify?.ok === true;
 
   return (
     <section className="ptRightSection" aria-label="Certification workspace">
@@ -164,6 +175,29 @@ export default function CertificationWorkspace({
             </a>
           ) : null}
         </div>
+      </div>
+
+      <div className="ptCallout" style={{ marginTop: 10 }}>
+        <div className="ptCalloutTitle">Published packet</div>
+        <div className="ptBtnRow" style={{ marginTop: 8 }}>
+          <button className="ptBtn" onClick={() => onPacketPublish && onPacketPublish()} disabled={publishDisabled}>
+            Publish shareable packet
+          </button>
+          <button className="ptBtn ptBtnGhost" onClick={() => onPacketVerify && onPacketVerify()} disabled={verifyDisabled}>
+            Verify published packet
+          </button>
+          {packetPublishHref ? (
+            <a className="ptBtn" href={packetPublishHref} target="_blank" rel="noreferrer">
+              Open published link
+            </a>
+          ) : null}
+        </div>
+        {publishDigest ? <div className="ptHint" style={{ marginTop: 8 }}>digest={publishDigest}</div> : null}
+        {packetVerifyResult ? (
+          <div className="ptHint" style={{ marginTop: 4 }}>
+            verify={verifyOk ? "ok" : "check"}, files={_toText(packetVerifyResult?.verify?.verified_files, "0")}, missing={_toText(packetVerifyResult?.verify?.missing_files, "0")}, mismatched={_toText(packetVerifyResult?.verify?.mismatched_files, "0")}
+          </div>
+        ) : null}
       </div>
 
       <div className="ptCallout" style={{ marginTop: 10 }}>

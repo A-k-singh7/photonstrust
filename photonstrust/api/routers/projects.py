@@ -40,6 +40,92 @@ def projects_list(request: Request, limit: int = Query(200, ge=1, le=500)) -> di
     }
 
 
+@router.post("/v0/projects/bootstrap")
+def projects_bootstrap(request: Request, payload: dict = Body(...)) -> dict[str, Any]:
+    ctx = require_roles(request, "runner", "approver")
+    body = payload if isinstance(payload, dict) else {}
+
+    project_id_raw = str(body.get("project_id") or "").strip().lower()
+    if project_id_raw:
+        pid = project_id_value_or_400(project_id_raw)
+        enforce_project_scope_or_403(ctx, pid)
+
+    try:
+        project_payload = project_store.bootstrap_project(body)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    project = project_payload.get("project") if isinstance(project_payload.get("project"), dict) else {}
+    pid = str(project.get("project_id") or project_id_raw or "default")
+    enforce_project_scope_or_403(ctx, pid)
+    return {
+        "generated_at": generated_at_utc(),
+        "project": project,
+        "manifest": project_payload.get("manifest") if isinstance(project_payload.get("manifest"), dict) else {},
+        "workspace": project_payload.get("workspace") if isinstance(project_payload.get("workspace"), dict) else None,
+        "provenance": runtime_provenance(),
+    }
+
+
+@router.get("/v0/projects/{project_id}")
+def projects_get(request: Request, project_id: str) -> dict[str, Any]:
+    ctx = require_roles(request, "viewer", "runner", "approver")
+    pid = project_id_value_or_400(project_id)
+    enforce_project_scope_or_403(ctx, pid)
+
+    try:
+        project_payload = project_store.get_project(pid)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "generated_at": generated_at_utc(),
+        "project": project_payload.get("project") if isinstance(project_payload.get("project"), dict) else {},
+        "manifest": project_payload.get("manifest") if isinstance(project_payload.get("manifest"), dict) else {},
+        "workspace": project_payload.get("workspace") if isinstance(project_payload.get("workspace"), dict) else None,
+        "provenance": runtime_provenance(),
+    }
+
+
+@router.get("/v0/projects/{project_id}/workspace")
+def projects_workspace_get(request: Request, project_id: str) -> dict[str, Any]:
+    ctx = require_roles(request, "viewer", "runner", "approver")
+    pid = project_id_value_or_400(project_id)
+    enforce_project_scope_or_403(ctx, pid)
+    workspace = project_store.read_project_workspace(pid)
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="workspace not found")
+    return {
+        "generated_at": generated_at_utc(),
+        "project_id": pid,
+        "workspace": workspace,
+        "provenance": runtime_provenance(),
+    }
+
+
+@router.put("/v0/projects/{project_id}/workspace")
+def projects_workspace_put(request: Request, project_id: str, payload: dict = Body(...)) -> dict[str, Any]:
+    ctx = require_roles(request, "runner", "approver")
+    pid = project_id_value_or_400(project_id)
+    enforce_project_scope_or_403(ctx, pid)
+    body = payload if isinstance(payload, dict) else {}
+    workspace = body.get("workspace") if isinstance(body.get("workspace"), dict) else body
+    if not isinstance(workspace, dict):
+        raise HTTPException(status_code=400, detail="workspace must be a JSON object")
+    try:
+        updated = project_store.update_project_workspace(pid, workspace)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "generated_at": generated_at_utc(),
+        "project_id": pid,
+        "workspace": updated,
+        "provenance": runtime_provenance(),
+    }
+
+
 @router.get("/v0/projects/{project_id}/approvals")
 def projects_approvals_list(request: Request, project_id: str, limit: int = Query(50, ge=1, le=500)) -> dict[str, Any]:
     ctx = require_roles(request, "viewer", "runner", "approver")

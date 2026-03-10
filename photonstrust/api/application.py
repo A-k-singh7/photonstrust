@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from importlib.metadata import PackageNotFoundError, version
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,10 +14,10 @@ from photonstrust.api.http_layer import install_http_layer
 
 def photonstrust_version() -> str | None:
     try:
-        from importlib.metadata import PackageNotFoundError, version
-
         return version("photonstrust")
-    except PackageNotFoundError:
+    except Exception as exc:
+        if not isinstance(exc, PackageNotFoundError):
+            return None
         try:
             root = Path(__file__).resolve().parents[2]
             pyproject = root / "pyproject.toml"
@@ -49,8 +50,12 @@ def cors_allow_origins() -> list[str]:
     return [
         "http://localhost",
         "http://localhost:3000",
+        "http://localhost:4173",
+        "http://localhost:5173",
         "http://127.0.0.1",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:4173",
+        "http://127.0.0.1:5173",
     ]
 
 

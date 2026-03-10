@@ -17,7 +17,7 @@ test("keyboard tab order starts with skip link and top controls", async ({ page 
   const viewPresetSelect = page.locator("header.ptTopbar label").filter({ hasText: "View preset" }).first().locator("select");
   const saveViewButton = page.locator("header.ptTopbar button", { hasText: "Save View" }).first();
 
-  await page.keyboard.press("Tab");
+  await page.locator("body").press("Tab");
   await expect(skipLink).toBeFocused();
 
   await page.keyboard.press("Tab");
@@ -42,7 +42,7 @@ test("keyboard reverse tab returns to previous control", async ({ page }) => {
   const viewPresetSelect = page.locator("header.ptTopbar label").filter({ hasText: "View preset" }).first().locator("select");
   const saveViewButton = page.locator("header.ptTopbar button", { hasText: "Save View" }).first();
 
-  await page.keyboard.press("Tab");
+  await page.locator("body").press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
@@ -64,7 +64,7 @@ test("skip link moves focus to main workspace", async ({ page }) => {
   const skipLink = page.getByRole("link", { name: "Skip to workspace" }).first();
   const workspaceMain = page.locator("#pt-main-workspace");
 
-  await page.keyboard.press("Tab");
+  await page.locator("body").press("Tab");
   await expect(skipLink).toBeFocused();
 
   await page.keyboard.press("Enter");

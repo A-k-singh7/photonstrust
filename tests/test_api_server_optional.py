@@ -1083,6 +1083,70 @@ def test_api_projects_and_approvals(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert res.status_code == 400
 
 
+def test_api_project_bootstrap_and_workspace_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
+    client = TestClient(app)
+
+    res = client.post(
+        "/v0/projects/bootstrap",
+        json={
+            "project_id": "pilot_demo",
+            "demo_case_id": "bbm92_metro_50km",
+            "title": "Pilot Demo",
+            "workspace": {
+                "stage": "compare",
+                "mode": "runs",
+                "compare": {"candidate_run_ids": ["run_a", "run_b"]},
+            },
+        },
+    )
+    assert res.status_code == 200
+    payload = res.json()
+    project = payload.get("project") or {}
+    workspace = payload.get("workspace") or {}
+    assert project.get("project_id") == "pilot_demo"
+    assert project.get("workspace_present") is True
+    assert (payload.get("manifest") or {}).get("demo_case_id") == "bbm92_metro_50km"
+    assert (workspace.get("graph") or {}).get("profile") == "qkd_link"
+    assert workspace.get("stage") == "compare"
+    assert workspace.get("mode") == "runs"
+
+    res = client.get("/v0/projects/pilot_demo")
+    assert res.status_code == 200
+    payload = res.json()
+    assert (payload.get("project") or {}).get("project_id") == "pilot_demo"
+    assert (payload.get("workspace") or {}).get("compare", {}).get("candidate_run_ids") == ["run_a", "run_b"]
+
+    res = client.put(
+        "/v0/projects/pilot_demo/workspace",
+        json={
+            "workspace": {
+                "selected_run_id": "run_123",
+                "compare": {"baseline_run_id": "run_base"},
+            }
+        },
+    )
+    assert res.status_code == 200
+    payload = res.json()
+    workspace = payload.get("workspace") or {}
+    assert workspace.get("selected_run_id") == "run_123"
+    assert (workspace.get("compare") or {}).get("baseline_run_id") == "run_base"
+    assert (workspace.get("compare") or {}).get("candidate_run_ids") == ["run_a", "run_b"]
+
+    res = client.get("/v0/projects/pilot_demo/workspace")
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload.get("project_id") == "pilot_demo"
+    assert (payload.get("workspace") or {}).get("selected_run_id") == "run_123"
+
+    res = client.get("/v0/projects")
+    assert res.status_code == 200
+    projects = res.json().get("projects") or []
+    row = next((item for item in projects if isinstance(item, dict) and item.get("project_id") == "pilot_demo"), None)
+    assert row is not None
+    assert row.get("workspace_present") is True
+
+
 def test_api_ui_telemetry_ingest_writes_events_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path / "api_runs"))
     client = TestClient(app)

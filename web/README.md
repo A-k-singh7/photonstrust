@@ -1,24 +1,33 @@
-# PhotonTrust Web Editor (Phase 13 MVP)
+# PhotonTrust React Product Surface
 
-This folder contains the PhotonTrust drag-drop graph editor (Vite + React Flow)
-used for local development of the managed-service surface.
+This folder contains the React/Vite product shell for PhotonTrust. It now covers
+the main self-serve workflow:
 
-The UI edits **graph JSON** (`schemas/photonstrust.graph.v0_1.schema.json`) and
-calls the local PhotonTrust API to compile + execute using the Python engine.
+- seeded project bootstrap
+- graph editing and execution against the local API
+- run registry, compare, certify, and export flows
+- project-backed workspace persistence for restore across reloads
+- publish + verify evidence bundle actions
 
 ## Run (local dev)
 
-Start the backend API (from repo root):
+Recommended: use the repo-level launcher from the project root:
+
+```bash
+pip install -e .[api]
+cd web
+npm ci
+cd ..
+py scripts/start_product_local.py
+```
+
+Manual split-terminal flow:
 
 ```bash
 cd photonstrust
 py scripts/run_api_server.py --reload
-```
 
-Start the web dev server (separate terminal):
-
-```bash
-cd photonstrust/web
+cd web
 npm ci
 npm run dev
 ```
@@ -27,9 +36,12 @@ Open the URL printed by Vite (typically `http://127.0.0.1:5173`).
 
 ## Notes
 
-- The API server is a **dev surface**. It enables:
+- The API server enables:
   - `POST /v0/graph/compile`
   - `POST /v0/qkd/run`
   - `POST /v0/pic/simulate`
+  - `POST /v0/projects/bootstrap`
+  - `GET/PUT /v0/projects/{project_id}/workspace`
+  - approvals, bundle publish, and published-bundle verify routes
 - For security, the API server rejects `pic.touchstone_2port` (it would require
   server-side file reads). Use the CLI Touchstone workflows for that.

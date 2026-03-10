@@ -500,6 +500,58 @@ export async function apiListProjects(baseUrl, { limit = 200 } = {}) {
   return payload;
 }
 
+export async function apiBootstrapProject(baseUrl, body = {}) {
+  const url = `${_base(baseUrl)}/v0/projects/bootstrap`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body && typeof body === "object" ? body : {}),
+  });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+export async function apiGetProject(baseUrl, projectId) {
+  const url = `${_base(baseUrl)}/v0/projects/${encodeURIComponent(String(projectId || ""))}`;
+  const res = await fetch(url, { method: "GET" });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+export async function apiGetProjectWorkspace(baseUrl, projectId) {
+  const url = `${_base(baseUrl)}/v0/projects/${encodeURIComponent(String(projectId || ""))}/workspace`;
+  const res = await fetch(url, { method: "GET" });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+export async function apiUpdateProjectWorkspace(baseUrl, projectId, workspace) {
+  const url = `${_base(baseUrl)}/v0/projects/${encodeURIComponent(String(projectId || ""))}/workspace`;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ workspace: workspace && typeof workspace === "object" ? workspace : {} }),
+  });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
 export async function apiListProjectApprovals(baseUrl, projectId, { limit = 50 } = {}) {
   const url = `${_base(baseUrl)}/v0/projects/${encodeURIComponent(String(projectId || ""))}/approvals?limit=${encodeURIComponent(String(limit ?? 50))}`;
   const res = await fetch(url, { method: "GET" });
@@ -523,6 +575,32 @@ export async function apiCreateProjectApproval(baseUrl, projectId, runId, { acto
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+export async function apiPublishRunBundle(baseUrl, runId, { includeChildren = null, rebuild = false } = {}) {
+  const params = new URLSearchParams();
+  if (typeof includeChildren === "boolean") params.set("include_children", String(includeChildren));
+  if (rebuild) params.set("rebuild", "true");
+  const query = params.toString();
+  const url = `${_base(baseUrl)}/v0/runs/${encodeURIComponent(String(runId || ""))}/bundle/publish${query ? `?${query}` : ""}`;
+  const res = await fetch(url, { method: "POST" });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+export async function apiVerifyPublishedBundle(baseUrl, digest) {
+  const url = `${_base(baseUrl)}/v0/evidence/bundle/by-digest/${encodeURIComponent(String(digest || ""))}/verify`;
+  const res = await fetch(url, { method: "GET" });
   const payload = await _readJson(res);
   if (!res.ok) {
     const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;

@@ -9,10 +9,13 @@ This quickstart brings up the product wedge end-to-end:
 - Clean clone of this repository.
 - Terminal opened at repo root (`photonstrust/`).
 
-## 1) Install UI + API dependencies (2-3 min)
+## 1) Install React + API dependencies (2-3 min)
 
 ```bash
-py -3 -m pip install -e .[api,ui]
+py -3 -m pip install -e .[api]
+cd web
+npm ci
+cd ..
 ```
 
 ## 2) Start API + UI in one command (1 min)
@@ -23,19 +26,19 @@ py -3 scripts/start_product_local.py
 
 Expected startup output includes:
 - API health URL: `http://127.0.0.1:8000/healthz`
-- UI URL: `http://127.0.0.1:8501`
+- UI URL: `http://127.0.0.1:5173`
 
 Keep this terminal running.
 
 ## 3) Run the golden path in UI (2-3 min)
 
-In browser at `http://127.0.0.1:8501`:
+In browser at `http://127.0.0.1:5173`:
 
-1. Open `Run Builder`.
-2. Click `Check API health`.
-3. Click `Run Golden Path Demo`.
-4. Confirm `Decision Summary` is shown.
-5. Confirm `Time to first value (s)` appears.
+1. Confirm the landing workspace appears and the sample project is prepared.
+2. Click `Guided QKD quickstart` or `Continue to workspace`.
+3. Confirm API health reaches `ok`.
+4. Open `Compare` or `Certify` after selecting a run.
+5. Confirm decision packet export/publish actions are available.
 
 Telemetry is written to:
 - `results/product_local/ui_metrics/events.jsonl`
@@ -74,7 +77,9 @@ Report output:
 - API not reachable:
   - Re-run `py -3 scripts/start_product_local.py`.
   - Confirm `http://127.0.0.1:8000/healthz` returns JSON.
-- Streamlit import error:
-  - Re-run `py -3 -m pip install -e .[ui]`.
+- Web port already in use:
+  - Re-run `py -3 scripts/start_product_local.py --web-port 5174`.
+- Streamlit surface needed instead:
+  - Run `py -3 scripts/start_product_local.py --surface streamlit`.
 - Pilot demo health check fails:
   - Ensure launcher is still running and API host/port match `--api-base-url`.

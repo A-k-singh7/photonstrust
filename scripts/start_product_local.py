@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start PhotonTrust product surfaces locally (API + Streamlit UI)."""
+"""Start PhotonTrust product surfaces locally (API + React web or Streamlit UI)."""
 
 from __future__ import annotations
 
@@ -10,15 +10,24 @@ import socket
 import subprocess
 import sys
 import time
+from typing import Any
 from urllib import error, request
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Start PhotonTrust API + UI locally")
+    parser = argparse.ArgumentParser(description="Start PhotonTrust API + product surface locally")
     parser.add_argument("--api-host", default="127.0.0.1", help="API host bind address")
     parser.add_argument("--api-port", type=int, default=8000, help="API port")
+    parser.add_argument(
+        "--surface",
+        choices=["web", "streamlit"],
+        default="web",
+        help="Product surface to launch alongside the API",
+    )
     parser.add_argument("--ui-host", default="127.0.0.1", help="Streamlit host bind address")
     parser.add_argument("--ui-port", type=int, default=8501, help="Streamlit port")
+    parser.add_argument("--web-host", default="127.0.0.1", help="React/Vite host bind address")
+    parser.add_argument("--web-port", type=int, default=5173, help="React/Vite port")
     parser.add_argument(
         "--results-root",
         type=Path,
@@ -71,7 +80,7 @@ def _wait_for_api(base_url: str, *, timeout_s: float) -> bool:
     return False
 
 
-def _terminate_process(proc: subprocess.Popen[bytes | str], *, name: str) -> None:
+def _terminate_process(proc: Any, *, name: str) -> None:
     if proc.poll() is not None:
         return
     try:
@@ -123,15 +132,39 @@ def main() -> int:
     results_root = args.results_root if args.results_root.is_absolute() else (repo_root / args.results_root)
     results_root = results_root.resolve()
     api_runs_root = (results_root / "api_runs").resolve()
+    web_root = (repo_root / "web").resolve()
     ui_app_path = (repo_root / "ui" / "app.py").resolve()
     api_base_url = f"http://{args.api_host}:{int(args.api_port)}"
-    ui_url = f"http://{args.ui_host}:{int(args.ui_port)}"
+    surface = str(args.surface or "web").strip().lower()
+    ui_url = (
+        f"http://{args.web_host}:{int(args.web_port)}"
+        if surface == "web"
+        else f"http://{args.ui_host}:{int(args.ui_port)}"
+    )
 
     env = dict(os.environ)
     env["PHOTONTRUST_API_BASE_URL"] = api_base_url
     env["PHOTONTRUST_RESULTS_ROOT"] = str(results_root)
     env["PHOTONTRUST_DEFAULT_PROJECT_ID"] = str(args.project_id)
     env["PHOTONTRUST_API_RUNS_ROOT"] = str(api_runs_root)
+    env["PHOTONTRUST_API_CORS_ALLOW_ORIGINS"] = ",".join(
+        sorted(
+            {
+                item.strip()
+                for item in [
+                    str(env.get("PHOTONTRUST_API_CORS_ALLOW_ORIGINS", "") or "").strip(),
+                    f"http://{args.web_host}:{int(args.web_port)}",
+                    f"http://localhost:{int(args.web_port)}",
+                    f"http://127.0.0.1:{int(args.web_port)}",
+                    f"http://{args.ui_host}:{int(args.ui_port)}",
+                    f"http://localhost:{int(args.ui_port)}",
+                    f"http://127.0.0.1:{int(args.ui_port)}",
+                ]
+                if item.strip()
+            }
+        )
+    )
+    env["VITE_PHOTONTRUST_API_BASE_URL"] = api_base_url
 
     api_cmd = [
         sys.executable,
@@ -146,23 +179,37 @@ def main() -> int:
     if args.reload:
         api_cmd.append("--reload")
 
-    ui_cmd = [
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        str(ui_app_path),
-        "--server.address",
-        str(args.ui_host),
-        "--server.port",
-        str(int(args.ui_port)),
-        "--browser.gatherUsageStats",
-        "false",
-    ]
+    npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+    if surface == "web":
+        ui_cmd = [
+            npm_cmd,
+            "run",
+            "dev",
+            "--",
+            "--host",
+            str(args.web_host),
+            "--port",
+            str(int(args.web_port)),
+        ]
+    else:
+        ui_cmd = [
+            sys.executable,
+            "-m",
+            "streamlit",
+            "run",
+            str(ui_app_path),
+            "--server.address",
+            str(args.ui_host),
+            "--server.port",
+            str(int(args.ui_port)),
+            "--browser.gatherUsageStats",
+            "false",
+        ]
 
     print("PhotonTrust local product launcher")
     print(f"- repo_root: {repo_root}")
     print(f"- api_base_url: {api_base_url}")
+    print(f"- surface: {surface}")
     print(f"- ui_url: {ui_url}")
     print(f"- results_root: {results_root}")
     print(f"- api_runs_root: {api_runs_root}")
@@ -178,16 +225,18 @@ def main() -> int:
             print(f"[error] API port already in use: {args.api_host}:{int(args.api_port)}")
             print("Use --allow-port-in-use to skip this check when attaching to existing services.")
             return 3
-        if not _is_port_available(str(args.ui_host), int(args.ui_port)):
-            print(f"[error] UI port already in use: {args.ui_host}:{int(args.ui_port)}")
+        surface_host = str(args.web_host if surface == "web" else args.ui_host)
+        surface_port = int(args.web_port if surface == "web" else args.ui_port)
+        if not _is_port_available(surface_host, surface_port):
+            print(f"[error] UI port already in use: {surface_host}:{surface_port}")
             print("Use --allow-port-in-use to skip this check when attaching to existing services.")
             return 3
 
     results_root.mkdir(parents=True, exist_ok=True)
     api_runs_root.mkdir(parents=True, exist_ok=True)
 
-    api_proc: subprocess.Popen[bytes | str] | None = None
-    ui_proc: subprocess.Popen[bytes | str] | None = None
+    api_proc: Any = None
+    ui_proc: Any = None
     start_ts = time.time()
     try:
         api_proc = subprocess.Popen(api_cmd, cwd=str(repo_root), env=env)
@@ -195,7 +244,8 @@ def main() -> int:
             print("[error] API did not become healthy before timeout.")
             return 2
 
-        ui_proc = subprocess.Popen(ui_cmd, cwd=str(repo_root), env=env)
+        ui_cwd = str(web_root if surface == "web" else repo_root)
+        ui_proc = subprocess.Popen(ui_cmd, cwd=ui_cwd, env=env)
 
         print("")
         print("Services started:")
@@ -221,7 +271,7 @@ def main() -> int:
         return 130
     finally:
         if ui_proc is not None:
-            _terminate_process(ui_proc, name="streamlit")
+            _terminate_process(ui_proc, name="web" if surface == "web" else "streamlit")
         if api_proc is not None:
             _terminate_process(api_proc, name="uvicorn")
 
