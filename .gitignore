@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .venv/
 .venv*/
 
@@ -14,14 +16,33 @@ htmlcov/
 build/
 dist/
 photonstrust.egg-info/
+*.egg-info/
 
 # Local run outputs
-results/
+results/*
+!results/README.md
 tmp_*.pdf
+*.log
+web_dev.log
+local/
 
 # OS/editor noise
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+.ipynb_checkpoints/
+
+# Frontend artifacts
+node_modules/
+web/node_modules/
+web/dist/
+web/playwright-report/
+web/test-results/
+
+# Misc build/cache artifacts
+.benchmarks/
+photonstrust_rs/target/
 
 # Accidental shell redirection artifacts at repo root (e.g., "=1.24")
 /=*

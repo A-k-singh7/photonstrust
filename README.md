@@ -7,6 +7,38 @@ photonic quantum links. This MVP focuses on QKD key-rate realism across Near-IR,
 O-band, and C-band configurations, including direct-link and relay-based
 protocol-family surfaces.
 
+## Choose Your Path
+
+- CLI or library user: start with the quick start below, then see
+  `configs/README.md` and `examples/README.md`.
+- Product UI user: use the React-first product surface in `web/` via
+  `scripts/start_product_local.py`.
+- Contributor or maintainer: read `CONTRIBUTING.md`, `docs/README.md`, and
+  `scripts/README.md` first.
+
+## Repository Layout
+
+- `photonstrust/` - core Python package and APIs
+- `web/` - React/Vite product surface
+- `ui/` - legacy Streamlit surface
+- `configs/` - runnable scenario and validation configs
+- `graphs/` - graph compiler inputs for QKD and PIC flows
+- `examples/` - small Python and notebook examples
+- `scripts/` - validation, release, demo, and maintainer automation
+- `docs/` - research, operations, templates, and work-item indexes
+- `schemas/` - JSON schemas for run outputs and governance artifacts
+- `results/` - generated outputs and selected checked-in evidence artifacts
+- `open_source/` - separately managed public extracts
+
+## Community Files
+
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+- `SUPPORT.md`
+- `SECURITY.md`
+- `CHANGELOG.md`
+- `CITATION.cff`
+
 ## Quick start
 
 ```bash
@@ -84,6 +116,21 @@ python -m photonstrust.datasets.generate datasets/benchmarks/repeater_chain.yml 
 python -m photonstrust.datasets.generate datasets/benchmarks/teleportation_sla.yml results/benchmarks/teleportation
 ```
 
+React-first product surface (recommended local dev):
+
+```bash
+pip install -e .[api]
+cd web
+npm ci
+cd ..
+py scripts/start_product_local.py
+```
+
+This launches the FastAPI backend plus the React/Vite product shell. Useful flags:
+
+- `--web-port 5174` if `5173` is already in use
+- `--surface streamlit` to launch the legacy Streamlit surface instead of React
+
 Streamlit dashboard:
 
 ```bash
@@ -92,10 +139,11 @@ uvicorn photonstrust.api.server:app --host 127.0.0.1 --port 8000
 streamlit run ui/app.py
 ```
 
-Week 4 product packaging (single-command local start + pilot demo):
+Product packaging (single-command local start + pilot demo):
 
 ```bash
-pip install -e .[api,ui]
+pip install -e .[api]
+cd web && npm ci && cd ..
 python scripts/start_product_local.py
 python scripts/run_product_pilot_demo.py --project-id pilot_demo_week4
 python scripts/product_readiness_gate.py --spawn-api
@@ -168,11 +216,82 @@ python scripts/run_qutip_parity_lane.py
 Artifacts are written to `results/qutip_parity/` (`.json` + `.md`).
 Use `--strict` to enforce parity thresholds as a fail-closed gate.
 
+Day-60 orbit provider parity lane (skyfield vs poliastro, optional orekit reference):
+
+```bash
+python scripts/run_orbit_provider_parity.py \
+  configs/satellite/eagle1_analog_berlin.yml \
+  configs/satellite/eagle1_analog_snspd.yml \
+  --output-dir results/orbit_provider_parity
+
+python scripts/run_orbit_provider_parity.py \
+  configs/satellite/micius_analog.yml \
+  --include-orekit \
+  --strict \
+  --output-dir results/orbit_provider_parity_strict
+```
+
+The parity lane writes JSON artifacts to the output dir and prints a compact JSON summary on stdout.
+
+Day-90 deterministic distributed + optimizer lanes:
+
+```bash
+pip install -e .[dev,optuna,ray]
+
+python scripts/run_satellite_chain_sweep.py \
+  configs/satellite/eagle1_analog_berlin.yml \
+  configs/satellite/eagle1_analog_snspd.yml \
+  --backend local \
+  --max-workers 1 \
+  --seed 42 \
+  --max-retries 1 \
+  --output-root results/satellite_chain_sweep
+
+python scripts/run_satellite_chain_optuna.py \
+  configs/satellite/eagle1_analog_berlin.yml \
+  --n-trials 8 \
+  --seed 42 \
+  --output-dir results/satellite_chain_optuna \
+  --tracking-mode local_json
+
+python scripts/replay_satellite_chain_reports.py \
+  --sweep-report results/satellite_chain_sweep/satellite_chain_sweep.json \
+  --optuna-report results/satellite_chain_optuna/satellite_chain_optuna_report.json
+
+python scripts/release_gate_check.py --quick
+```
+
+Optional MLflow and Prefect lanes:
+
+```bash
+pip install -e .[dev,optuna,mlflow,prefect]
+
+python scripts/run_satellite_chain_optuna.py \
+  configs/satellite/eagle1_analog_berlin.yml \
+  --n-trials 5 \
+  --seed 42 \
+  --tracking-mode mlflow
+
+python scripts/run_prefect_flow.py --flow satellite --mode local --output-dir results/prefect_local
+python scripts/run_prefect_flow.py --flow satellite --mode prefect --output-dir results/prefect_prefect
+```
+
 CI + tests:
 
 ```bash
 pip install -e .[dev]
 python scripts/ci_checks.py
+```
+
+Day-30 integrity baseline (lint/hooks/runtime-contract checks + DVC stages):
+
+```bash
+pip install -e .[dev,dvc]
+pre-commit install
+pre-commit run --all-files
+python scripts/check_model_metadata_contract.py
+python scripts/check_hardcoded_physics_constants.py
+dvc repro rc_baseline_lock open_benchmark_index
 ```
 
 Regression baselines + canonical validation harness:
@@ -224,6 +343,24 @@ This command bootstraps a repo-local isolated environment (`.venv.production`),
 installs with `requirements/runtime.lock.txt` constraints, runs CI/release/runtime
 checks (including strict QuTiP parity + strict Qiskit lane), and refreshes +
 verifies the signed release gate packet artifacts.
+
+PIC foundry readiness preflight automation:
+
+```bash
+python scripts/init_pic_gate_b_measurement_templates.py --root datasets/measurements/private --rc-id rc_missing_data_2026_03_03 --force
+python scripts/build_pic_gate_b_packet.py --run-dir results/pic_readiness/run_pkg --release-candidate rc_missing_data_2026_03_03 --open-root results/pic_readiness/measurements_open --artifact-root results/pic_readiness/artifact_packs --b1-bundle datasets/measurements/private/rc_missing_data_2026_03_03/b1_insertion_loss/measurement_bundle.json --b2-bundle datasets/measurements/private/rc_missing_data_2026_03_03/b2_resonance/measurement_bundle.json --b4-bundle datasets/measurements/private/rc_missing_data_2026_03_03/b4_delay_rc/measurement_bundle.json --output results/pic_readiness/gate_b/packet_missing_data_seeded_2026-03-03.json --overwrite-ingest
+python scripts/build_pic_c_d5_packet.py --corner-report results/corner_sweep/demo_qkd_transmitter/pic_corner_sweep.json --tapeout-gate-report results/pic_readiness/tapeout_gate_report.json --decision-packet results/pic_readiness/day10_decision_packet.json --decision-packet results/pic_readiness/day10_decision_packet_repeat.json --decision-packet results/pic_readiness/day10_decision_packet_third.json --output results/pic_readiness/process_repro/pic_c_d5_packet_2026-03-03.json
+python scripts/init_pic_claim_evidence_matrix.py --output results/pic_readiness/governance/claim_evidence_matrix_2026-03-03.json --release-candidate rc_missing_data_2026_03_03 --force
+python scripts/init_pic_gate_e_metrics_templates.py --output-dir results/pic_readiness/governance --release-candidate rc_missing_data_2026_03_03 --force
+python scripts/build_pic_gate_e_packet.py --claim-matrix results/pic_readiness/governance/claim_evidence_matrix_2026-03-03.json --ci-history-json results/pic_readiness/governance/ci_history_metrics_2026-03-03.json --triage-metrics-json results/pic_readiness/governance/triage_metrics_2026-03-03.json --output results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --e2-min-runs 3 --e2-sla-seconds 600
+python scripts/build_pic_readiness_scorecard.py --tapeout-gate results/pic_readiness/tapeout_gate_report.json --gate-b results/pic_readiness/gate_b/packet_missing_data_seeded_2026-03-03.json --gate-cd5 results/pic_readiness/process_repro/pic_c_d5_packet_2026-03-03.json --gate-e results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --output results/pic_readiness/scorecard/pic_readiness_scorecard_2026-03-03.json
+python scripts/build_pic_preflight_policy_packet.py --output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --run-id pic_preflight_2026-03-03
+python scripts/sign_release_gate_packet.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature-output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --private-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.private.pem --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem --generate-keypair --key-id pic_preflight_policy_packet_2026-03-03
+python scripts/verify_release_gate_packet_signature.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem
+python scripts/build_pic_external_data_manifest.py --gate-b results/pic_readiness/gate_b/packet_missing_data_seeded_2026-03-03.json --gate-e results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --rc-id rc_next --output results/pic_readiness/handoff/pic_required_external_data_manifest_2026-03-03.json
+python scripts/build_pic_integration_task_board.py --manifest results/pic_readiness/handoff/pic_required_external_data_manifest_2026-03-03.json --output-json results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.json --output-csv results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.csv --default-status in_progress --start-date 2026-03-03 --target-step-days 2
+python scripts/refresh_pic_handoff_daily.py --gate-b results/pic_readiness/gate_b/packet_missing_data_seeded_2026-03-03.json --gate-e results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --rc-id rc_next --manifest-output results/pic_readiness/handoff/pic_required_external_data_manifest_2026-03-03.json --task-board-json results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.json --task-board-csv results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.csv --task-status in_progress --start-date 2026-03-03 --target-step-days 2
+```
 
 Reliability card spec:
 

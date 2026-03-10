@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- OSS repo cleanup: added contributor/community files, repo indexes, and local cleanup tooling.
+
 ## v0.1.0-ga-cycle (2026-02-16)
 - Platform scale-up: async jobs, compile cache, deterministic uncertainty parallel workers, detector fast-path, and RBAC/API governance hardening.
 - Evidence hardening: SBOM in bundle manifests and publish/fetch/verify-by-digest flows.
