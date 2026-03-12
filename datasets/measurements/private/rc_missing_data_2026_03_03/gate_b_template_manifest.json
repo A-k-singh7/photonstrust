@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.pic_gate_b_measurement_template_manifest",
+  "generated_at": "2026-03-03T12:43:26.296132Z",
+  "root": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\datasets\\measurements\\private\\rc_missing_data_2026_03_03",
+  "bundles": {
+    "b1_insertion_loss": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\datasets\\measurements\\private\\rc_missing_data_2026_03_03\\b1_insertion_loss\\measurement_bundle.json",
+    "b2_resonance_alignment": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\datasets\\measurements\\private\\rc_missing_data_2026_03_03\\b2_resonance\\measurement_bundle.json",
+    "b4_delay_rc": "C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\datasets\\measurements\\private\\rc_missing_data_2026_03_03\\b4_delay_rc\\measurement_bundle.json"
+  },
+  "notes": [
+    "These bundles contain synthetic starter rows. Replace with measured silicon data before production correlation claims.",
+    "Use scripts/build_pic_gate_b_packet.py with these bundle paths to run Gate B automation."
+  ]
+}

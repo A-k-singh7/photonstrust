@@ -1,0 +1,4 @@
+lot_id,wafer_id,die_id,net_id,corner,temperature_c,measured_delay_ps,model_delay_ps,measured_resistance_ohm,model_resistance_ohm,measured_capacitance_ff,model_capacitance_ff
+L001,W01,D01,net_a,tt,25.0,48.2,47.9,182.0,180.0,41.5,41.0
+L001,W01,D02,net_a,ss,85.0,61.3,60.7,223.0,220.0,47.2,46.8
+L001,W02,D03,net_a,ff,0.0,39.6,39.1,152.0,150.0,36.8,36.4

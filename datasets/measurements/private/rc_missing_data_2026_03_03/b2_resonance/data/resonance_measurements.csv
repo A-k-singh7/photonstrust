@@ -1,0 +1,4 @@
+lot_id,wafer_id,die_id,device_id,temperature_c,measured_resonance_nm,model_resonance_nm
+L001,W01,D01,ring_1,25.0,1550.120,1550.116
+L001,W01,D02,ring_1,25.0,1550.118,1550.115
+L001,W02,D03,ring_1,25.0,1550.125,1550.121

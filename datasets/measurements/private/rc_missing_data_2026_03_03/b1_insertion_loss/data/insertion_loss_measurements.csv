@@ -1,0 +1,4 @@
+lot_id,wafer_id,die_id,component_id,wavelength_nm,measured_loss_db,model_loss_db
+L001,W01,D01,wg_chain_1,1550.0,2.34,2.31
+L001,W01,D02,wg_chain_1,1550.0,2.29,2.27
+L001,W02,D03,wg_chain_1,1550.0,2.37,2.35
