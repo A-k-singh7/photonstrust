@@ -2,6 +2,9 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08)),
+    radial-gradient(1000px 680px at 14% -10%, rgba(44, 154, 116, 0.14), transparent 72%);
 }
 
 .ptSkipLink {
@@ -28,10 +31,12 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 14px;
-  padding: 14px 14px 12px;
-  border-bottom: 1px solid var(--pt-border);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.32));
+  padding: 12px 14px 11px;
+  border-bottom: 1px solid rgba(16, 23, 34, 0.12);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.54));
+  box-shadow: 0 6px 20px rgba(16, 23, 34, 0.08);
   backdrop-filter: blur(10px);
+  animation: ptFadeIn 220ms ease;
 }
 
 .ptStageNav {
@@ -40,8 +45,9 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--pt-border);
-  background: rgba(255, 255, 255, 0.42);
+  border-bottom: 1px solid rgba(16, 23, 34, 0.1);
+  background: rgba(255, 255, 255, 0.52);
+  animation: ptFadeIn 260ms ease;
 }
 
 .ptActivityStrip {
@@ -78,8 +84,8 @@
   height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(15, 20, 23, 0.16);
-  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(16, 23, 34, 0.18);
+  background: rgba(255, 255, 255, 0.74);
   color: var(--pt-muted);
   font: inherit;
   font-size: 12px;
@@ -87,9 +93,9 @@
 }
 
 .ptStagePill.active {
-  border-color: rgba(46, 230, 214, 0.52);
-  background: rgba(46, 230, 214, 0.18);
-  color: rgba(6, 32, 29, 0.95);
+  border-color: rgba(44, 154, 116, 0.56);
+  background: rgba(44, 154, 116, 0.14);
+  color: rgba(8, 38, 28, 0.95);
 }
 
 .ptStagePill:disabled {
@@ -416,7 +422,9 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 320px 1fr 420px;
+  grid-template-columns: 304px 1fr 396px;
+  gap: 0;
+  animation: ptSlideUp 260ms ease;
 }
 
 .ptMain:focus {
@@ -427,14 +435,14 @@
 .ptSidebar {
   min-height: 0;
   overflow: auto;
-  border-right: 1px solid var(--pt-border);
-  background: rgba(255, 255, 255, 0.28);
+  border-right: 1px solid rgba(16, 23, 34, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.3));
 }
 
 .ptSidebarRight {
   border-right: none;
-  border-left: 1px solid var(--pt-border);
-  background: rgba(255, 255, 255, 0.22);
+  border-left: 1px solid rgba(16, 23, 34, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.24));
 }
 
 .ptSidebarSection {
@@ -452,7 +460,9 @@
 
 .ptCanvas {
   min-height: 0;
-  background: transparent;
+  background:
+    radial-gradient(560px 420px at 50% 18%, rgba(255, 255, 255, 0.38), transparent 72%),
+    transparent;
 }
 
 .ptApiPill {
@@ -461,14 +471,14 @@
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid var(--pt-border);
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.8);
   color: var(--pt-muted);
 }
 
 .ptApiPill.ok {
-  border-color: rgba(46, 230, 214, 0.35);
-  background: rgba(46, 230, 214, 0.16);
-  color: rgba(6, 32, 29, 0.9);
+  border-color: rgba(44, 154, 116, 0.4);
+  background: rgba(44, 154, 116, 0.14);
+  color: rgba(8, 38, 28, 0.9);
 }
 
 .ptApiPill.error {
@@ -541,10 +551,10 @@
 }
 
 .ptBtnPrimary {
-  border-color: rgba(46, 230, 214, 0.6);
-  background: linear-gradient(180deg, rgba(46, 230, 214, 0.95), rgba(46, 230, 214, 0.68));
+  border-color: rgba(44, 154, 116, 0.62);
+  background: linear-gradient(180deg, rgba(78, 180, 142, 0.96), rgba(44, 154, 116, 0.76));
   color: var(--pt-accent-ink);
-  box-shadow: 0 10px 22px rgba(46, 230, 214, 0.22);
+  box-shadow: 0 10px 22px rgba(44, 154, 116, 0.24);
 }
 
 .ptBtnTiny {
@@ -645,8 +655,8 @@
 }
 
 .ptSegmentBtn.active {
-  background: rgba(46, 230, 214, 0.16);
-  color: rgba(6, 32, 29, 0.95);
+  background: rgba(44, 154, 116, 0.14);
+  color: rgba(8, 38, 28, 0.95);
 }
 
 .ptPaletteMeta {
@@ -705,8 +715,8 @@
 }
 
 .ptPaletteGroupLabel--pic {
-  color: rgba(46, 230, 214, 0.9);
-  border-color: rgba(46, 230, 214, 0.25);
+  color: rgba(44, 154, 116, 0.9);
+  border-color: rgba(44, 154, 116, 0.28);
 }
 
 .ptPaletteItem {
@@ -718,7 +728,7 @@
 }
 
 .ptPaletteItem--pic {
-  border-left: 3px solid rgba(46, 230, 214, 0.5);
+  border-left: 3px solid rgba(44, 154, 116, 0.52);
 }
 
 .ptPaletteItem[draggable="true"]:active,
@@ -730,9 +740,9 @@
 
 /* Drop zone highlight on canvas */
 .ptCanvas--dragover {
-  outline: 2px dashed rgba(46, 230, 214, 0.7);
+  outline: 2px dashed rgba(44, 154, 116, 0.72);
   outline-offset: -4px;
-  background: rgba(46, 230, 214, 0.04);
+  background: rgba(44, 154, 116, 0.06);
 }
 
 .ptTabs {
@@ -760,9 +770,9 @@
 }
 
 .ptTab.active {
-  border-color: rgba(46, 230, 214, 0.6);
-  background: rgba(46, 230, 214, 0.14);
-  color: rgba(6, 32, 29, 0.92);
+  border-color: rgba(44, 154, 116, 0.58);
+  background: rgba(44, 154, 116, 0.14);
+  color: rgba(8, 38, 28, 0.92);
 }
 
 .ptTab:focus-visible {
@@ -777,8 +787,8 @@
 .ptRightSection {
   border: 1px solid rgba(15, 20, 23, 0.12);
   border-radius: var(--pt-radius);
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 10px 26px rgba(15, 20, 23, 0.09);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 26px rgba(16, 23, 34, 0.1);
   padding: 12px 12px 14px;
   margin-bottom: 12px;
 }
@@ -1026,8 +1036,8 @@
   justify-content: space-between;
   gap: 14px;
   padding: 10px 14px;
-  border-top: 1px solid var(--pt-border);
-  background: rgba(255, 255, 255, 0.42);
+  border-top: 1px solid rgba(16, 23, 34, 0.12);
+  background: rgba(255, 255, 255, 0.56);
   backdrop-filter: blur(8px);
   font-size: 12px;
   color: var(--pt-muted);
@@ -1054,9 +1064,9 @@
 }
 
 .ptDot[data-state="busy"] {
-  border-color: rgba(46, 230, 214, 0.55);
-  background: rgba(46, 230, 214, 0.45);
-  box-shadow: 0 0 0 4px rgba(46, 230, 214, 0.12);
+  border-color: rgba(44, 154, 116, 0.55);
+  background: rgba(44, 154, 116, 0.44);
+  box-shadow: 0 0 0 4px rgba(44, 154, 116, 0.16);
 }
 
 .ptMono {
@@ -1092,15 +1102,15 @@
 .ptNode {
   width: 220px;
   border-radius: 16px;
-  border: 1px solid rgba(15, 20, 23, 0.22);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 12px 26px rgba(15, 20, 23, 0.12);
+  border: 1px solid rgba(16, 23, 34, 0.22);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 28px rgba(16, 23, 34, 0.13);
   padding: 10px 10px 12px;
   position: relative;
 }
 
 .ptNode[data-category="pic"] {
-  border-color: rgba(46, 230, 214, 0.38);
+  border-color: rgba(44, 154, 116, 0.42);
 }
 
 .ptNode[data-category="qkd"] {
@@ -1108,8 +1118,8 @@
 }
 
 .ptNode.isSelected {
-  box-shadow: 0 16px 38px rgba(46, 230, 214, 0.18);
-  outline: 3px solid rgba(46, 230, 214, 0.22);
+  box-shadow: 0 18px 40px rgba(44, 154, 116, 0.2);
+  outline: 3px solid rgba(44, 154, 116, 0.22);
 }
 
 .ptNodeTop {
@@ -1165,8 +1175,30 @@
 }
 
 .ptHandleOut {
-  border-color: rgba(46, 230, 214, 0.65) !important;
-  background: rgba(46, 230, 214, 0.1) !important;
+  border-color: rgba(44, 154, 116, 0.68) !important;
+  background: rgba(44, 154, 116, 0.12) !important;
+}
+
+@keyframes ptFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ptSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ptPortLabel {
