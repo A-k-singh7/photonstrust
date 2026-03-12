@@ -32,7 +32,11 @@ import math
 from photonstrust.channels.engine import compute_channel_diagnostics
 from photonstrust.channels.fiber import dispersion_ps
 from photonstrust.physics import build_detector_profile, build_source_profile
-from photonstrust.qkd_protocols.common import apply_dead_time, misalignment_error_with_visibility_factor
+from photonstrust.qkd_protocols.common import (
+    apply_dead_time,
+    misalignment_error_with_visibility_factor,
+    relay_split_distances_km,
+)
 from photonstrust.qkd_protocols.finite_key import apply_composable_finite_key
 from photonstrust.qkd_types import QKDResult
 from photonstrust.utils import binary_entropy, clamp
@@ -54,30 +58,68 @@ def compute_point_bbm92(
     eta_source = float(source["collection_efficiency"]) * float(source["coupling_efficiency"])
     channel_model = str(channel.get("model", "fiber")).lower()
 
-    ch_diag = compute_channel_diagnostics(
-        distance_km=float(distance_km),
-        wavelength_nm=float(scenario.get("wavelength_nm", 1550.0) or 1550.0),
-        channel_cfg=channel,
+    topology = _resolve_entanglement_topology(protocol)
+    wavelength_nm = float(scenario.get("wavelength_nm", 1550.0) or 1550.0)
+    connector_loss_db = max(0.0, float(channel.get("connector_loss_db", 0.0) or 0.0))
+
+    distance_a_km = float(distance_km)
+    distance_b_km = float(distance_km)
+    channel_a_cfg = dict(channel)
+    channel_b_cfg = dict(channel)
+    split_connector_loss = False
+    if topology == "midpoint_source":
+        distance_a_km, distance_b_km = relay_split_distances_km(float(distance_km), protocol.get("relay_fraction"))
+        split_connector_loss = bool(protocol.get("split_connector_loss", True))
+        if split_connector_loss:
+            half_connector_loss = connector_loss_db * 0.5
+            channel_a_cfg["connector_loss_db"] = half_connector_loss
+            channel_b_cfg["connector_loss_db"] = half_connector_loss
+
+    ch_diag_a = compute_channel_diagnostics(
+        distance_km=float(distance_a_km),
+        wavelength_nm=wavelength_nm,
+        channel_cfg=channel_a_cfg,
     )
-    eta_channel = float(ch_diag["eta_channel"])
-    total_loss_db = float(ch_diag["total_loss_db"])
-    channel_background_counts_cps = float(ch_diag.get("background_counts_cps", 0.0) or 0.0)
-    raman_counts_cps = float(ch_diag.get("raman_counts_cps", 0.0) or 0.0)
+    ch_diag_b = compute_channel_diagnostics(
+        distance_km=float(distance_b_km),
+        wavelength_nm=wavelength_nm,
+        channel_cfg=channel_b_cfg,
+    )
+
+    eta_channel_a = float(ch_diag_a["eta_channel"])
+    eta_channel_b = float(ch_diag_b["eta_channel"])
+    if topology == "midpoint_source":
+        total_loss_db = _linear_to_db_loss(eta_channel_a * eta_channel_b)
+    else:
+        total_loss_db = float(ch_diag_a["total_loss_db"])
+
+    channel_background_counts_cps_a = float(ch_diag_a.get("background_counts_cps", 0.0) or 0.0)
+    channel_background_counts_cps_b = float(ch_diag_b.get("background_counts_cps", 0.0) or 0.0)
+    raman_counts_cps_a = float(ch_diag_a.get("raman_counts_cps", 0.0) or 0.0)
+    raman_counts_cps_b = float(ch_diag_b.get("raman_counts_cps", 0.0) or 0.0)
 
     pol_vis = 1.0
     if channel_model == "fiber":
-        pol_vis = float(ch_diag.get("decomposition", {}).get("eta_polarization", 1.0) or 1.0)
+        pol_vis_a = float(ch_diag_a.get("decomposition", {}).get("eta_polarization", 1.0) or 1.0)
+        pol_vis_b = float(ch_diag_b.get("decomposition", {}).get("eta_polarization", 1.0) or 1.0)
+        pol_vis = clamp(math.sqrt(max(0.0, pol_vis_a * pol_vis_b)), 0.0, 1.0)
 
     detector_background_counts_cps = float(detector.get("background_counts_cps", 0.0) or 0.0)
-    background_counts_cps = max(0.0, float(channel_background_counts_cps) + float(detector_background_counts_cps))
-    raman_counts_cps = max(0.0, float(raman_counts_cps))
+    background_counts_cps_a = max(0.0, float(channel_background_counts_cps_a) + float(detector_background_counts_cps))
+    background_counts_cps_b = max(0.0, float(channel_background_counts_cps_b) + float(detector_background_counts_cps))
+    raman_counts_cps_a = max(0.0, float(raman_counts_cps_a))
+    raman_counts_cps_b = max(0.0, float(raman_counts_cps_b))
+    background_counts_cps = 0.5 * (background_counts_cps_a + background_counts_cps_b)
+    raman_counts_cps = 0.5 * (raman_counts_cps_a + raman_counts_cps_b)
 
     detector_profile = build_detector_profile(detector)
 
-    eta_channel = clamp(float(eta_channel), 0.0, 1.0)
+    eta_channel_a = clamp(float(eta_channel_a), 0.0, 1.0)
+    eta_channel_b = clamp(float(eta_channel_b), 0.0, 1.0)
     eta_det_base = detector_profile.pde
 
-    eta_total = clamp(float(eta_source) * float(eta_channel) * float(eta_det_base), 0.0, 1.0)
+    eta_total_a = clamp(float(eta_source) * float(eta_channel_a) * float(eta_det_base), 0.0, 1.0)
+    eta_total_b = clamp(float(eta_source) * float(eta_channel_b) * float(eta_det_base), 0.0, 1.0)
 
     # Effective coincidence window.
     jitter_sigma_ps = float(detector["jitter_ps_fwhm"]) / 2.355
@@ -92,13 +134,17 @@ def compute_point_bbm92(
     window_s = window_ps * 1e-12
 
     eta_det = detector_profile.pde_in_window(window_ps)
-    eta_total = clamp(float(eta_source) * float(eta_channel) * float(eta_det), 0.0, 1.0)
+    eta_total_a = clamp(float(eta_source) * float(eta_channel_a) * float(eta_det), 0.0, 1.0)
+    eta_total_b = clamp(float(eta_source) * float(eta_channel_b) * float(eta_det), 0.0, 1.0)
 
     dark_counts_cps = max(0.0, float(detector_profile.dark_counts_cps))
-    noise_counts_cps = detector_profile.effective_noise_cps(background_counts_cps + raman_counts_cps)
+    noise_counts_cps_a = detector_profile.effective_noise_cps(background_counts_cps_a + raman_counts_cps_a)
+    noise_counts_cps_b = detector_profile.effective_noise_cps(background_counts_cps_b + raman_counts_cps_b)
+    noise_counts_cps = 0.5 * (noise_counts_cps_a + noise_counts_cps_b)
 
     # Base Poisson noise parameter per side.
-    b = max(0.0, float(noise_counts_cps)) * max(0.0, float(window_s))
+    b_a = max(0.0, float(noise_counts_cps_a)) * max(0.0, float(window_s))
+    b_b = max(0.0, float(noise_counts_cps_b)) * max(0.0, float(window_s))
 
     # Visibility-driven error for true single-pair coincidences.
     e_mis = misalignment_error_with_visibility_factor(protocol, pol_vis)
@@ -118,8 +164,8 @@ def compute_point_bbm92(
         if not math.isfinite(mu) or mu < 0.0:
             raise ValueError(f"SPDC requires source.mu >= 0, got {mu!r}")
 
-        Q, Q0 = _spdc_total_coincidence(mu=mu, eta=eta_total, b=b)
-        Q_true, Q_true0 = _spdc_true_coincidence(mu=mu, eta=eta_total, b=b)
+        Q, Q0 = _spdc_total_coincidence_asym(mu=mu, eta_a=eta_total_a, eta_b=eta_total_b, b_a=b_a, b_b=b_b)
+        Q_true, Q_true0 = _spdc_true_coincidence_asym(mu=mu, eta_a=eta_total_a, eta_b=eta_total_b, b_a=b_a, b_b=b_b)
     else:
         source_profile = build_source_profile(source)
         emission_prob = clamp(float(source_profile.emission_prob), 0.0, 1.0)
@@ -130,18 +176,22 @@ def compute_point_bbm92(
         p2 = emission_prob * p_multi
 
         Q = (
-            p0 * _q_click_side(eta=eta_total, b=b, n_pairs=0) ** 2
-            + p1 * _q_click_side(eta=eta_total, b=b, n_pairs=1) ** 2
-            + p2 * _q_click_side(eta=eta_total, b=b, n_pairs=2) ** 2
+            p0 * _q_click_side(eta=eta_total_a, b=b_a, n_pairs=0) * _q_click_side(eta=eta_total_b, b=b_b, n_pairs=0)
+            + p1 * _q_click_side(eta=eta_total_a, b=b_a, n_pairs=1) * _q_click_side(eta=eta_total_b, b=b_b, n_pairs=1)
+            + p2 * _q_click_side(eta=eta_total_a, b=b_a, n_pairs=2) * _q_click_side(eta=eta_total_b, b=b_b, n_pairs=2)
         )
         Q0 = (
-            p0 * _q_click_side(eta=eta_total, b=0.0, n_pairs=0) ** 2
-            + p1 * _q_click_side(eta=eta_total, b=0.0, n_pairs=1) ** 2
-            + p2 * _q_click_side(eta=eta_total, b=0.0, n_pairs=2) ** 2
+            p0 * _q_click_side(eta=eta_total_a, b=0.0, n_pairs=0) * _q_click_side(eta=eta_total_b, b=0.0, n_pairs=0)
+            + p1 * _q_click_side(eta=eta_total_a, b=0.0, n_pairs=1) * _q_click_side(eta=eta_total_b, b=0.0, n_pairs=1)
+            + p2 * _q_click_side(eta=eta_total_a, b=0.0, n_pairs=2) * _q_click_side(eta=eta_total_b, b=0.0, n_pairs=2)
         )
 
-        Q_true0 = p1 * _q_true_given_n(eta=eta_total, n_pairs=1) + p2 * _q_true_given_n(eta=eta_total, n_pairs=2)
-        Q_true = math.exp(-2.0 * b) * Q_true0
+        Q_true0 = p1 * _q_true_given_n_asym(eta_a=eta_total_a, eta_b=eta_total_b, n_pairs=1) + p2 * _q_true_given_n_asym(
+            eta_a=eta_total_a,
+            eta_b=eta_total_b,
+            n_pairs=2,
+        )
+        Q_true = math.exp(-(b_a + b_b)) * Q_true0
 
     Q = clamp(float(Q), 0.0, 1.0)
     Q_true = clamp(float(Q_true), 0.0, Q)
@@ -150,7 +200,7 @@ def compute_point_bbm92(
     # Decompose accidentals into multi-pair (no-noise) vs noise-involved.
     Q0 = clamp(float(Q0), 0.0, 1.0)
     Q_true0 = clamp(float(Q_true0), 0.0, 1.0)
-    Q_acc_mp = math.exp(-2.0 * b) * max(0.0, Q0 - Q_true0)
+    Q_acc_mp = math.exp(-(b_a + b_b)) * max(0.0, Q0 - Q_true0)
     Q_acc_mp = clamp(float(Q_acc_mp), 0.0, Q_acc)
     Q_acc_noise = clamp(float(Q_acc - Q_acc_mp), 0.0, Q_acc)
 
@@ -184,11 +234,13 @@ def compute_point_bbm92(
     fidelity = clamp(1.0 - qber_total, 0.0, 1.0)
 
     # Event rate and dead-time saturation use coincidence probability Q.
-    r_herald = rep_rate_hz * Q
+    parallel_mode_count = _parallel_mode_count(source)
+    r_herald_per_mode = rep_rate_hz * Q
 
     dead_time_s = float(detector["dead_time_ns"]) * 1e-9
     dead_time_model = detector.get("dead_time_model")
-    r_herald, _ = apply_dead_time(r_herald, dead_time_s, model=dead_time_model)
+    r_herald_per_mode, _ = apply_dead_time(r_herald_per_mode, dead_time_s, model=dead_time_model)
+    r_herald = r_herald_per_mode * parallel_mode_count
 
     sifting = float(protocol.get("sifting_factor", 0.5) or 0.5)
     sifting = clamp(sifting, 0.0, 1.0)
@@ -236,7 +288,45 @@ def compute_point_bbm92(
         loss_db=float(total_loss_db),
         protocol_name="bbm92",
         finite_key_epsilon=float(fk.security_epsilon),
+        protocol_diagnostics={
+            "entanglement_topology": topology,
+            "distance_a_km": float(distance_a_km),
+            "distance_b_km": float(distance_b_km),
+            "eta_channel_a": float(eta_channel_a),
+            "eta_channel_b": float(eta_channel_b),
+            "eta_channel_pair": float(clamp(eta_channel_a * eta_channel_b, 0.0, 1.0)),
+            "parallel_mode_count": float(parallel_mode_count),
+            "split_connector_loss": bool(split_connector_loss),
+        },
     )
+
+
+def _resolve_entanglement_topology(protocol: dict) -> str:
+    raw = str(protocol.get("entanglement_topology", protocol.get("link_topology", "direct_link")) or "").strip().lower()
+    if raw in {
+        "midpoint_source",
+        "source_in_middle",
+        "relay_midpoint",
+        "symmetric_two_arm",
+        "two_arm",
+    }:
+        return "midpoint_source"
+    return "direct_link"
+
+
+def _parallel_mode_count(source: dict) -> float:
+    try:
+        value = float(source.get("parallel_mode_count", 1.0) or 1.0)
+    except Exception:
+        return 1.0
+    if not math.isfinite(value) or value <= 0.0:
+        return 1.0
+    return max(1.0, value)
+
+
+def _linear_to_db_loss(eta: float) -> float:
+    eta = max(float(eta), 1e-300)
+    return -10.0 * math.log10(eta)
 
 
 def _q_click_side(*, eta: float, b: float, n_pairs: int) -> float:
@@ -251,38 +341,62 @@ def _q_click_side(*, eta: float, b: float, n_pairs: int) -> float:
 def _q_true_given_n(*, eta: float, n_pairs: int) -> float:
     """True single-pair coincidence probability conditioned on n pairs, no noise."""
 
-    eta = clamp(float(eta), 0.0, 1.0)
+    return _q_true_given_n_asym(eta_a=eta, eta_b=eta, n_pairs=n_pairs)
+
+
+def _q_true_given_n_asym(*, eta_a: float, eta_b: float, n_pairs: int) -> float:
+    """True single-pair coincidence probability for asymmetric side efficiencies."""
+
+    eta_a = clamp(float(eta_a), 0.0, 1.0)
+    eta_b = clamp(float(eta_b), 0.0, 1.0)
     n = max(0, int(n_pairs))
     if n <= 0:
         return 0.0
-    return float(n * (eta**2) * ((1.0 - eta) ** (2 * (n - 1))))
+    return float(n * eta_a * eta_b * ((1.0 - eta_a) ** (n - 1)) * ((1.0 - eta_b) ** (n - 1)))
 
 
 def _spdc_total_coincidence(*, mu: float, eta: float, b: float) -> tuple[float, float]:
     """Return (Q_total, Q_total_no_noise) for SPDC."""
 
-    mu = max(0.0, float(mu))
-    eta = clamp(float(eta), 0.0, 1.0)
-    b = max(0.0, float(b))
+    return _spdc_total_coincidence_asym(mu=mu, eta_a=eta, eta_b=eta, b_a=b, b_b=b)
 
-    exp_b = math.exp(-b)
-    exp_2b = math.exp(-2.0 * b)
-    d1 = 1.0 + mu * eta
-    d2 = 1.0 + mu * (2.0 * eta - eta * eta)
-    q_total = 1.0 - 2.0 * exp_b / d1 + exp_2b / d2
-    q0 = 1.0 - 2.0 / d1 + 1.0 / d2
+
+def _spdc_total_coincidence_asym(*, mu: float, eta_a: float, eta_b: float, b_a: float, b_b: float) -> tuple[float, float]:
+    """Return (Q_total, Q_total_no_noise) for SPDC with asymmetric side efficiencies/noise."""
+
+    mu = max(0.0, float(mu))
+    eta_a = clamp(float(eta_a), 0.0, 1.0)
+    eta_b = clamp(float(eta_b), 0.0, 1.0)
+    b_a = max(0.0, float(b_a))
+    b_b = max(0.0, float(b_b))
+
+    exp_a = math.exp(-b_a)
+    exp_b = math.exp(-b_b)
+    d_a = 1.0 + mu * eta_a
+    d_b = 1.0 + mu * eta_b
+    d_ab = 1.0 + mu * (eta_a + eta_b - eta_a * eta_b)
+    q_total = 1.0 - exp_a / d_a - exp_b / d_b + (exp_a * exp_b) / d_ab
+    q0 = 1.0 - 1.0 / d_a - 1.0 / d_b + 1.0 / d_ab
     return float(q_total), float(q0)
 
 
 def _spdc_true_coincidence(*, mu: float, eta: float, b: float) -> tuple[float, float]:
     """Return (Q_true, Q_true_no_noise) for SPDC."""
 
-    mu = max(0.0, float(mu))
-    eta = clamp(float(eta), 0.0, 1.0)
-    b = max(0.0, float(b))
+    return _spdc_true_coincidence_asym(mu=mu, eta_a=eta, eta_b=eta, b_a=b, b_b=b)
 
-    exp_2b = math.exp(-2.0 * b)
-    d2 = 1.0 + mu * (2.0 * eta - eta * eta)
-    q_true0 = (mu * (eta**2) / (d2**2)) if mu > 0.0 and d2 > 0.0 else 0.0
-    q_true = exp_2b * q_true0
+
+def _spdc_true_coincidence_asym(*, mu: float, eta_a: float, eta_b: float, b_a: float, b_b: float) -> tuple[float, float]:
+    """Return (Q_true, Q_true_no_noise) for SPDC with asymmetric side efficiencies/noise."""
+
+    mu = max(0.0, float(mu))
+    eta_a = clamp(float(eta_a), 0.0, 1.0)
+    eta_b = clamp(float(eta_b), 0.0, 1.0)
+    b_a = max(0.0, float(b_a))
+    b_b = max(0.0, float(b_b))
+
+    exp_pair_noise = math.exp(-(b_a + b_b))
+    d_ab = 1.0 + mu * (eta_a + eta_b - eta_a * eta_b)
+    q_true0 = (mu * eta_a * eta_b / (d_ab**2)) if mu > 0.0 and d_ab > 0.0 else 0.0
+    q_true = exp_pair_noise * q_true0
     return float(q_true), float(q_true0)

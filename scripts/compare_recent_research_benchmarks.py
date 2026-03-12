@@ -49,6 +49,10 @@ class BenchmarkCase:
     default_pairing_window_bins: int = 2048
     default_pairing_efficiency: float = 0.6
     default_pairing_error_prob: float = 0.0
+    default_parallel_mode_count: float = 1.0
+    default_entanglement_topology: str = "direct_link"
+    default_relay_fraction: float = 0.5
+    default_split_connector_loss: bool = True
 
     source_type: str = "spdc"
     collection_efficiency: float = 1.0
@@ -74,6 +78,7 @@ class BenchmarkCase:
     fit_pairing_window_bins_bounds: tuple[float, float] | None = None
     fit_pairing_efficiency_bounds: tuple[float, float] | None = None
     fit_pairing_error_prob_bounds: tuple[float, float] | None = None
+    fit_parallel_mode_count_bounds: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -381,6 +386,10 @@ def _benchmark_cases() -> list[BenchmarkCase]:
             default_mu=0.05,
             default_sifting_factor=0.5,
             default_misalignment_prob=0.02,
+            default_parallel_mode_count=256.0,
+            default_entanglement_topology="midpoint_source",
+            default_relay_fraction=0.5,
+            default_split_connector_loss=True,
             source_type="spdc",
             fit_mu_bounds=(1e-4, 0.50),
             fit_rep_rate_mhz_bounds=(50.0, 2000.0),
@@ -389,6 +398,7 @@ def _benchmark_cases() -> list[BenchmarkCase]:
             fit_coincidence_window_ps_bounds=(20.0, 800.0),
             fit_misalignment_prob_bounds=(0.001, 0.10),
             fit_collection_efficiency_bounds=(0.01, 1.0),
+            fit_parallel_mode_count_bounds=(16.0, 512.0),
         ),
         BenchmarkCase(
             case_id="bbm92_26km_4.5bps",
@@ -531,6 +541,8 @@ def _baseline_params(case: BenchmarkCase) -> dict[str, float]:
         "nu_ratio": float(nu_ratio),
         "phase_slices": float(case.default_phase_slices),
         "rep_rate_mhz": float(case.rep_rate_mhz),
+        "parallel_mode_count": float(case.default_parallel_mode_count),
+        "relay_fraction": float(case.default_relay_fraction),
         "collection_efficiency": float(case.collection_efficiency),
         "coupling_efficiency": float(case.coupling_efficiency),
         "pde": float(case.pde),
@@ -575,12 +587,16 @@ def _scenario_from_case(case: BenchmarkCase, params: dict[str, float]) -> dict:
     elif case.protocol == "bbm92":
         protocol["misalignment_prob"] = float(params["misalignment_prob"])
         protocol["sifting_factor"] = float(case.default_sifting_factor)
+        protocol["entanglement_topology"] = str(case.default_entanglement_topology)
+        protocol["relay_fraction"] = float(params["relay_fraction"])
+        protocol["split_connector_loss"] = bool(case.default_split_connector_loss)
     else:
         raise ValueError(f"unsupported protocol in benchmark case: {case.protocol}")
 
     source_payload = {
         "type": case.source_type,
         "rep_rate_mhz": float(params["rep_rate_mhz"]),
+        "parallel_mode_count": float(params["parallel_mode_count"]),
         "collection_efficiency": float(params["collection_efficiency"]),
         "coupling_efficiency": float(params["coupling_efficiency"]),
     }
@@ -740,6 +756,17 @@ def _parameter_specs(case: BenchmarkCase, *, baseline_params: dict[str, float], 
                 values=_grid_with_baseline(
                     _lin_grid(case.fit_coincidence_window_ps_bounds[0], case.fit_coincidence_window_ps_bounds[1], g),
                     baseline_params["coincidence_window_ps"],
+                ),
+            )
+        )
+
+    if case.fit_parallel_mode_count_bounds is not None and case.protocol == "bbm92":
+        specs.append(
+            ParameterSpec(
+                name="parallel_mode_count",
+                values=_grid_with_baseline(
+                    _log_grid(case.fit_parallel_mode_count_bounds[0], case.fit_parallel_mode_count_bounds[1], g),
+                    baseline_params["parallel_mode_count"],
                 ),
             )
         )
@@ -941,6 +968,8 @@ def _pack_result(eval_payload: dict, params: dict[str, float], *, changed: dict[
             "nu_ratio": float(params["nu_ratio"]),
             "phase_slices": int(round(params["phase_slices"])),
             "rep_rate_mhz": float(params["rep_rate_mhz"]),
+            "parallel_mode_count": float(params["parallel_mode_count"]),
+            "relay_fraction": float(params["relay_fraction"]),
             "collection_efficiency": float(params["collection_efficiency"]),
             "coupling_efficiency": float(params["coupling_efficiency"]),
             "pde": float(params["pde"]),
@@ -972,6 +1001,7 @@ def _fit_bounds_for_case(case: BenchmarkCase) -> dict:
         "pairing_window_bins_bounds": case.fit_pairing_window_bins_bounds,
         "pairing_efficiency_bounds": case.fit_pairing_efficiency_bounds,
         "pairing_error_prob_bounds": case.fit_pairing_error_prob_bounds,
+        "parallel_mode_count_bounds": case.fit_parallel_mode_count_bounds,
     }
 
 
