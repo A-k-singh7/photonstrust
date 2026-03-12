@@ -1,0 +1,5 @@
+.venv/
+.venv.production/
+.pytest_cache/
+web/node_modules/
+photonstrust.egg-info/

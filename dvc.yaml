@@ -1,0 +1,21 @@
+stages:
+  rc_baseline_lock:
+    cmd: python scripts/lock_rc_baseline.py --output results/dvc/rc_baseline_lock.json --no-regenerate
+    deps:
+      - scripts/lock_rc_baseline.py
+      - tests/fixtures/baselines.json
+      - tests/fixtures/canonical_phase41_baselines.json
+      - tests/fixtures/canonical_phase54_satellite_baselines.json
+      - tests/fixtures/pic_crosstalk_calibration_baseline.json
+      - tests/fixtures/report_hashes.json
+    outs:
+      - results/dvc/rc_baseline_lock.json
+
+  open_benchmark_index:
+    cmd: python scripts/refresh_open_benchmark_index.py --open-root datasets/benchmarks/open
+    deps:
+      - scripts/refresh_open_benchmark_index.py
+      - photonstrust/benchmarks/open_index.py
+      - datasets/benchmarks/open
+    outs:
+      - datasets/benchmarks/open/index.json
