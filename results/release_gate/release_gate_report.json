@@ -1,16 +1,78 @@
 {
-  "generated_at": "2026-02-18T12:48:50.581240+00:00",
+  "generated_at": "2026-03-12T13:26:11.402177+00:00",
+  "quick_mode": true,
   "checks": [
     {
-      "name": "tests",
+      "name": "contract_gate",
       "ok": true,
       "command": [
         "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
         "-m",
         "pytest",
-        "-q"
+        "-q",
+        "tests/test_api_contract_v1.py"
       ],
-      "output": "........................................................................ [ 20%]\n.......................................s..........................s..... [ 41%]\n........................................................................ [ 62%]\n........................................................................ [ 83%]\n.......................................................                  [100%]\n============================== warnings summary ===============================\ntests/test_qutip_backend_interface.py::test_qutip_backend_simulation_falls_back_to_analytic_when_qutip_path_fails\n  C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\photonstrust\\physics\\emitter.py:80: UserWarning: QuTiP backend unavailable, using analytic model: forced qutip failure\n    warnings.warn(f\"QuTiP backend unavailable, using analytic model: {exc}\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n341 passed, 2 skipped, 1 warning in 34.77s"
+      "timeout_s": 300,
+      "output": "...                                                                      [100%]\n3 passed in 8.72s"
+    },
+    {
+      "name": "security_gate",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_api_auth_rbac.py"
+      ],
+      "timeout_s": 300,
+      "output": "...                                                                      [100%]\n3 passed in 2.84s"
+    },
+    {
+      "name": "observability_gate",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_api_server_optional.py"
+      ],
+      "timeout_s": 300,
+      "output": ".....................................                                    [100%]\n37 passed in 17.80s"
+    },
+    {
+      "name": "parity_gate",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "scripts/run_protocol_engine_parity.py",
+        "--strict",
+        "--engines",
+        "qiskit,analytic",
+        "--baseline",
+        "qiskit",
+        "--output-dir",
+        "results/release_gate/protocol_parity"
+      ],
+      "timeout_s": 300,
+      "output": "{\"baseline_available\":true,\"baseline_engine\":\"qiskit\",\"ok\":true,\"primitive\":\"swap_bsm_equal_bits\",\"report_path\":\"C:\\\\Users\\\\aksin\\\\Desktop\\\\Qutip+qskit projects\\\\photonstrust\\\\results\\\\release_gate\\\\protocol_parity\\\\protocol_engine_parity_20260312T132646Z.json\",\"strict_mode\":true,\"violations_total\":0}"
+    },
+    {
+      "name": "uncertainty_gate",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_satellite_chain_pipeline.py",
+        "tests/test_satellite_chain_schema.py",
+        "tests/test_satellite_chain_reference.py",
+        "tests/test_runtime_models.py"
+      ],
+      "timeout_s": 300,
+      "output": "...................                                                      [100%]\n19 passed in 3.57s"
     },
     {
       "name": "benchmark_drift",
@@ -19,7 +81,8 @@
         "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
         "scripts/check_benchmark_drift.py"
       ],
-      "output": "Benchmark drift check: PASS\nArtifacts: C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\benchmark_drift\\20260218T124927Z"
+      "timeout_s": 300,
+      "output": "Benchmark drift check: PASS\nArtifacts: C:\\Users\\aksin\\Desktop\\Qutip+qskit projects\\photonstrust\\results\\benchmark_drift\\20260312T132653Z"
     },
     {
       "name": "open_benchmarks",
@@ -28,16 +91,30 @@
         "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
         "scripts/check_open_benchmarks.py"
       ],
+      "timeout_s": 300,
       "output": "Open benchmarks: PASS"
     },
     {
-      "name": "pic_crosstalk_calibration_drift",
+      "name": "lineage_gate",
       "ok": true,
       "command": [
         "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-        "scripts/check_pic_crosstalk_calibration_drift.py"
+        "scripts/replay_satellite_chain_reports.py",
+        "--lineage-only"
       ],
-      "output": "PIC crosstalk calibration drift check: PASS"
+      "timeout_s": 120,
+      "output": "{\"checks\":[{\"errors\":[],\"name\":\"sweep_lineage\",\"ok\":true},{\"errors\":[],\"name\":\"optuna_lineage\",\"ok\":true}],\"ok\":true,\"optuna_report\":\"C:\\\\Users\\\\aksin\\\\Desktop\\\\Qutip+qskit projects\\\\photonstrust\\\\results\\\\satellite_chain_optuna\\\\satellite_chain_optuna_report.json\",\"sweep_report\":\"C:\\\\Users\\\\aksin\\\\Desktop\\\\Qutip+qskit projects\\\\photonstrust\\\\results\\\\satellite_chain_sweep\\\\satellite_chain_sweep.json\"}"
+    },
+    {
+      "name": "repro_gate",
+      "ok": true,
+      "command": [
+        "C:\\Users\\aksin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "scripts/replay_satellite_chain_reports.py",
+        "--repro-only"
+      ],
+      "timeout_s": 120,
+      "output": "{\"checks\":[{\"errors\":[],\"name\":\"sweep_repro\",\"ok\":true},{\"errors\":[],\"name\":\"optuna_repro\",\"ok\":true}],\"ok\":true,\"optuna_report\":\"C:\\\\Users\\\\aksin\\\\Desktop\\\\Qutip+qskit projects\\\\photonstrust\\\\results\\\\satellite_chain_optuna\\\\satellite_chain_optuna_report.json\",\"sweep_report\":\"C:\\\\Users\\\\aksin\\\\Desktop\\\\Qutip+qskit projects\\\\photonstrust\\\\results\\\\satellite_chain_sweep\\\\satellite_chain_sweep.json\"}"
     }
   ],
   "pass": true

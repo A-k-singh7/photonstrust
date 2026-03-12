@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-02-16T10:36:19.873513+00:00",
-  "strict_mode": false,
+  "generated_at": "2026-03-12T13:26:19.687456+00:00",
+  "strict_mode": true,
   "status": "ok",
   "environment": {
     "python": "3.12.10",
@@ -23,15 +23,15 @@
         },
         "g2_0": {
           "analytic": 0.02,
-          "qutip": 1.0,
-          "abs_delta": 0.98,
-          "rel_delta": 49.0
+          "qutip": 0.02,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "p_multi": {
           "analytic": 0.0196078431372549,
-          "qutip": 0.5,
-          "abs_delta": 0.4803921568627451,
-          "rel_delta": 24.5
+          "qutip": 0.0196078431372549,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         }
       }
     },
@@ -43,21 +43,21 @@
       "metrics": {
         "emission_prob": {
           "analytic": 0.8627970909764127,
-          "qutip": 0.9957354856015844,
-          "abs_delta": 0.13293839462517176,
-          "rel_delta": 0.154078399215194
+          "qutip": 0.9999143417225381,
+          "abs_delta": 0.13711725074612546,
+          "rel_delta": 0.15892178147118255
         },
         "g2_0": {
           "analytic": 0.016770612031293153,
-          "qutip": 1.0,
-          "abs_delta": 0.9832293879687068,
-          "rel_delta": 58.628116024271996
+          "qutip": 0.016770612031293153,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "p_multi": {
           "analytic": 0.016493997596752928,
-          "qutip": 0.5,
-          "abs_delta": 0.4835060024032471,
-          "rel_delta": 29.314058012135998
+          "qutip": 0.016493997596752928,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         }
       }
     },
@@ -76,14 +76,14 @@
         },
         "fidelity": {
           "analytic": 0.999940003599856,
-          "qutip": 0.9999800001999979,
-          "abs_delta": 3.9996600141867233e-05,
-          "rel_delta": 3.9998999937872865e-05
+          "qutip": 0.9999500025001744,
+          "abs_delta": 9.998900318386461e-06,
+          "rel_delta": 9.999500252404844e-06
         },
         "variance_fidelity": {
           "analytic": 0.0,
-          "qutip": 0.00012453943966501675,
-          "abs_delta": 0.00012453943966501675,
+          "qutip": 2.499750003780242e-07,
+          "abs_delta": 2.499750003780242e-07,
           "rel_delta": null
         }
       }
@@ -103,14 +103,14 @@
         },
         "fidelity": {
           "analytic": 0.9434602183585787,
-          "qutip": 0.9801986743245401,
-          "abs_delta": 0.03673845596596137,
-          "rel_delta": 0.03894012195859038
+          "qutip": 0.9524187685160326,
+          "abs_delta": 0.008958550157453837,
+          "rel_delta": 0.009495419078760756
         },
         "variance_fidelity": {
           "analytic": 0.0,
-          "qutip": 0.00025844500678266064,
-          "abs_delta": 0.00025844500678266064,
+          "qutip": 0.00022658628947218266,
+          "abs_delta": 0.00022658628947218266,
           "rel_delta": null
         }
       }
@@ -130,14 +130,14 @@
         },
         "fidelity": {
           "analytic": 0.5,
-          "qutip": 1.1165526017672724e-08,
-          "abs_delta": 0.499999988834474,
-          "rel_delta": 0.999999977668948
+          "qutip": 0.5000000002799823,
+          "abs_delta": 2.799822595989099e-10,
+          "rel_delta": 5.599645191978198e-10
         },
         "variance_fidelity": {
           "analytic": 0.0,
-          "qutip": 8.654402755043077e-05,
-          "abs_delta": 8.654402755043077e-05,
+          "qutip": 0.00125,
+          "abs_delta": 0.00125,
           "rel_delta": null
         }
       }
@@ -150,28 +150,28 @@
       "fallback_reason": null,
       "metrics": {
         "key_rate_bps": {
-          "analytic": 29551.80716497328,
-          "qutip": 0.0,
-          "abs_delta": 29551.80716497328,
-          "rel_delta": 1.0
+          "analytic": 29551.80716497332,
+          "qutip": 29551.80716497332,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "qber_total": {
-          "analytic": 0.018550240934175316,
-          "qutip": 0.2044923762068281,
-          "abs_delta": 0.1859421352726528,
-          "rel_delta": 10.023704594051365
+          "analytic": 0.018550240934175257,
+          "qutip": 0.018550240934175257,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "entanglement_rate_hz": {
           "analytic": 82982.49355540265,
-          "qutip": 189879.13428382415,
-          "abs_delta": 106896.64072842151,
-          "rel_delta": 1.2881830389569189
+          "qutip": 82982.49355540265,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "p_pair": {
           "analytic": 0.0008057241303238018,
-          "qutip": 0.0011439355854668397,
-          "abs_delta": 0.0003382114551430379,
-          "rel_delta": 0.41976086158313086
+          "qutip": 0.0008057241303238018,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         }
       }
     },
@@ -184,27 +184,27 @@
       "metrics": {
         "key_rate_bps": {
           "analytic": 7478.868660202834,
-          "qutip": 0.0,
-          "abs_delta": 7478.868660202834,
-          "rel_delta": 1.0
+          "qutip": 7478.868660202834,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "qber_total": {
           "analytic": 0.018537289493796665,
-          "qutip": 0.2022546359216128,
-          "abs_delta": 0.18371734642781615,
-          "rel_delta": 9.910690907065755
+          "qutip": 0.018537289493796665,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "entanglement_rate_hz": {
           "analytic": 20996.199047675975,
-          "qutip": 48930.651176485866,
-          "abs_delta": 27934.45212880989,
-          "rel_delta": 1.330452815072826
+          "qutip": 20996.199047675975,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "p_pair": {
           "analytic": 0.00020260312763598946,
-          "qutip": 0.0002928102305076948,
-          "abs_delta": 9.020710287170535e-05,
-          "rel_delta": 0.4452404260697177
+          "qutip": 0.00020260312763598946,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         }
       }
     },
@@ -217,80 +217,47 @@
       "metrics": {
         "key_rate_bps": {
           "analytic": 749.9535003774496,
-          "qutip": 0.0,
-          "abs_delta": 749.9535003774496,
-          "rel_delta": 1.0
+          "qutip": 749.9535003774496,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "qber_total": {
           "analytic": 0.018528606686074214,
-          "qutip": 0.20071498078342917,
-          "abs_delta": 0.18218637409735494,
-          "rel_delta": 9.832707725092094
+          "qutip": 0.018528606686074214,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "entanglement_rate_hz": {
           "analytic": 2105.104405608948,
-          "qutip": 4952.878312226079,
-          "abs_delta": 2847.773906617131,
-          "rel_delta": 1.3527946162809674
+          "qutip": 2105.104405608948,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "p_pair": {
           "analytic": 2.0275219170116448e-05,
-          "qutip": 2.9661136416965932e-05,
-          "abs_delta": 9.385917246849485e-06,
-          "rel_delta": 0.46292556288039266
+          "qutip": 2.0275219170116448e-05,
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         }
       }
     }
   ],
   "summary": {
-    "threshold_breaches": [
-      {
-        "category": "emitter",
-        "metric": "g2_0",
-        "delta_kind": "abs",
-        "observed": 0.9832293879687068,
-        "limit": 0.1,
-        "reason": "Large g2 drift materially changes multi-photon probability."
-      },
-      {
-        "category": "memory",
-        "metric": "fidelity",
-        "delta_kind": "abs",
-        "observed": 0.499999988834474,
-        "limit": 0.05,
-        "reason": "Memory fidelity parity should be within 5 percentage points."
-      },
-      {
-        "category": "qkd",
-        "metric": "qber_total",
-        "delta_kind": "abs",
-        "observed": 0.1859421352726528,
-        "limit": 0.05,
-        "reason": "QBER drift beyond 5 points is protocol-significant."
-      },
-      {
-        "category": "qkd",
-        "metric": "key_rate_bps",
-        "delta_kind": "rel",
-        "observed": 1.0,
-        "limit": 0.5,
-        "reason": "Key-rate parity should be within 50% for this focused smoke lane."
-      }
-    ],
+    "threshold_breaches": [],
     "fallbacks": [],
     "max_deltas": {
       "emitter": {
         "emission_prob": {
-          "abs_delta": 0.13293839462517176,
-          "rel_delta": 0.154078399215194
+          "abs_delta": 0.13711725074612546,
+          "rel_delta": 0.15892178147118255
         },
         "g2_0": {
-          "abs_delta": 0.9832293879687068,
-          "rel_delta": 58.628116024271996
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "p_multi": {
-          "abs_delta": 0.4835060024032471,
-          "rel_delta": 29.314058012135998
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         }
       },
       "memory": {
@@ -299,37 +266,37 @@
           "rel_delta": 0.0
         },
         "fidelity": {
-          "abs_delta": 0.499999988834474,
-          "rel_delta": 0.999999977668948
+          "abs_delta": 0.008958550157453837,
+          "rel_delta": 0.009495419078760756
         },
         "variance_fidelity": {
-          "abs_delta": 0.00025844500678266064,
+          "abs_delta": 0.00125,
           "rel_delta": null
         }
       },
       "qkd": {
         "key_rate_bps": {
-          "abs_delta": 29551.80716497328,
-          "rel_delta": 1.0
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "qber_total": {
-          "abs_delta": 0.1859421352726528,
-          "rel_delta": 10.023704594051365
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "entanglement_rate_hz": {
-          "abs_delta": 106896.64072842151,
-          "rel_delta": 1.3527946162809674
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         },
         "p_pair": {
-          "abs_delta": 0.0003382114551430379,
-          "rel_delta": 0.46292556288039266
+          "abs_delta": 0.0,
+          "rel_delta": 0.0
         }
       }
     }
   },
   "recommendation": {
-    "decision": "no-go",
-    "rationale": "Focused parity lane shows material analytic-vs-QuTiP deltas and/or fallback behavior. Keep QuTiP lane optional until model alignment improves.",
-    "require_qutip_in_ci": false
+    "decision": "go",
+    "rationale": "Focused parity checks are within configured guard-bands and no fallbacks observed.",
+    "require_qutip_in_ci": true
   }
 }

@@ -1,14 +1,14 @@
 {
   "schema_version": "0.1",
   "kind": "photonstrust.release_gate_packet",
-  "generated_at": "2026-02-18T12:49:39.433942+00:00",
+  "generated_at": "2026-03-12T13:27:10.388427+00:00",
   "required_artifact_count": 12,
   "artifact_count": 12,
   "artifacts": [
     {
       "path": "CHANGELOG.md",
-      "sha256": "c6b3fed120c3630e92ce9bcb998de9158838a62e5767f7be24570143f7467028",
-      "bytes": 1088
+      "sha256": "40f42098113a76ce095119fa22d11c7f29c3b887abd81c26c61681c3e59591c2",
+      "bytes": 1199
     },
     {
       "path": "reports/specs/milestones/external_reviewer_dry_run_2026-02-16.json",
@@ -62,8 +62,8 @@
     },
     {
       "path": "results/release_gate/release_gate_report.json",
-      "sha256": "17fc53feb8530c9a11da5ca81cd562e34ba1a5915a5faf28a32c47e658821226",
-      "bytes": 2307
+      "sha256": "e0bb84b3d1f10457ff06aef0012fe508698d314a2b23c901431e214461e44f0c",
+      "bytes": 4989
     }
   ],
   "approvals": {
@@ -91,5 +91,5 @@
       }
     ]
   },
-  "artifact_set_sha256": "a6b4131d144fb2c49e38b6f4d439c8f58466fce29ee2c2de356f3c44c81550bf"
+  "artifact_set_sha256": "d036defa39f359d14bce13d0014008bfa4f002fe6d02a868e73aabfdafca28d0"
 }
