@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+        files: ^(configs/|schemas/|tests/fixtures/|datasets/|graphs/|reports/|docs/).*\.json$
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.5
+    hooks:
+      - id: ruff
+        args: [--config=pyproject.toml]
+
+  - repo: local
+    hooks:
+      - id: model-metadata-contract
+        name: model-metadata-contract
+        entry: python scripts/check_model_metadata_contract.py
+        language: python
+        additional_dependencies: ["pydantic>=2.7"]
+        pass_filenames: false
+      - id: hardcoded-physics-constants
+        name: hardcoded-physics-constants
+        entry: python scripts/check_hardcoded_physics_constants.py
+        language: python
+        pass_filenames: false

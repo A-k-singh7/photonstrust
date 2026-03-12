@@ -2,13 +2,8 @@ name: Web Playwright Tests
 
 on:
   push:
-    paths:
-      - "web/**"
-      - ".github/workflows/web-playwright.yml"
   pull_request:
-    paths:
-      - "web/**"
-      - ".github/workflows/web-playwright.yml"
+  workflow_dispatch:
 
 jobs:
   playwright-ui:
@@ -25,7 +20,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect web changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            web:
+              - "web/**"
+              - ".github/workflows/web-playwright.yml"
+
+      - name: Skip web Playwright lane when web is unchanged
+        if: steps.changes.outputs.web != 'true'
+        run: echo "No web changes detected; skipping Playwright lane."
+
       - name: Setup Node.js 20
+        if: steps.changes.outputs.web == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -33,19 +42,23 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
+        if: steps.changes.outputs.web == 'true'
         run: npm ci
 
       - name: Install Playwright Chromium and OS deps
+        if: steps.changes.outputs.web == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Build app
+        if: steps.changes.outputs.web == 'true'
         run: npm run build
 
       - name: Run Playwright UI tests (bounded workers)
+        if: steps.changes.outputs.web == 'true'
         run: npm run test:ui -- --workers=${PLAYWRIGHT_WORKERS}
 
       - name: Upload Playwright artifacts on failure
-        if: failure()
+        if: failure() && steps.changes.outputs.web == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-artifacts

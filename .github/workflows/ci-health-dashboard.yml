@@ -1,0 +1,50 @@
+name: ci-health-dashboard
+
+on:
+  schedule:
+    - cron: "45 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ci-health-dashboard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scoreboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compute CI health metrics
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/compute_ci_health_metrics.py \
+            --repo "${{ github.repository }}" \
+            --branch "main" \
+            --workflow "ci-smoke" \
+            --workflow "Web Playwright Tests" \
+            --workflow "security-baseline" \
+            --window-days 14 \
+            --output-json results/ci_health/ci_history_metrics_real.json \
+            --output-md results/ci_health/ci_health_summary.md
+
+      - name: Upload CI health artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-health-dashboard
+          path: |
+            results/ci_health/ci_history_metrics_real.json
+            results/ci_health/ci_health_summary.md

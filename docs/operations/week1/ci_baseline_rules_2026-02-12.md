@@ -3,6 +3,9 @@
 This document defines the Week 1 minimum CI and repository quality controls for
 PhotonTrust M1 (`W1-W4`).
 
+For the current operational branch-protection and CI split, use:
+`docs/operations/product/phase1_ci_strengthening_2026-03-04.md`.
+
 ## Current baseline pipeline
 Workflow file:
 - `.github/workflows/ci.yml`

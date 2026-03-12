@@ -1,0 +1,66 @@
+name: satellite-nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: satellite-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nightly:
+    name: Satellite Nightly Repro
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,optuna,ray]"
+
+      - name: Run deterministic sweep lane
+        run: |
+          python scripts/run_satellite_chain_sweep.py \
+            configs/satellite/eagle1_analog_berlin.yml \
+            configs/satellite/eagle1_analog_snspd.yml \
+            --backend local \
+            --max-workers 1 \
+            --seed 42 \
+            --max-retries 1 \
+            --output-root results/nightly/sweep
+
+      - name: Run deterministic optuna lane
+        run: |
+          python scripts/run_satellite_chain_optuna.py \
+            configs/satellite/eagle1_analog_berlin.yml \
+            --n-trials 8 \
+            --seed 42 \
+            --output-dir results/nightly/optuna \
+            --tracking-mode local_json
+
+      - name: Validate lineage and replay gates
+        run: |
+          python scripts/replay_satellite_chain_reports.py \
+            --sweep-report results/nightly/sweep/satellite_chain_sweep.json \
+            --optuna-report results/nightly/optuna/satellite_chain_optuna_report.json
+
+      - name: Upload nightly artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: satellite-nightly-artifacts
+          path: |
+            results/nightly/
