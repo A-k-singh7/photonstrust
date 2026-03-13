@@ -23,6 +23,12 @@ protocol-family surfaces.
 - certify decisions with approvals, evidence packets, publish, and verify flows
 - validate research examples, parity lanes, and release-gate evidence
 
+## UI Preview
+
+![PhotonTrust landing](docs/assets/ui-landing.png)
+
+![Decision review flow](docs/assets/ui-decision-review.png)
+
 ## Choose Your Path
 
 - CLI or library user: start with the quick start below, then see
