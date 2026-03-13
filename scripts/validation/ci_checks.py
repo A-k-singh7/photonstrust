@@ -32,7 +32,7 @@ from photonstrust.benchmarks.validation_harness import ValidationCase, run_valid
 repo_root = Path.cwd()
 case = ValidationCase(
     case_id="ci_smoke_demo1_default",
-    config_path=repo_root / "configs" / "demo1_default.yml",
+    config_path=repo_root / "configs" / "quickstart" / "qkd_default.yml",
     baseline_path=repo_root / "tests" / "fixtures" / "baselines.json",
 )
 summary = run_validation_harness(

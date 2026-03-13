@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Body, HTTPException
 
 from photonstrust.api import compile_cache as compile_cache_store
