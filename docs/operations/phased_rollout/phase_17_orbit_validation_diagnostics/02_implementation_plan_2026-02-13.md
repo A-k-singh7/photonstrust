@@ -59,7 +59,7 @@
 - Add:
   - `tests/test_orbit_diagnostics.py` (unit tests for semantic checks)
 - Modify:
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
     - add smoke test for `/v0/orbit/pass/validate`
     - ensure `/v0/orbit/pass/run` response includes diagnostics
 

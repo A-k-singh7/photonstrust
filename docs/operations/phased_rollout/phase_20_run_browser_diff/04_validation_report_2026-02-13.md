@@ -30,7 +30,7 @@
   - Result: PASS (Vite build; `200 modules transformed`)
 
 ## Evidence (tests)
-- `tests/test_api_server_optional.py` includes a diff test that:
+- `tests/api/test_api_server_optional.py` includes a diff test that:
   - creates two runs under `PHOTONTRUST_API_RUNS_ROOT=tmp_path`
   - calls `POST /v0/runs/diff` with scope `input`
   - asserts diff includes `/config_hash` changes and respects the `limit`

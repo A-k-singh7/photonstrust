@@ -76,7 +76,7 @@ optional/non-blocking per parity recommendation.
 - Command:
 
 ```text
-py -3 -m pytest -q tests/test_protocol_compiler.py tests/test_protocol_circuits_qiskit.py tests/test_qiskit_backend_interface.py tests/test_physics_backends_interface.py tests/test_multifidelity_execution.py tests/test_api_server_optional.py
+py -3 -m pytest -q tests/test_protocol_compiler.py tests/test_protocol_circuits_qiskit.py tests/test_qiskit_backend_interface.py tests/test_physics_backends_interface.py tests/test_multifidelity_execution.py tests/api/test_api_server_optional.py
 ```
 
 - Result:

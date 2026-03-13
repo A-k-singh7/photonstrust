@@ -30,7 +30,7 @@
   - Result: PASS (Vite build; `200 modules transformed`)
 
 ## Evidence (tests)
-- `tests/test_api_server_optional.py` includes:
+- `tests/api/test_api_server_optional.py` includes:
   - run creation under `PHOTONTRUST_API_RUNS_ROOT=tmp_path`
   - `/v0/runs` contains the new `run_id`
   - `/v0/runs/{run_id}` returns the manifest

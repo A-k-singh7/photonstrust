@@ -65,7 +65,7 @@
       - writes run manifest with `run_type=invdesign`
 
 - Add optional API test:
-  - extend `tests/test_api_server_optional.py` to cover the new endpoint (hermetic, deterministic).
+  - extend `tests/api/test_api_server_optional.py` to cover the new endpoint (hermetic, deterministic).
 
 ### 4) Web UI
 - Web API client:

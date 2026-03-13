@@ -30,7 +30,7 @@
   - Result: PASS (Vite build)
 
 ## Evidence (tests)
-- `tests/test_api_server_optional.py` includes:
+- `tests/api/test_api_server_optional.py` includes:
   - assertions that `run_manifest.json` contains `outputs_summary` for QKD and Orbit runs
   - a diff test that:
     - creates two orbit runs with different `dt_s`

@@ -74,7 +74,7 @@ Requirements:
 
 ### 4) Tests
 Modify:
-- `tests/test_api_server_optional.py`
+- `tests/api/test_api_server_optional.py`
 
 Add:
 - layout build writes outputs + manifest

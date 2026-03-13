@@ -38,7 +38,7 @@
 
 ### 1.4 Tests
 - Update optional API tests:
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
   - add coverage for `/v0/registry/kinds`
 
 ### 1.5 Docs

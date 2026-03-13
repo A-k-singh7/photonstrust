@@ -26,7 +26,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `photonstrust/api/compile_cache.py`
    - `photonstrust/api/server.py`
    - `photonstrust/api/runs.py`
-   - `tests/test_api_server_optional.py`
+   - `tests/api/test_api_server_optional.py`
 2. Add deterministic uncertainty parallelization and detector fast path:
    - `photonstrust/qkd.py`
    - `photonstrust/physics/detector.py`
@@ -34,7 +34,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `tests/test_detector_fast_path.py`
 3. Add RBAC controls for runs/artifacts/approvals/jobs:
    - `photonstrust/api/server.py`
-   - `tests/test_api_auth_rbac.py`
+   - `tests/api/test_api_auth_rbac.py`
 4. Add SBOM and digest publication flow:
    - `photonstrust/api/server.py`
    - `schemas/photonstrust.evidence_bundle_manifest.v0.schema.json`

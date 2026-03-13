@@ -11,7 +11,7 @@ Date: 2026-02-16
 - Command:
 
 ```text
-py -3 -m pytest tests/test_pdk_adapter_contract.py tests/test_foundry_drc_sealed_runner.py tests/test_phase57_golden_chain_fixture.py tests/test_pdk_manifest_schema.py tests/test_api_phase57_pdk_manifest_and_foundry.py
+py -3 -m pytest tests/test_pdk_adapter_contract.py tests/test_foundry_drc_sealed_runner.py tests/test_phase57_golden_chain_fixture.py tests/test_pdk_manifest_schema.py tests/api/test_api_phase57_pdk_manifest_and_foundry.py
 ```
 
 - Result:

@@ -37,7 +37,7 @@
 - Add:
   - `tests/test_graph_diagnostics.py` for validation logic
 - Extend:
-  - `tests/test_api_server_optional.py` to cover `/v0/graph/validate`.
+  - `tests/api/test_api_server_optional.py` to cover `/v0/graph/validate`.
 
 ### 1.5 Docs
 - Add Phase 15 artifacts:

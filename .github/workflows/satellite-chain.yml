@@ -14,7 +14,7 @@ on:
       - "scripts/generate_satellite_chain_reference.py"
       - "tests/test_satellite_chain*.py"
       - "tests/test_satellite_geometry.py"
-      - "tests/test_run_orbit_provider_parity_script.py"
+      - "tests/scripts/test_run_orbit_provider_parity_script.py"
       - "tests/fixtures/satellite_chain_reference.json"
   pull_request:
     paths:
@@ -29,7 +29,7 @@ on:
       - "scripts/generate_satellite_chain_reference.py"
       - "tests/test_satellite_chain*.py"
       - "tests/test_satellite_geometry.py"
-      - "tests/test_run_orbit_provider_parity_script.py"
+      - "tests/scripts/test_run_orbit_provider_parity_script.py"
       - "tests/fixtures/satellite_chain_reference.json"
   workflow_dispatch:
 
@@ -67,7 +67,7 @@ jobs:
             tests/test_satellite_chain_pipeline.py \
             tests/test_satellite_chain_cli.py \
             tests/test_satellite_chain_reference.py \
-            tests/test_run_orbit_provider_parity_script.py
+            tests/scripts/test_run_orbit_provider_parity_script.py
 
       - name: Run satellite-chain scenarios
         run: |

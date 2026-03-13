@@ -61,7 +61,7 @@ Edits:
 
 ### 3) Tests
 Edits:
-- `tests/test_api_server_optional.py`
+- `tests/api/test_api_server_optional.py`
   - add test for `/v0/pic/layout/klayout/run` that is hermetic (tmp runs root)
 
 ### 4) Documentation updates

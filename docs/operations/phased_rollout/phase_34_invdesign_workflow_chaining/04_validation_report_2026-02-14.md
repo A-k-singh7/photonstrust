@@ -43,7 +43,7 @@ Result:
 
 ## API Contract Check (Workflow Chain)
 Test coverage added in:
-- `tests/test_api_server_optional.py::test_api_pic_invdesign_workflow_chain_writes_outputs`
+- `tests/api/test_api_server_optional.py::test_api_pic_invdesign_workflow_chain_writes_outputs`
 
 Asserts:
 - workflow run folder exists and includes `workflow_report.json`

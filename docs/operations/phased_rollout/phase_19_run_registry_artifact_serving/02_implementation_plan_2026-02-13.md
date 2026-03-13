@@ -48,7 +48,7 @@
 
 ### 1.5 Tests
 - Modify:
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
 - Add:
   - run registry smoke:
     - set `PHOTONTRUST_API_RUNS_ROOT` to `tmp_path`

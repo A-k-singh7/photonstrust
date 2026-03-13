@@ -52,6 +52,6 @@ jobs:
       - name: Run API v1 contract smoke
         run: >-
           python -m pytest -q --import-mode=importlib
-          tests/test_api_contract_v1.py
-          tests/test_api_server_optional.py
-          tests/test_api_auth_rbac.py
+          tests/api/test_api_contract_v1.py
+          tests/api/test_api_server_optional.py
+          tests/api/test_api_auth_rbac.py

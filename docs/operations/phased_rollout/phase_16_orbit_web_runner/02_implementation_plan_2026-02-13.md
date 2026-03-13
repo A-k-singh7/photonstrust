@@ -23,7 +23,7 @@
 
 ### 1.2 Optional API test
 - Modify:
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
 - Add:
   - smoke test for `POST /v0/orbit/pass/run` with `tmp_path` output root.
 

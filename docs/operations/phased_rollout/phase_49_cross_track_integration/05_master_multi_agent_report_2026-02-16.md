@@ -121,7 +121,7 @@ The parallel-agent sprint produced a strong first integration pass across **QKD 
 - Tests updated:
   - `tests/test_reliability_card_v1_1_schema.py`
   - `tests/test_completion_quality.py`
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
 
 ### Added card fields
 - `security_assumptions_metadata`

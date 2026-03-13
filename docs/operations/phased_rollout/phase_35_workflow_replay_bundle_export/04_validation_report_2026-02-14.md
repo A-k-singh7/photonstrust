@@ -44,13 +44,13 @@ Result:
 - PASS
 
 ## Test Evidence (New Coverage)
-- `tests/test_api_server_optional.py::test_api_runs_bundle_returns_zip_for_workflow`
+- `tests/api/test_api_server_optional.py::test_api_runs_bundle_returns_zip_for_workflow`
   - creates a workflow run
   - downloads `/v0/runs/{run_id}/bundle`
   - validates the zip contains:
     - workflow run manifest + workflow artifacts
     - key child run manifests and SPICE netlist artifact
-- `tests/test_api_server_optional.py::test_api_pic_invdesign_workflow_chain_replay_creates_new_run`
+- `tests/api/test_api_server_optional.py::test_api_pic_invdesign_workflow_chain_replay_creates_new_run`
   - replays a workflow run
   - asserts new workflow run is created and `replayed_from_run_id` is recorded
 

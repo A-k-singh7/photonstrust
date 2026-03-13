@@ -34,7 +34,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
 4. Add protocol-contract and bound-routing tests:
    - `tests/test_qkd_protocol_registry.py`
    - `tests/test_qkd_bound_gate_routing.py`
-   - update `tests/test_api_server_optional.py`
+   - update `tests/api/test_api_server_optional.py`
 5. Execute validation gates:
    - `py -3 -m pytest -q`
    - `py -3 scripts/release_gate_check.py`

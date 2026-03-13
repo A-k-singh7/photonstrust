@@ -84,7 +84,7 @@ Target touchpoints:
 1. `photonstrust/pipeline/satellite_chain_optuna.py`
 2. `scripts/run_satellite_chain_optuna.py`
 3. `tests/test_satellite_chain_optuna.py`
-4. `tests/test_run_satellite_chain_optuna_script.py`
+4. `tests/scripts/test_run_satellite_chain_optuna_script.py`
 
 Acceptance:
 1. Identical config+seed reproduces trial ranking within tolerance.

@@ -33,7 +33,7 @@
   - Result: PASS (Vite build)
 
 ## Evidence (tests)
-- `tests/test_api_server_optional.py` includes `test_api_projects_and_approvals` covering:
+- `tests/api/test_api_server_optional.py` includes `test_api_projects_and_approvals` covering:
   - project inference via `GET /v0/projects`
   - run filtering via `GET /v0/runs?project_id=...`
   - approvals append + list via `POST/GET /v0/projects/{project_id}/approvals`

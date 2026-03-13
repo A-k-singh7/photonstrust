@@ -14,7 +14,7 @@ This update records implementation progress for Week 2 objectives in `docs/opera
   - Persistence target: `results/ui_metrics/events.jsonl`
   - Files: `photonstrust/api/server.py`, `photonstrust/api/ui_metrics.py`
 - API contract tests added for telemetry ingest success and failure paths:
-  - File: `tests/test_api_server_optional.py`
+  - File: `tests/api/test_api_server_optional.py`
 
 ## 2) Week 2 deliverable status
 

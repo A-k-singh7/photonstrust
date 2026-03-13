@@ -70,7 +70,7 @@ research anchors applied in implementation:
   - `photonstrust/api/server.py`
   - `photonstrust/api/runs.py`
   - `tests/test_multifidelity_execution.py`
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
 - Minimal trust-surface UI updates:
   - `web/src/App.jsx`
 

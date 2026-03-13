@@ -60,9 +60,9 @@ jobs:
       - name: Run API v1 contract and authz gates
         run: >-
           python -m pytest -q --import-mode=importlib
-          tests/test_api_contract_v1.py
-          tests/test_api_server_optional.py
-          tests/test_api_auth_rbac.py
+          tests/api/test_api_contract_v1.py
+          tests/api/test_api_server_optional.py
+          tests/api/test_api_auth_rbac.py
 
   protocol-parity-uncertainty:
     runs-on: ubuntu-latest
@@ -79,7 +79,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,qiskit]"
       - name: Run protocol engine parity tests
-        run: python -m pytest -q tests/test_protocol_engine_contract.py tests/test_protocol_engine_parity.py tests/test_run_protocol_engine_parity_script.py
+        run: python -m pytest -q tests/test_protocol_engine_contract.py tests/test_protocol_engine_parity.py tests/scripts/test_run_protocol_engine_parity_script.py
       - name: Run strict protocol parity gate
         run: python scripts/run_protocol_engine_parity.py --strict --engines qiskit,analytic --baseline qiskit --output-dir results/ci/protocol_parity
       - name: Run uncertainty integration tests
@@ -135,7 +135,7 @@ jobs:
               python scripts/run_qiskit_lane.py --output-json results/ci/qiskit_lane_report.json
             fi
           elif [ "${{ matrix.lane }}" = "distributed" ]; then
-            python -m pytest -q tests/test_satellite_chain_sweep_backend.py tests/test_satellite_chain_optuna.py tests/test_run_satellite_chain_sweep_script.py tests/test_run_satellite_chain_optuna_script.py
+            python -m pytest -q tests/test_satellite_chain_sweep_backend.py tests/test_satellite_chain_optuna.py tests/scripts/test_run_satellite_chain_sweep_script.py tests/scripts/test_run_satellite_chain_optuna_script.py
             python scripts/run_satellite_chain_sweep.py configs/satellite/eagle1_analog_berlin.yml --backend local --max-workers 1 --seed 42 --max-retries 1 --output-root results/ci/distributed_sweep
             python scripts/run_satellite_chain_optuna.py configs/satellite/eagle1_analog_berlin.yml --n-trials 3 --seed 42 --output-dir results/ci/distributed_optuna --tracking-mode local_json
             python scripts/replay_satellite_chain_reports.py --sweep-report results/ci/distributed_sweep/satellite_chain_sweep.json --optuna-report results/ci/distributed_optuna/satellite_chain_optuna_report.json

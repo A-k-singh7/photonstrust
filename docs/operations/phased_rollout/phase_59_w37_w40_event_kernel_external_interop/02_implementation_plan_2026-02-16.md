@@ -33,7 +33,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `photonstrust/api/server.py`
 4. Interop-aware run diff summary block:
    - `photonstrust/api/server.py`
-   - `tests/test_api_server_optional.py`
+   - `tests/api/test_api_server_optional.py`
 5. Schema and path helper additions:
    - `schemas/photonstrust.event_trace.v0.schema.json`
    - `schemas/photonstrust.protocol_steps.v0.schema.json`

@@ -48,7 +48,7 @@ This board converts the current engineering platform into a product users can ad
 
 - `ui/data.py`
 - `ui/app.py`
-- `tests/test_api_server_optional.py` (contract checks)
+- `tests/api/test_api_server_optional.py` (contract checks)
 
 ### Acceptance checks
 

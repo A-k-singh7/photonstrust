@@ -11,7 +11,7 @@ Date: 2026-02-16
 - Command:
 
 ```text
-py -3 -m pytest tests/test_invdesign_mzi_phase.py tests/test_invdesign_coupler_ratio.py tests/test_invdesign_report_schema.py tests/test_invdesign_robustness_metrics.py tests/test_api_phase58_invdesign_wave3.py tests/test_phase58_w36_flagship_invdesign_fixture.py tests/test_api_server_optional.py::test_api_pic_invdesign_coupler_ratio_writes_outputs tests/test_api_server_optional.py::test_api_pic_invdesign_workflow_chain_writes_outputs tests/test_workflow_chain_report_schema.py tests/test_pic_layout_build_and_lvs_lite.py::test_pic_lvs_lite_includes_signoff_bundle_summary
+py -3 -m pytest tests/test_invdesign_mzi_phase.py tests/test_invdesign_coupler_ratio.py tests/test_invdesign_report_schema.py tests/test_invdesign_robustness_metrics.py tests/api/test_api_phase58_invdesign_wave3.py tests/test_phase58_w36_flagship_invdesign_fixture.py tests/api/test_api_server_optional.py::test_api_pic_invdesign_coupler_ratio_writes_outputs tests/api/test_api_server_optional.py::test_api_pic_invdesign_workflow_chain_writes_outputs tests/test_workflow_chain_report_schema.py tests/test_pic_layout_build_and_lvs_lite.py::test_pic_lvs_lite_includes_signoff_bundle_summary
 ```
 
 - Result:

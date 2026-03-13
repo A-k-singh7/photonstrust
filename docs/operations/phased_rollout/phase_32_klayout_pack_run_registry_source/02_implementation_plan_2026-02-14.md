@@ -40,5 +40,5 @@
 3) Add Runs-mode UI section in `web/src/App.jsx` manifest view:
    - choose `.gds` artifact path from selected run
    - run pack and show result links
-4) Update `tests/test_api_server_optional.py` with a `source_run_id` coverage test.
+4) Update `tests/api/test_api_server_optional.py` with a `source_run_id` coverage test.
 5) Add Phase 32 build log + validation report; update phase indices and rollup docs.

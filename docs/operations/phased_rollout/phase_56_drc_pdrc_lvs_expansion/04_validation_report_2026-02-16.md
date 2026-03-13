@@ -11,7 +11,7 @@ Date: 2026-02-16
 - Command:
 
 ```text
-py -3 -m pytest tests/test_performance_drc_loss_budget.py tests/test_performance_drc_schema.py tests/test_pic_layout_build_and_lvs_lite.py tests/test_api_server_optional.py
+py -3 -m pytest tests/test_performance_drc_loss_budget.py tests/test_performance_drc_schema.py tests/test_pic_layout_build_and_lvs_lite.py tests/api/test_api_server_optional.py
 ```
 
 - Result:

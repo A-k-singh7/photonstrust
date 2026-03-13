@@ -70,7 +70,7 @@ No release-critical stream is left without accountable and responsible roles.
 15. Wire multifidelity artifact into QKD run manifests and evidence bundles:
     - `photonstrust/api/server.py`
     - `photonstrust/api/runs.py`
-    - `tests/test_api_server_optional.py`
+    - `tests/api/test_api_server_optional.py`
 16. Surface multifidelity presence in run UI trust context:
     - `web/src/App.jsx`
 17. Execute W07/W08 validation gates:

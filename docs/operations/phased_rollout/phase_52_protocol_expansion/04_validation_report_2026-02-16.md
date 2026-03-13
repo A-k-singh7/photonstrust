@@ -11,7 +11,7 @@ Date: 2026-02-16
 - Command:
 
 ```text
-py -3 -m pytest -q tests/test_qkd_protocol_registry.py tests/test_qkd_bound_gate_routing.py tests/test_qkd_relay_protocol_surfaces.py tests/test_qkd_bb84_decoy.py tests/test_qkd_plob_bound.py tests/test_api_server_optional.py
+py -3 -m pytest -q tests/test_qkd_protocol_registry.py tests/test_qkd_bound_gate_routing.py tests/test_qkd_relay_protocol_surfaces.py tests/test_qkd_bb84_decoy.py tests/test_qkd_plob_bound.py tests/api/test_api_server_optional.py
 ```
 
 - Result:

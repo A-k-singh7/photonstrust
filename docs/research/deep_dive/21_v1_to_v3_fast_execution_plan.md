@@ -221,7 +221,7 @@ Validation:
 - schema validation still passes:
   - `tests/test_performance_drc_schema.py`
 - API optional test covers route-mode:
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
 
 ### Week 3-6: Harden the control surface (web + run review) for denial-resistant demos
 

@@ -83,7 +83,7 @@ When `workflowResult.run_id` exists:
 
 ## Tests
 
-Add tests in `tests/test_api_server_optional.py`:
+Add tests in `tests/api/test_api_server_optional.py`:
 - `test_api_runs_bundle_returns_zip_for_workflow`
   - create a workflow run
   - `GET /v0/runs/{workflow_run_id}/bundle`

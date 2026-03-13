@@ -36,7 +36,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `tests/test_performance_drc_loss_budget.py`
    - `tests/test_performance_drc_schema.py`
    - `tests/test_pic_layout_build_and_lvs_lite.py`
-   - `tests/test_api_server_optional.py`
+   - `tests/api/test_api_server_optional.py`
 5. Complete strict rollout docs and weekly operations notes:
    - `docs/operations/week25/phase56_w25_pdrc_loss_budget_notes_2026-02-16.md`
    - `docs/operations/week26/phase56_w26_lvs_signoff_notes_2026-02-16.md`

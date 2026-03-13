@@ -39,7 +39,7 @@
 
 ### 1.3 Tests
 - Modify:
-  - `tests/test_api_server_optional.py`
+  - `tests/api/test_api_server_optional.py`
 - Add:
   - a test that creates two runs with different inputs and asserts:
     - `POST /v0/runs/diff` returns at least one change in scope `input`

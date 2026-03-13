@@ -39,17 +39,17 @@ def _checks(*, quick: bool) -> list[dict[str, Any]]:
     checks = [
         {
             "name": "contract_gate",
-            "cmd": [python, "-m", "pytest", "-q", "tests/test_api_contract_v1.py"],
+            "cmd": [python, "-m", "pytest", "-q", "tests/api/test_api_contract_v1.py"],
             "timeout_s": 300,
         },
         {
             "name": "security_gate",
-            "cmd": [python, "-m", "pytest", "-q", "tests/test_api_auth_rbac.py"],
+            "cmd": [python, "-m", "pytest", "-q", "tests/api/test_api_auth_rbac.py"],
             "timeout_s": 300,
         },
         {
             "name": "observability_gate",
-            "cmd": [python, "-m", "pytest", "-q", "tests/test_api_server_optional.py"],
+            "cmd": [python, "-m", "pytest", "-q", "tests/api/test_api_server_optional.py"],
             "timeout_s": 300,
         },
         {

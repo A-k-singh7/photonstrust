@@ -37,9 +37,9 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `tests/test_channel_engine_unified.py`
    - `tests/test_orbit_pass_envelope.py`
    - `tests/test_orbit_diagnostics.py`
-   - `tests/test_api_server_optional.py`
+   - `tests/api/test_api_server_optional.py`
 7. Execute validation gates:
-   - `py -3 -m pytest -q tests/test_free_space_channel.py tests/test_channel_engine_unified.py tests/test_orbit_pass_envelope.py tests/test_orbit_diagnostics.py tests/test_api_server_optional.py`
+   - `py -3 -m pytest -q tests/test_free_space_channel.py tests/test_channel_engine_unified.py tests/test_orbit_pass_envelope.py tests/test_orbit_diagnostics.py tests/api/test_api_server_optional.py`
    - `py -3 -m pytest -q`
    - `py -3 scripts/release_gate_check.py`
    - `py -3 scripts/ci_checks.py`

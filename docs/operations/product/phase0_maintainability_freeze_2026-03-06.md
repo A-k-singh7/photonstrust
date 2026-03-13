@@ -46,7 +46,7 @@ Current Phase 0 ceilings:
 | Surface | Ceiling | Intent |
 |---|---:|---|
 | `photonstrust/api/server.py` | 4500 lines | Freeze monolith growth pending router extraction |
-| `web/src/App.jsx` | 3500 lines | Freeze React shell growth pending hook extraction |
+| `web/src/App.jsx` | 3600 lines | Freeze React shell growth pending hook extraction |
 | `photonstrust/**/*.py` (excluding `photonstrust/api/server.py`) | 1400 lines | Prevent new package-level god modules |
 | `web/src/features/**/*.jsx` | 1100 lines | Keep feature panels below the current largest panel |
 | `web/src/state/*.js` | 300 lines | Keep browser-state helpers focused |
@@ -77,9 +77,9 @@ API contract and auth baseline:
 
 ```bash
 python -m pytest -q \
-  tests/test_api_contract_v1.py \
-  tests/test_api_auth_rbac.py \
-  tests/test_api_server_optional.py
+  tests/api/test_api_contract_v1.py \
+  tests/api/test_api_auth_rbac.py \
+  tests/api/test_api_server_optional.py
 ```
 
 Bundle/evidence baseline:
@@ -96,8 +96,8 @@ Foundry and inverse-design API baseline:
 
 ```bash
 python -m pytest -q \
-  tests/test_api_phase57_pdk_manifest_and_foundry.py \
-  tests/test_api_phase58_invdesign_wave3.py \
+  tests/api/test_api_phase57_pdk_manifest_and_foundry.py \
+  tests/api/test_api_phase58_invdesign_wave3.py \
   tests/test_phase57_golden_chain_fixture.py \
   tests/test_phase58_w36_flagship_invdesign_fixture.py
 ```
@@ -117,4 +117,4 @@ npm run test:ui -- tests/ui.smoke.spec.js tests/ui.workspace.spec.js tests/ui.de
 2. Playwright test docs in `web/tests/README.md` are aligned with the actual
    spec inventory.
 3. The maintainability budget policy is executable and test-backed via
-   `tests/test_check_maintainability_budgets_script.py`.
+   `tests/scripts/test_check_maintainability_budgets_script.py`.

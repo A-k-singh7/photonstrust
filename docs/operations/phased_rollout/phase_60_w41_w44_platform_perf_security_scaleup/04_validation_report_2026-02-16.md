@@ -4,7 +4,7 @@ Date: 2026-02-16
 
 ## Validation commands executed
 
-1. `py -3 -m pytest tests/test_api_server_optional.py tests/test_api_auth_rbac.py`
+1. `py -3 -m pytest tests/api/test_api_server_optional.py tests/api/test_api_auth_rbac.py`
 2. `py -3 -m pytest tests/test_qkd_uncertainty_parallel.py tests/test_detector_fast_path.py`
 3. `py -3 -m pytest tests/test_evidence_bundle_manifest_schema.py tests/test_evidence_bundle_publish_manifest_schema.py`
 4. `py -3 scripts/ci_checks.py`

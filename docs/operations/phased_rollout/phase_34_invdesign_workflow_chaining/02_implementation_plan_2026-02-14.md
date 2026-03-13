@@ -125,7 +125,7 @@ File: `web/src/App.jsx`
   - optionally updates the graph view to the optimized graph (from the invdesign step)
 
 ## Tests
-File: `tests/test_api_server_optional.py`
+File: `tests/api/test_api_server_optional.py`
 - Add `test_api_pic_invdesign_workflow_chain_writes_outputs`:
   - set `PHOTONTRUST_API_RUNS_ROOT=tmp_path`
   - monkeypatch `photonstrust.layout.pic.klayout_runner.find_klayout_exe` to return `None` (hermetic)

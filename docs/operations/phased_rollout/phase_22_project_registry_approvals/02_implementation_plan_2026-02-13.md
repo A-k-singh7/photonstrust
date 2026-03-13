@@ -67,7 +67,7 @@ Files:
   - approvals POST/GET behavior is append-only and project-consistent
 
 Files:
-- `tests/test_api_server_optional.py`
+- `tests/api/test_api_server_optional.py`
 
 ## Documentation Updates (Phase 22 completion checklist)
 - Add Phase 22 artifacts:

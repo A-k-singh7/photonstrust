@@ -58,7 +58,7 @@ Tasks:
 Target touchpoints:
 1. `photonstrust/api/models/v1/` (new)
 2. `photonstrust/api/server.py`
-3. `tests/test_api_contract_v1.py` (new)
+3. `tests/api/test_api_contract_v1.py` (new)
 
 Acceptance:
 1. Core endpoints have typed request/response models.
@@ -77,7 +77,7 @@ Tasks:
 Target touchpoints:
 1. `photonstrust/api/server.py`
 2. `photonstrust/api/ui_metrics.py`
-3. `tests/test_api_server_optional.py`
+3. `tests/api/test_api_server_optional.py`
 
 Acceptance:
 1. Error schema is consistent across v1 endpoints.
@@ -98,7 +98,7 @@ Target touchpoints:
 2. `photonstrust/api/runs.py`
 3. `photonstrust/api/jobs.py`
 4. `photonstrust/api/projects.py`
-5. `tests/test_api_auth_rbac.py`
+5. `tests/api/test_api_auth_rbac.py`
 
 Acceptance:
 1. Unauthorized and cross-scope access denied in tests.
@@ -117,7 +117,7 @@ Tasks:
 Target touchpoints:
 1. `ui/app.py`
 2. `ui/data.py`
-3. `tests/test_ui_data_helpers.py`
+3. `tests/ui/test_ui_data_helpers.py`
 
 Acceptance:
 1. Dashboard charts are fed by real API data paths.

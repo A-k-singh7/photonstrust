@@ -42,7 +42,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `tests/test_free_space_channel.py`
    - `tests/test_orbit_pass_envelope.py`
    - `tests/test_orbit_diagnostics.py`
-   - `tests/test_api_server_optional.py`
+   - `tests/api/test_api_server_optional.py`
    - `tests/test_phase54_satellite_canonical_baselines.py`
    - `tests/test_validation_harness.py`
 5. Update pilot packet v2 docs:

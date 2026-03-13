@@ -92,7 +92,7 @@ Behavior:
 Files:
 - `tests/test_layout_route_extract.py` (new)
 - `tests/test_performance_drc_schema.py` (modify; add route-mode schema instance)
-- `tests/test_api_server_optional.py` (modify; add route-mode API test)
+- `tests/api/test_api_server_optional.py` (modify; add route-mode API test)
 
 ## Documentation Updates (Phase 23 completion checklist)
 After validation passes:
