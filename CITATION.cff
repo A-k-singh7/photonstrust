@@ -3,7 +3,7 @@ message: "If you use PhotonTrust, please cite it using the metadata below."
 title: "PhotonTrust"
 type: software
 version: 0.1.0
-license: MIT
+license: AGPL-3.0-only
 repository-code: "https://github.com/photonstrust/photonstrust"
 authors:
   - name: "PhotonTrust Contributors"

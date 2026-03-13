@@ -112,7 +112,7 @@ npm run test:ui -- tests/ui.smoke.spec.js tests/ui.workspace.spec.js tests/ui.de
 
 ## Governance cleanup applied in Phase 0
 
-1. Repository license text is aligned with the existing MIT metadata in
+1. Repository license text is aligned with the existing AGPL-3.0 metadata in
    `pyproject.toml` and `CITATION.cff`.
 2. Playwright test docs in `web/tests/README.md` are aligned with the actual
    spec inventory.

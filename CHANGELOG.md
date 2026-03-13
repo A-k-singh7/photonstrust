@@ -2,6 +2,7 @@
 
 ## Unreleased
 - OSS repo cleanup: added contributor/community files, repo indexes, and local cleanup tooling.
+- License change: repository metadata and license text now use AGPL-3.0.
 
 ## v0.1.0-ga-cycle (2026-02-16)
 - Platform scale-up: async jobs, compile cache, deterministic uncertainty parallel workers, detector fast-path, and RBAC/API governance hardening.

@@ -10,7 +10,7 @@
 | **SeQUeNCe** | Argonne | BSD-3-Clause | Moderate | None | None |
 | **QuNetSim** | TU Delft | MIT | Shallow (protocol-level) | None | None |
 | **SimulaQron** | QuTech | BSD-3-Clause | Shallow | None | None |
-| **PhotonTrust** | -- | MIT | Moderate-Deep (pluggable) | Reliability cards | GDS/KLayout |
+| **PhotonTrust** | -- | AGPL-3.0 | Moderate-Deep (pluggable) | Reliability cards | GDS/KLayout |
 
 Expanded competitive teardown (including PIC CAD + verification tooling and non-copying moat moves):
 - `../research/deep_dive/22_competitor_gap_analysis_and_moat_moves.md`
