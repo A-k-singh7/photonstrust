@@ -10,7 +10,7 @@ def test_validation_harness_writes_artifacts_and_passes_for_demo_baseline(tmp_pa
     root = Path(__file__).resolve().parents[1]
     case = ValidationCase(
         case_id="demo_regression",
-        config_path=root / "configs" / "demo1_default.yml",
+        config_path=root / "configs" / "quickstart" / "qkd_default.yml",
         baseline_path=root / "tests" / "fixtures" / "baselines.json",
     )
 

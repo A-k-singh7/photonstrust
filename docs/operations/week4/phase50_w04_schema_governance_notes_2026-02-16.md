@@ -14,7 +14,7 @@ handling.
 - Legacy configs with missing/`0` schema version are migrated through the
   explicit `0.0 -> 0.1` migration hook.
 - Unsupported schema versions fail fast with actionable migration guidance.
-- Pilot validation config (`configs/pilot_day0_kickoff.yml`) now carries
+- Pilot validation config (`configs/product/pilot_day0_kickoff.yml`) now carries
   explicit `schema_version: "0.1"`.
 
 ## Refreshed risk table

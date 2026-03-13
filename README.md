@@ -44,7 +44,7 @@ protocol-family surfaces.
 ```bash
 pip install -e .
 pip install -e .[qutip]
-photonstrust run configs/demo1_default.yml
+photonstrust run configs/quickstart/qkd_default.yml
 ```
 
 Other demos:
@@ -58,7 +58,7 @@ photonstrust run configs/demo5_satellite_downlink.yml
 photonstrust run configs/demo6_transient_emitter.yml
 photonstrust run configs/demo7_multifidelity_preview.yml
 photonstrust run configs/demo7_multifidelity_certification.yml
-photonstrust run configs/demo11_orbit_pass_envelope.yml --output results/orbit_demo11
+photonstrust run configs/quickstart/orbit_pass_envelope.yml --output results/orbit_demo11
 ```
 
 Graph compiler / GraphSpec authoring (JSON or `.ptg.toml` -> engine config/netlist):
@@ -86,7 +86,7 @@ npm run dev
 Quick smoke run:
 
 ```bash
-photonstrust run configs/demo1_quick_smoke.yml --output results/smoke_quick
+photonstrust run configs/quickstart/qkd_quick_smoke.yml --output results/smoke_quick
 ```
 
 Matrix sweeps:
@@ -101,11 +101,11 @@ photonstrust run configs/demo1_matrix_low_cost.yml
 Calibration and optimization:
 
 ```bash
-photonstrust run configs/calibration_example.yml
-photonstrust run configs/optimization_example.yml
+photonstrust run configs/research/calibration_example.yml
+photonstrust run configs/research/optimization_example.yml
 ```
 
-`configs/calibration_example.yml` includes diagnostics quality gates that can
+`configs/research/calibration_example.yml` includes diagnostics quality gates that can
 enforce calibration acceptance thresholds during CLI runs.
 
 Benchmark datasets:
@@ -174,7 +174,7 @@ Error recovery hints:
 UI comparison walkthrough:
 
 ```bash
-photonstrust run configs/demo1_quick_smoke.yml --output results/compare_a
+photonstrust run configs/quickstart/qkd_quick_smoke.yml --output results/compare_a
 photonstrust run configs/demo1_nir_795.yml --output results/compare_b
 streamlit run ui/app.py
 ```
@@ -308,7 +308,7 @@ Open benchmarks (shareable bundles) + repro packs:
 
 ```bash
 python scripts/validation/check_open_benchmarks.py
-python scripts/generate_repro_pack.py configs/demo1_quick_smoke.yml results/repro_pack_demo1_quick_smoke
+python scripts/generate_repro_pack.py configs/quickstart/qkd_quick_smoke.yml results/repro_pack_demo1_quick_smoke
 python scripts/validation/validate_recent_research_examples.py
 python scripts/validation/compare_recent_research_benchmarks.py
 ```

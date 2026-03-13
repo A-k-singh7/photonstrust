@@ -3,7 +3,7 @@
   "kind": "photonstrust.m3_checkpoint_report",
   "generated_at": "<GENERATED_AT>",
   "inputs": {
-    "qkd_config_path": "configs/demo1_default.yml",
+    "qkd_config_path": "configs/quickstart/qkd_default.yml",
     "repeater_config_path": "configs/demo2_repeater_spacing.yml",
     "output_dir": "<OUTPUT_DIR>",
     "force_analytic_backend": true,

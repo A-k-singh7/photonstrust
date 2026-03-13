@@ -11,7 +11,7 @@
 - Add:
   - `schemas/photonstrust.orbit_pass_envelope.v0_1.schema.json`
 - Notes:
-  - config-first (matches `configs/demo11_orbit_pass_envelope.yml` after YAML->dict)
+  - config-first (matches `configs/quickstart/orbit_pass_envelope.yml` after YAML->dict)
   - allow additional top-level keys for forward compatibility
   - strongly type and range-check envelope samples (distance/elevation/background)
 

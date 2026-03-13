@@ -64,7 +64,7 @@ Week 1 objective is governance and execution hygiene lock:
 3. Make unsupported schema versions fail fast with actionable migration guidance.
 4. Add tests for schema migration and unsupported-version failure semantics.
 5. Validate strict config path with:
-   - `py -3 -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only`
+   - `py -3 -m photonstrust.cli run configs/product/pilot_day0_kickoff.yml --validate-only`
 
 ## Why this sequence is required
 
@@ -114,4 +114,4 @@ accumulates unbounded delivery risk.
 - Validation tests:
   - `tests/test_config_schema_versioning.py`
 - Seeded config with explicit schema version:
-  - `configs/pilot_day0_kickoff.yml`
+  - `configs/product/pilot_day0_kickoff.yml`

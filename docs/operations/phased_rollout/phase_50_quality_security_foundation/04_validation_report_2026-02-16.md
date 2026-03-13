@@ -99,7 +99,7 @@ Result:
 - Strict config validation path (`--validate-only`):
 
 ```text
-py -3 -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only
+py -3 -m photonstrust.cli run configs/product/pilot_day0_kickoff.yml --validate-only
 ```
 
 Result:

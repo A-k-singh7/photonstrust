@@ -163,7 +163,7 @@ def main() -> int:
     parser.add_argument(
         "--smoke-config",
         type=Path,
-        default=Path("configs/demo1_quick_smoke.yml"),
+        default=Path("configs/quickstart/qkd_quick_smoke.yml"),
         help="Config path for runtime smoke execution.",
     )
     parser.add_argument(

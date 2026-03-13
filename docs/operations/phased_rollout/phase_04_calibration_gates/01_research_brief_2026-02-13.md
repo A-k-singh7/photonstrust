@@ -8,7 +8,7 @@
 - Related modules:
   - `photonstrust/calibrate/bayes.py`
   - `photonstrust/cli.py`
-  - `configs/calibration_example.yml`
+  - `configs/research/calibration_example.yml`
 
 ## 1. Problem and motivation
 Calibration output previously exposed diagnostics but did not enforce quality
@@ -65,7 +65,7 @@ reference example passes while strict tests still fail predictably.
 - deterministic seed retained.
 - updated tests in `tests/test_completion_quality.py`.
 - CLI example run:
-  - `py -m photonstrust.cli run configs/calibration_example.yml --output ...`
+  - `py -m photonstrust.cli run configs/research/calibration_example.yml --output ...`
 
 ## 9. Acceptance criteria
 - diagnostics gates emitted in calibration output.

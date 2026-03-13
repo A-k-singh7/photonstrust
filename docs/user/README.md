@@ -19,7 +19,7 @@ This section is the best entry point for people trying to use PhotonTrust.
 ## Good First Commands
 
 ```bash
-photonstrust run configs/demo1_default.yml
-photonstrust run configs/demo1_quick_smoke.yml --output results/smoke_quick
+photonstrust run configs/quickstart/qkd_default.yml
+photonstrust run configs/quickstart/qkd_quick_smoke.yml --output results/smoke_quick
 py scripts/dev/start_product_local.py
 ```

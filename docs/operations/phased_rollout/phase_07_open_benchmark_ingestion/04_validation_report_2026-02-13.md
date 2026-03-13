@@ -26,7 +26,7 @@
 
 ## 3) Repro pack replay (manual)
 - Generated:
-  - `py scripts/generate_repro_pack.py configs/demo1_quick_smoke.yml results/repro_pack_demo1_quick_smoke`
+  - `py scripts/generate_repro_pack.py configs/quickstart/qkd_quick_smoke.yml results/repro_pack_demo1_quick_smoke`
 - Replayed + verified:
   - `powershell -ExecutionPolicy Bypass -File results/repro_pack_demo1_quick_smoke/run.ps1` -> PASS
 

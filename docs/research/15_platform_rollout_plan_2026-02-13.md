@@ -313,14 +313,14 @@ Mapping (recommended):
   - CLI integration:
     - `photonstrust run <config.yml>` detects `orbit_pass` and runs the pass runner
   - Scenario template:
-    - `configs/demo11_orbit_pass_envelope.yml`
+    - `configs/quickstart/orbit_pass_envelope.yml`
   - Tests:
     - `tests/test_orbit_pass_envelope.py` (known-sense invariants + schema validation)
 - Validation (v0.1):
   - `py -m pytest -q`
   - `py scripts/release/release_gate_check.py`
   - manual smoke:
-    - `photonstrust run configs/demo11_orbit_pass_envelope.yml --output results/orbit_demo11`
+    - `photonstrust run configs/quickstart/orbit_pass_envelope.yml --output results/orbit_demo11`
 
 ### Phase 12: Data contribution workflow (academic + industry safe)
 - Research:

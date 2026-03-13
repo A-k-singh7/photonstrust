@@ -102,7 +102,7 @@ there is no way to detect or migrate old configs.
 1. Add `schema_version` to all scenario configs:
 
 ```yaml
-# configs/demo1_default.yml
+# configs/quickstart/qkd_default.yml
 schema_version: "0.1"
 scenario:
   id: demo1_default

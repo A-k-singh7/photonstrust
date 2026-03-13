@@ -38,7 +38,7 @@ Result:
 
 ## 3) Manual smoke validation
 Command:
-- `photonstrust run configs/demo11_orbit_pass_envelope.yml --output results/orbit_demo11`
+- `photonstrust run configs/quickstart/orbit_pass_envelope.yml --output results/orbit_demo11`
 
 Observed artifacts:
 - `results/orbit_demo11/demo11_orbit_pass_envelope/c_1550/orbit_pass_results.json`

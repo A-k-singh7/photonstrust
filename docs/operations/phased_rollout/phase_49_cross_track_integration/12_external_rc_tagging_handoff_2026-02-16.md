@@ -28,7 +28,7 @@
 
 3. **Pilot day-0 operator runbook**
    - `docs/operations/pilot_readiness_packet/04_day0_operator_runbook.md`
-   - config: `configs/pilot_day0_kickoff.yml`
+   - config: `configs/product/pilot_day0_kickoff.yml`
    - latest rehearsal proof: `13_day0_rehearsal_report_2026-02-16.md`
 
 ---
@@ -38,7 +38,7 @@
 ```bash
 cd "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust"
 ./.venv/bin/python scripts/release/release_gate_check.py
-./.venv/bin/python -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only
+./.venv/bin/python -m photonstrust.cli run configs/product/pilot_day0_kickoff.yml --validate-only
 ```
 
 If both pass, proceed to customer/pilot kickoff using the runbook.

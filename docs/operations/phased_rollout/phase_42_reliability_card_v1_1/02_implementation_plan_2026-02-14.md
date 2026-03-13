@@ -65,4 +65,4 @@ Update (if needed):
 
 - `py -m pytest`
 - optional smoke run:
-  - `photonstrust run configs/demo1_quick_smoke.yml --output results/phase42_smoke`
+  - `photonstrust run configs/quickstart/qkd_quick_smoke.yml --output results/phase42_smoke`

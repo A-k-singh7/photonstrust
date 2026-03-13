@@ -1,0 +1,13 @@
+calibration:
+  id: demo_calibration
+  type: emitter
+  observations:
+    g2_0: 0.02
+    radiative_lifetime_ns: 1.0
+    purcell_factor: 5.0
+  quality_gates:
+    enforce: true
+    thresholds:
+      min_effective_sample_size_ratio: 0.005
+      max_r_hat_proxy: 1.10
+      min_ppc_score: 0.20

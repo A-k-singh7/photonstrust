@@ -24,7 +24,7 @@ Optional explicit parameters:
 
 ```bash
 python scripts/run_phase2e_demo_pack.py \
-  --config configs/demo1_default.yml \
+  --config configs/quickstart/qkd_default.yml \
   --band c_1550 \
   --seed 20260216 \
   --preview-uncertainty-samples 60

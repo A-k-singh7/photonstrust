@@ -15,7 +15,7 @@ pip install -e .[qutip,qiskit]
 
 ## Key Commands
 ```bash
-photonstrust run configs/demo1_default.yml
+photonstrust run configs/quickstart/qkd_default.yml
 photonstrust run configs/demo2_repeater_spacing.yml
 photonstrust run configs/demo3_teleportation.yml
 photonstrust run configs/demo4_source_benchmark.yml

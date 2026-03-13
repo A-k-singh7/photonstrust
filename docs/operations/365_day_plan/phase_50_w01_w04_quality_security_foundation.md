@@ -27,5 +27,5 @@ Source anchors:
 ### W04 (2026-03-09 to 2026-03-15) - Config versioning + migration skeleton
 - Work: Add `schema_version` governance for scenario configs, migration hooks, API strict validation.
 - Artifacts: Config loader upgrades, migration notes, validation tests.
-- Validation: `python -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only`
+- Validation: `python -m photonstrust.cli run configs/product/pilot_day0_kickoff.yml --validate-only`
 - Exit: Unsupported schema versions fail fast with migration guidance.

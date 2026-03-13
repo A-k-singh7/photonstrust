@@ -196,7 +196,7 @@ from photonstrust.config import load_config, build_scenarios
 from photonstrust.qkd import compute_sweep
 
 def test_full_pipeline_quick_smoke(tmp_path):
-    config = load_config("configs/demo1_quick_smoke.yml")
+    config = load_config("configs/quickstart/qkd_quick_smoke.yml")
     scenarios = build_scenarios(config)
     assert len(scenarios) > 0
 
@@ -268,7 +268,7 @@ def base_scenario():
 @pytest.fixture
 def quick_smoke_scenarios():
     """Scenarios from the quick smoke demo config."""
-    config = load_config("configs/demo1_quick_smoke.yml")
+    config = load_config("configs/quickstart/qkd_quick_smoke.yml")
     return build_scenarios(config)
 ```
 

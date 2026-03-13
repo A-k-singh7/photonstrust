@@ -1,7 +1,7 @@
 # Regression and Baseline Gate (GA Cycle)
 
 ## Gate context
-- Scenario set: canonical validation harness set + quick smoke replay (`configs/demo1_quick_smoke.yml`)
+- Scenario set: canonical validation harness set + quick smoke replay (`configs/quickstart/qkd_quick_smoke.yml`)
 - Baseline file version:
   - `tests/fixtures/baselines.json`
   - `tests/fixtures/canonical_phase41_baselines.json`

@@ -71,9 +71,9 @@ No release-critical stream is left without accountable and responsible roles.
     - unsupported-version rejection,
     - `--validate-only` fail-fast semantics.
 16. Seed explicit schema version in the pilot day-0 config:
-    - `configs/pilot_day0_kickoff.yml`
+    - `configs/product/pilot_day0_kickoff.yml`
 17. Execute Week 4 validation command:
-    - `py -3 -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only`
+    - `py -3 -m photonstrust.cli run configs/product/pilot_day0_kickoff.yml --validate-only`
 
 ## Week 1 acceptance gates
 

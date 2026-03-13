@@ -141,7 +141,7 @@ def main() -> int:
     parser.add_argument(
         "--replay-config",
         type=Path,
-        default=Path("configs/demo1_quick_smoke.yml"),
+        default=Path("configs/quickstart/qkd_quick_smoke.yml"),
         help="Scenario config to run for replay sample verification.",
     )
     parser.add_argument(

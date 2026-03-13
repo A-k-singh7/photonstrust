@@ -24,7 +24,7 @@
 
 ### 1.4 Scenario templates (YAML configs)
 - Add a demo pass envelope config:
-  - `configs/demo11_orbit_pass_envelope.yml`
+  - `configs/quickstart/orbit_pass_envelope.yml`
 
 ### 1.5 Tests
 - Add tests enforcing "known-sense" invariants:
@@ -77,7 +77,7 @@ Contents:
 - Release gate:
   - `py scripts/release/release_gate_check.py --output results/release_gate/phase11_release_gate_report.json`
 - Manual smoke:
-  - `photonstrust run configs/demo11_orbit_pass_envelope.yml --output results/orbit_demo11`
+  - `photonstrust run configs/quickstart/orbit_pass_envelope.yml --output results/orbit_demo11`
 
 ## 5) Non-goals (explicit)
 - No orbit propagation / TLE parsing in v0.1.

@@ -20,7 +20,7 @@ Artifacts:
 
 ## Gate results
 
-- **G0** config validate-only (`configs/pilot_day0_kickoff.yml`): PASS
+- **G0** config validate-only (`configs/product/pilot_day0_kickoff.yml`): PASS
 - **G1** day-0 demo pack generation + required artifacts present: PASS
 - **G2** reliability card schema v1.1 validation: PASS
 - **G3** trust metadata + safe-use label checks: PASS

@@ -14,7 +14,7 @@ from pathlib import Path
 DEFAULT_REPLAY_CASES: tuple[tuple[str, str, str], ...] = (
     (
         "demo1_quick_smoke",
-        "configs/demo1_quick_smoke.yml",
+        "configs/quickstart/qkd_quick_smoke.yml",
         "results/ga_release/replay_matrix/demo1_quick_smoke",
     ),
     (

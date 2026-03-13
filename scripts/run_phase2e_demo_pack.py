@@ -18,7 +18,7 @@ from photonstrust.config import build_scenarios, load_config
 from photonstrust.sweep import run_scenarios
 
 
-DEFAULT_CONFIG = Path("configs/demo1_default.yml")
+DEFAULT_CONFIG = Path("configs/quickstart/qkd_default.yml")
 DEFAULT_OUTPUT_ROOT = Path("results/demo_pack")
 DEFAULT_CANONICAL_BAND = "c_1550"
 DEFAULT_DEMO_SEED = 20260216

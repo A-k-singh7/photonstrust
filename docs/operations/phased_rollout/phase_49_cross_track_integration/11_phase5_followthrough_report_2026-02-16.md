@@ -47,10 +47,10 @@ Pack includes:
 
 Delivered artifacts:
 - `docs/operations/pilot_readiness_packet/04_day0_operator_runbook.md`
-- `configs/pilot_day0_kickoff.yml`
+- `configs/product/pilot_day0_kickoff.yml`
 
 Validation checks executed:
-1. `./.venv/bin/python -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only` → **PASS**
+1. `./.venv/bin/python -m photonstrust.cli run configs/product/pilot_day0_kickoff.yml --validate-only` → **PASS**
 2. Day-0 demo pack smoke run + card schema validation (`v1.1`) using runbook command pattern → **PASS**
 
 ---

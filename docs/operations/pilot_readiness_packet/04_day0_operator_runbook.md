@@ -22,7 +22,7 @@ cd "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust"
 ./.venv/bin/pip install -e ".[dev]"
 
 # config sanity (must pass)
-./.venv/bin/python -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only
+./.venv/bin/python -m photonstrust.cli run configs/product/pilot_day0_kickoff.yml --validate-only
 ```
 
 **Gate G0 (must pass):** validate-only returns `{"ok": true, "scenarios": 1}`.
@@ -46,7 +46,7 @@ PILOT_ID="<customer-pilot-id>"
 RUN_LABEL="day0_${PILOT_ID}_$(date -u +%Y%m%dT%H%M%SZ)"
 
 ./.venv/bin/python scripts/run_phase2e_demo_pack.py \
-  --config configs/pilot_day0_kickoff.yml \
+  --config configs/product/pilot_day0_kickoff.yml \
   --band c_1550 \
   --seed 20260216 \
   --preview-uncertainty-samples 60 \

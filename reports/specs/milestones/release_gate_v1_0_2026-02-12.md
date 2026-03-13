@@ -19,7 +19,7 @@
   - `rg -n --hidden -S "BEGIN PRIVATE KEY|API_KEY|SECRET_KEY|password\\s*=|token\\s*=" .` returned no matches.
   - `py -3 scripts/bundle_release.py` completed successfully.
   - Quick smoke scenario succeeded in `1.27s`:
-    `py -3 -m photonstrust.cli run configs/demo1_quick_smoke.yml --output results/smoke_quick`.
+    `py -3 -m photonstrust.cli run configs/quickstart/qkd_quick_smoke.yml --output results/smoke_quick`.
   - Streamlit headless smoke start succeeded: `py -3 -m streamlit run ui/app.py --server.headless true --server.port 8511`.
   - `py -3 scripts/release/release_gate_check.py` reports `PASS` with tests + benchmark drift checks.
   - Milestone acceptance artifacts are archived under `reports/specs/milestones/`.

@@ -213,7 +213,7 @@ Each must pass with specific thresholds to qualify a release.
 
 ```bash
 # Generate a reliability card
-photonstrust card generate configs/demo1_default.yml --output results/card_demo1.json
+photonstrust card generate configs/quickstart/qkd_default.yml --output results/card_demo1.json
 
 # Validate a card against schema
 photonstrust card validate results/card_demo1.json

@@ -12,8 +12,8 @@
 - [x] Interpret recommendation and uncertainty
 
 ## Findings
-- Time to first successful run: `387.22s` (`py -3 -m photonstrust.cli run configs/demo1_default.yml`) on maintainer workstation, 2026-02-12.
-- Time to first quick smoke validation: `1.27s` (`py -3 -m photonstrust.cli run configs/demo1_quick_smoke.yml --output results/smoke_quick`) on same workstation.
+- Time to first successful run: `387.22s` (`py -3 -m photonstrust.cli run configs/quickstart/qkd_default.yml`) on maintainer workstation, 2026-02-12.
+- Time to first quick smoke validation: `1.27s` (`py -3 -m photonstrust.cli run configs/quickstart/qkd_quick_smoke.yml --output results/smoke_quick`) on same workstation.
 - Clarity issues: run completion latency is acceptable for engineering workflows but lacks incremental progress visibility for first-time operators.
 - Trust concerns: no critical trust blockers found; card output includes uncertainty and outage-probability semantics in reviewed sample outputs.
 - Feature requests: add optional progress milestones/logging in long scenario runs.
@@ -32,5 +32,5 @@ Conditions:
 - complete one non-maintainer guided UI comparison dry-run before external announcement.
 
 Follow-up completed after dry-run:
-- Added quickstart smoke profile: `configs/demo1_quick_smoke.yml`.
+- Added quickstart smoke profile: `configs/quickstart/qkd_quick_smoke.yml`.
 - Added explicit UI comparison steps in `README.md`.

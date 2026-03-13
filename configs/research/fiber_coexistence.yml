@@ -1,0 +1,57 @@
+scenario:
+  id: demo12_fiber_coexistence
+  distance_km:
+    start: 0
+    stop: 80
+    step: 10
+  band: c_1550
+  wavelength_nm: null
+
+source:
+  type: emitter_cavity
+  physics_backend: analytic
+  rep_rate_mhz: 100
+  collection_efficiency: 0.55
+  coupling_efficiency: 0.70
+  radiative_lifetime_ns: 1.0
+  purcell_factor: 5
+  dephasing_rate_per_ns: 0.2
+  g2_0: 0.01
+
+channel:
+  model: fiber
+  fiber_loss_db_per_km: 0.2
+  connector_loss_db: 1.0
+  dispersion_ps_per_km: 0.0
+  background_counts_cps: 0.0
+  coexistence:
+    enabled: true
+    classical_launch_power_dbm: 0.0
+    classical_channel_count: 1
+    direction: co
+    filter_bandwidth_nm: 0.2
+    raman_coeff_cps_per_km_per_mw_per_nm: 1200.0
+    raman_spectral_factor: 1.0
+
+detector:
+  class: snspd
+  physics_backend: analytic
+  pde: 0.8
+  dark_counts_cps: 10
+  background_counts_cps: 0.0
+  jitter_ps_fwhm: 30
+  dead_time_ns: 0
+  afterpulsing_prob: 0.0
+
+timing:
+  sync_drift_ps_rms: 10
+  coincidence_window_ps: 200
+
+protocol:
+  name: BBM92
+  sifting_factor: 0.5
+  ec_efficiency: 1.16
+  misalignment_prob: 0.0
+
+uncertainty: {}
+

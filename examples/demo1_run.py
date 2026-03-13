@@ -5,7 +5,7 @@ from photonstrust.sweep import run_scenarios
 
 
 def main() -> None:
-    config_path = Path("configs/demo1_default.yml")
+    config_path = Path("configs/quickstart/qkd_default.yml")
     config = load_config(config_path)
     scenarios = build_scenarios(config)
     run_scenarios(scenarios, Path("results"))

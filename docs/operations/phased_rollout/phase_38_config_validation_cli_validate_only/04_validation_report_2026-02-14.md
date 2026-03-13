@@ -36,7 +36,7 @@ Result:
 ## Manual CLI Check (Optional)
 
 ```powershell
-photonstrust run configs/demo1_quick_smoke.yml --validate-only
+photonstrust run configs/quickstart/qkd_quick_smoke.yml --validate-only
 ```
 
 Expected:

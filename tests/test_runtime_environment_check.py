@@ -70,7 +70,7 @@ def test_build_command_plan_toggles_release_packet_refresh() -> None:
     common_kwargs = {
         "python_exe": Path("python"),
         "lock_file": Path("requirements/runtime.lock.txt"),
-        "smoke_config": Path("configs/demo1_quick_smoke.yml"),
+        "smoke_config": Path("configs/quickstart/qkd_quick_smoke.yml"),
         "smoke_output": Path("results/production_readiness/runtime_smoke"),
         "include_qiskit": True,
     }
@@ -89,7 +89,7 @@ def test_build_command_plan_can_disable_qiskit_lane() -> None:
     plan_with_qiskit = build_command_plan(
         python_exe=Path("python"),
         lock_file=Path("requirements/runtime.lock.txt"),
-        smoke_config=Path("configs/demo1_quick_smoke.yml"),
+        smoke_config=Path("configs/quickstart/qkd_quick_smoke.yml"),
         smoke_output=Path("results/production_readiness/runtime_smoke"),
         refresh_release_packet=True,
         include_qiskit=True,
@@ -97,7 +97,7 @@ def test_build_command_plan_can_disable_qiskit_lane() -> None:
     plan_without_qiskit = build_command_plan(
         python_exe=Path("python"),
         lock_file=Path("requirements/runtime.lock.txt"),
-        smoke_config=Path("configs/demo1_quick_smoke.yml"),
+        smoke_config=Path("configs/quickstart/qkd_quick_smoke.yml"),
         smoke_output=Path("results/production_readiness/runtime_smoke"),
         refresh_release_packet=True,
         include_qiskit=False,

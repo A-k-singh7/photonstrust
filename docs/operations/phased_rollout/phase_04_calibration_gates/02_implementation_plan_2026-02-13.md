@@ -10,7 +10,7 @@
   - `photonstrust/calibrate/bayes.py`
   - `photonstrust/cli.py`
   - `tests/test_completion_quality.py`
-  - `configs/calibration_example.yml`
+  - `configs/research/calibration_example.yml`
 - New modules/files required:
   - none
 - Interface changes and compatibility strategy:
@@ -36,7 +36,7 @@
 ### Step 3
 - Objective: ship calibrated example config and docs for CLI workflow.
 - File-level edits:
-  - `configs/calibration_example.yml`
+  - `configs/research/calibration_example.yml`
   - `README.md`
 - Tests:
   - CLI calibration example run

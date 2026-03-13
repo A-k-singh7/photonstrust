@@ -188,7 +188,7 @@ def main() -> None:
     m3_checkpoint = m3_subparsers.add_parser("checkpoint", help="Run M3 QKD + repeater checkpoint lane")
     m3_checkpoint.add_argument(
         "--qkd-config",
-        default="configs/demo1_default.yml",
+        default="configs/quickstart/qkd_default.yml",
         help="Path to QKD config YAML",
     )
     m3_checkpoint.add_argument(

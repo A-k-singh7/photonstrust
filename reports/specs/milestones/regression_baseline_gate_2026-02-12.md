@@ -1,7 +1,7 @@
 # Regression and Baseline Gate
 
 ## Gate context
-- Scenario set: core QKD baseline (`configs/demo1_default.yml`) + smoke scenario suite under `results/smoke/`
+- Scenario set: core QKD baseline (`configs/quickstart/qkd_default.yml`) + smoke scenario suite under `results/smoke/`
 - Baseline file version: `tests/fixtures/baselines.json` (current repository fixture)
 - Test run ID: `release_gate_report.json @ 2026-02-12T22:12:32.468321+00:00`
 

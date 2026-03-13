@@ -154,7 +154,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run PhotonTrust CV quick verification flow.")
     parser.add_argument("--python", default=sys.executable, help="Python executable used to run child scripts.")
-    parser.add_argument("--config", type=Path, default=Path("configs/demo1_default.yml"), help="Demo config for phase2e pack generation.")
+    parser.add_argument("--config", type=Path, default=Path("configs/quickstart/qkd_default.yml"), help="Demo config for phase2e pack generation.")
     parser.add_argument(
         "--demo-output-root",
         type=Path,

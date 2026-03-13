@@ -7,7 +7,7 @@
   "cases": [
     {
       "case_id": "demo1_quick_smoke",
-      "config_path": "C:/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/configs/demo1_quick_smoke.yml",
+      "config_path": "C:/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/configs/quickstart/qkd_quick_smoke.yml",
       "output_path": "C:/Users/aksin/Desktop/Qutip+qskit projects/photonstrust/results/ga_release/replay_matrix/demo1_quick_smoke",
       "returncode": 0,
       "elapsed_seconds": 1.8875542000168934,
