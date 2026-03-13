@@ -107,8 +107,17 @@ def test_resolve_pdk_contract_supports_siepic_alias_names(alias_name: str):
 
     assert contract["request"]["name"] == alias_name
     assert contract["request"]["manifest_path"] is None
-    assert contract["pdk"]["name"] == "generic_silicon_photonics"
+    assert contract["pdk"]["name"] == "siepic_ebeam"
     assert contract["pdk"]["version"] == "0.1"
+
+
+def test_get_pdk_siepic_alias_exposes_component_cells() -> None:
+    pdk = get_pdk("siepic")
+
+    assert pdk.name == "siepic_ebeam"
+    assert isinstance(pdk.component_cells, list) and len(pdk.component_cells) >= 5
+    names = {str(cell.get("name") or "") for cell in pdk.component_cells}
+    assert {"grating_coupler_te", "edge_coupler_te", "waveguide_straight", "mmi_2x2", "phase_shifter"}.issubset(names)
 
 
 def test_get_pdk_alias_includes_richer_optional_payload():

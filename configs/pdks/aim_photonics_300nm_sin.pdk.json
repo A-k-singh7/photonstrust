@@ -67,6 +67,28 @@
       "cell": "EC_TE",
       "ports": ["opt1", "opt2"],
       "nominal_il_db": 0.9
+    },
+    {
+      "name": "waveguide_straight",
+      "library": "aim",
+      "cell": "WG_STRAIGHT_SIN300",
+      "ports": ["o1", "o2"],
+      "nominal_loss_db_per_cm": 1.6
+    },
+    {
+      "name": "mmi_2x2",
+      "library": "aim",
+      "cell": "MMI_2X2_SIN300",
+      "ports": ["in1", "in2", "out1", "out2"],
+      "nominal_excess_loss_db": 0.35
+    },
+    {
+      "name": "phase_shifter",
+      "library": "aim",
+      "cell": "PHASE_SHIFTER_THERMO_SIN300",
+      "ports": ["in", "out"],
+      "drive_type": "thermal",
+      "nominal_il_db": 0.18
     }
   ]
 }

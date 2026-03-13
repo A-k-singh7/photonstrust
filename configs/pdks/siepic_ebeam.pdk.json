@@ -1,13 +1,14 @@
 {
-  "name": "generic_silicon_photonics",
+  "name": "siepic_ebeam",
   "version": "0.1",
   "design_rules": {
-    "min_waveguide_width_um": 0.45,
+    "min_waveguide_width_um": 0.50,
     "min_waveguide_gap_um": 0.20,
     "min_bend_radius_um": 5.0
   },
   "notes": [
-    "Runtime generic silicon photonics manifest used by the PDK loader."
+    "Illustrative SiEPIC EBeam-style manifest for public-facing adapter coverage.",
+    "Metadata is redistribution-safe and should be replaced with foundry-approved rule decks where required."
   ],
   "capabilities": {
     "supports_layout": true,
@@ -24,53 +25,61 @@
       "thickness_um": 0.22
     },
     {
-      "name": "si_clad",
-      "gds_layer": 2,
+      "name": "heater_metal",
+      "gds_layer": 31,
       "gds_datatype": 0,
-      "material": "SiO2",
-      "thickness_um": 2.0
+      "material": "Metal",
+      "thickness_um": 0.15
     }
   ],
   "component_cells": [
     {
       "name": "grating_coupler_te",
-      "library": "generic_sip",
-      "cell": "GC_TE",
+      "library": "siepic_ebeam",
+      "cell": "GC_TE_1550",
       "ports": ["opt1", "opt2"],
-      "nominal_il_db": 3.0
+      "nominal_il_db": 2.9
     },
     {
       "name": "edge_coupler_te",
-      "library": "generic_sip",
+      "library": "siepic_ebeam",
       "cell": "EC_TE",
       "ports": ["opt1", "opt2"],
-      "nominal_il_db": 1.2
+      "nominal_il_db": 1.1
     },
     {
       "name": "waveguide_straight",
-      "library": "generic_sip",
+      "library": "siepic_ebeam",
       "cell": "WG_STRAIGHT",
-      "ports": ["o1", "o2"]
+      "ports": ["o1", "o2"],
+      "nominal_loss_db_per_cm": 2.0
     },
     {
       "name": "mmi_2x2",
-      "library": "generic_sip",
+      "library": "siepic_ebeam",
       "cell": "MMI_2X2",
-      "ports": ["in1", "in2", "out1", "out2"]
+      "ports": ["in1", "in2", "out1", "out2"],
+      "nominal_excess_loss_db": 0.35
     },
     {
       "name": "phase_shifter",
-      "library": "generic_sip",
-      "cell": "PS_THERMO",
+      "library": "siepic_ebeam",
+      "cell": "PS_HEATER",
       "ports": ["in", "out"],
       "drive_type": "thermal",
-      "nominal_il_db": 0.3
+      "nominal_il_db": 0.22
+    },
+    {
+      "name": "ring_resonator",
+      "library": "siepic_ebeam",
+      "cell": "RING_SINGLE_BUS",
+      "ports": ["bus_in", "bus_out"]
     }
   ],
   "interop": {
     "siepic": {
       "enabled": true,
-      "technology_name": "generic_sip"
+      "technology_name": "EBeam"
     }
   }
 }

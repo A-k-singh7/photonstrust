@@ -18,7 +18,8 @@ custom code.
 - `satellite/`
   - Satellite-chain mission configs and reference lanes.
 - `pdks/`
-  - PIC process design kit manifests.
+  - PIC process design kit manifests, including generic, AIM illustrative, and
+    SiEPIC EBeam-style public-facing adapter examples.
 - `maintainability/`
   - Internal maintainability budget configuration.
 - remaining top-level `demo*` configs

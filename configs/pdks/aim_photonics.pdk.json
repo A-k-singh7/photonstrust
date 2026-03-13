@@ -48,6 +48,28 @@
       "nominal_il_db": 1.0
     },
     {
+      "name": "waveguide_straight",
+      "library": "aim",
+      "cell": "WG_STRAIGHT",
+      "ports": ["o1", "o2"],
+      "nominal_loss_db_per_cm": 2.1
+    },
+    {
+      "name": "mmi_2x2",
+      "library": "aim",
+      "cell": "MMI_2X2",
+      "ports": ["in1", "in2", "out1", "out2"],
+      "nominal_excess_loss_db": 0.4
+    },
+    {
+      "name": "phase_shifter",
+      "library": "aim",
+      "cell": "PHASE_SHIFTER_THERMO",
+      "ports": ["in", "out"],
+      "drive_type": "thermal",
+      "nominal_il_db": 0.25
+    },
+    {
       "name": "ring_resonator",
       "library": "aim",
       "cell": "RING_SINGLE_BUS",
