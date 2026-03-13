@@ -17,9 +17,9 @@ This matrix compares:
 
 | PDK | Type | Component cells | Notes |
 |---|---|---:|---|
-| `aim_photonics` | foundry-labeled illustrative | 6 | illustrative only; not foundry-approved production data |
+| `aim_photonics` | foundry-labeled illustrative | 8 | illustrative only; not foundry-approved production data |
 | `aim_photonics_300nm_sin` | foundry-labeled illustrative | 5 | corner-enabled illustrative manifest |
-| `siepic_ebeam` | public-facing illustrative adapter | 6 | illustrative public EBeam-style adapter manifest |
+| `siepic_ebeam` | public-facing illustrative adapter | 10 | illustrative public EBeam-style adapter manifest |
 | `generic_silicon_photonics` | generic | 5 | runtime generic silicon photonics manifest |
 | `generic_sip_corners` | generic | 5 | generic corner-enabled manifest |
 
@@ -31,8 +31,13 @@ This matrix compares:
 - `waveguide_straight`
 - `mmi_2x2`
 - `phase_shifter`
+- `waveguide_bend_euler`
+- `spot_size_converter`
+- `monitor_tap_1x2`
+- `photodiode_ge`
+- `awg_mux_demux`
 
-Total unique manifest-level component names: `6`
+Total unique manifest-level component names: `11`
 
 ## Internal PIC Primitive Set
 
@@ -61,8 +66,8 @@ Total internal PIC primitive kinds: `9`
 | `pic.ring` | Partial | Yes | `ring_resonator` | covered in illustrative adapters only | medium |
 | `pic.phase_shifter` | Yes | Yes | `phase_shifter` | covered (illustrative) | low |
 | `pic.isolator_2port` | No | No | -- | missing | low |
-| `pic.touchstone_2port` | No | No | -- | missing at manifest layer | medium |
-| `pic.touchstone_nport` | No | No | -- | missing at manifest layer | medium |
+| `pic.touchstone_2port` | No | Partial | `photodiode_ge` | represented as external-characterized manifest cell only | medium |
+| `pic.touchstone_nport` | No | Partial | `awg_mux_demux` | represented as packaged/layout-oriented manifest cell only | medium |
 
 ## Practical Interpretation
 
@@ -71,12 +76,17 @@ Total internal PIC primitive kinds: `9`
 - input/output optical IO cells are represented in every checked-in manifest
 - waveguide, coupler/MMI, and phase shifter coverage now exist at both generic and AIM illustrative levels
 - one ring-resonator cell exists in the AIM illustrative manifest
+- public-facing adapter manifests now expose support-level metadata for modeled vs layout-only vs characterized cells
 
 ### Main weaknesses
 
 - no richer waveguide family coverage (bend, taper, route primitives)
 - no manifest-level Touchstone-backed packaged component catalog
 - broader real foundry-family depth is still limited
+
+Note: the current branch now adds first-pass coverage for bend/routing, monitor,
+photodiode, and AWG-style packaged cells, but these are still illustrative and
+not uniformly backed by native internal simulation primitives.
 
 ## Highest-Value Next Additions
 
@@ -115,7 +125,8 @@ The next iteration should aim for:
    - phase shifter
    - ring resonator
 3. at least one second public-facing adapter family covering the same core set
-4. tests that fail if required coverage drops below that bar
+4. support-level metadata present on public-facing adapter cells
+5. tests that fail if required coverage drops below that bar
 
 ## Phase 1 Status
 
@@ -132,3 +143,4 @@ Completed in the current working tree / branch:
 3. generic manifests now also include `phase_shifter`
 4. coverage regression test added in `tests/test_pdk_component_coverage.py`
 5. `siepic_ebeam.pdk.json` added as a second public-facing illustrative adapter family
+6. public-facing adapter catalogs now include support metadata and several layout-only / external-characterized cells beyond the core six

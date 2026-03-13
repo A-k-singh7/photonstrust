@@ -134,4 +134,6 @@ The current branch now provides:
 2. stronger generic manifest completeness,
 3. a second public-facing illustrative adapter family (`siepic_ebeam`),
 4. a documented internal-kind to manifest-cell mapping table,
-5. regression tests that fail if this minimum coverage bar regresses.
+5. regression tests that fail if this minimum coverage bar regresses,
+6. support-level metadata (`modeled`, `layout_only`, `characterized_external`) on public-facing adapter cells,
+7. more than twenty additional manifest-level component entries across the expanded public-facing catalogs relative to the original baseline.
