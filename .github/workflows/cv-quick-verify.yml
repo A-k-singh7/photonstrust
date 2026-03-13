@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies (core + quantum lanes)
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[qutip,qiskit]"
+          pip install -e ".[dev,qutip,qiskit]"
 
       - name: Sanity-check CV/tapeout scripts
         run: |
