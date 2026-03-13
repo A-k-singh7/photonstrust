@@ -33,6 +33,12 @@ body:
       description: Python version, OS, and relevant package versions.
       placeholder: Python 3.11 on Windows 11; photonstrust 0.1.0
   - type: textarea
+    id: command_or_input
+    attributes:
+      label: Command, config, or UI flow used
+      description: Share the exact command, config path, graph, or UI path that triggered the issue.
+      placeholder: photonstrust run configs/quickstart/qkd_default.yml --output results/demo
+  - type: textarea
     id: logs
     attributes:
       label: Relevant logs or traceback

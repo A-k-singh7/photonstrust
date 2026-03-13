@@ -8,6 +8,8 @@ document set quickly.
 - `../README.md` for installation, CLI examples, and product launch paths.
 - `../CONTRIBUTING.md` for contributor workflow and testing expectations.
 - `../SECURITY.md` for vulnerability reporting.
+- `user/quickstart.md` for the shortest working user path.
+- `dev/testing.md` for the main test entry points.
 
 ## Main Documentation Areas
 
@@ -15,6 +17,8 @@ document set quickly.
   - End-user oriented entry points and quickstart paths.
 - `dev/README.md`
   - Contributor and maintainer oriented entry points.
+- `assets/README.md`
+  - Curated screenshots and static documentation assets.
 - `archive/README.md`
   - Historical snapshots and archived documents retained for provenance.
 - `research/README.md`

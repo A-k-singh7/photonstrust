@@ -5,6 +5,7 @@ This section is the best entry point for people trying to use PhotonTrust.
 ## Start Here
 
 - `../../README.md` for installation and runnable examples.
+- `quickstart.md` for the shortest first-run path.
 - `../../configs/README.md` for the config catalog.
 - `../../examples/README.md` for small code examples.
 - `../operations/product/10_minute_quickstart_2026-02-18.md` for the product UI path.

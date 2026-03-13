@@ -24,6 +24,20 @@ body:
       placeholder: What should PhotonTrust do differently?
     validations:
       required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of PhotonTrust would this most affect?
+      options:
+        - CLI and configs
+        - React product UI
+        - API
+        - Research and validation
+        - PIC and GDS workflows
+        - Orbit and satellite workflows
+        - Documentation
+        - Contributor tooling / CI
   - type: textarea
     id: alternatives
     attributes:

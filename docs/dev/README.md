@@ -8,6 +8,8 @@ This section is the best entry point for contributors and maintainers.
 - `../../SECURITY.md`
 - `../../scripts/README.md`
 - `../../docs/README.md`
+- `testing.md`
+- `release_process.md`
 
 ## Main Topics
 

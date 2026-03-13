@@ -7,6 +7,22 @@ photonic quantum links. This MVP focuses on QKD key-rate realism across Near-IR,
 O-band, and C-band configurations, including direct-link and relay-based
 protocol-family surfaces.
 
+## Status and License
+
+- Status: public beta / research-grade engineering platform
+- License: `AGPL-3.0-only`
+- Primary product surface: React UI in `web/`
+- Legacy surface: Streamlit UI in `ui/`
+
+## What PhotonTrust Can Do
+
+- simulate QKD links and compare run outcomes
+- compile graph-based QKD and PIC workflows
+- generate PIC layout artifacts, GDS, and KLayout-based extraction packs
+- run orbit and satellite scenario workflows
+- certify decisions with approvals, evidence packets, publish, and verify flows
+- validate research examples, parity lanes, and release-gate evidence
+
 ## Choose Your Path
 
 - CLI or library user: start with the quick start below, then see
@@ -73,7 +89,7 @@ photonstrust pic simulate results/graphs_demo/demo8_pic_circuit/compiled_netlist
 photonstrust fmt graphspec graphs/demo8_qkd_link_graph.ptg.toml --check --print-hash
 ```
 
-Web drag-drop editor (Phase 13 MVP, local dev):
+Manual React web dev server:
 
 ```bash
 pip install -e .[api]
@@ -153,7 +169,7 @@ Quickstart runbook:
 
 - `docs/operations/product/10_minute_quickstart_2026-02-18.md`
 
-UI run-builder walkthrough:
+Legacy Streamlit run-builder walkthrough:
 
 1. Open `Run Builder` tab.
 2. Click `Check API health`.
@@ -171,7 +187,7 @@ Error recovery hints:
 - API failures in Run Builder are categorized (connectivity, validation, auth scope, backend failure)
   and shown with direct recovery guidance.
 
-UI comparison walkthrough:
+Legacy Streamlit comparison walkthrough:
 
 ```bash
 photonstrust run configs/quickstart/qkd_quick_smoke.yml --output results/compare_a
