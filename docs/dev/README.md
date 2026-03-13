@@ -24,6 +24,7 @@ This section is the best entry point for contributors and maintainers.
 - `docs_cleanup_matrix_2026-03-13.md`
 - `test_naming_cleanup_matrix_2026-03-13.md`
 - `scripts_and_configs_cleanup_matrix_2026-03-13.md`
+- `public_launch_hygiene_review_2026-03-13.md`
 
 ## Common Commands
 

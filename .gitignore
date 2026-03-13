@@ -43,6 +43,9 @@ web/test-results/
 # Misc build/cache artifacts
 .benchmarks/
 photonstrust_rs/target/
+photonstrust_rs/build*.log
+photonstrust_rs/build*.txt
+photonstrust_rs/error_log.txt
 
 # Accidental shell redirection artifacts at repo root (e.g., "=1.24")
 /=*
