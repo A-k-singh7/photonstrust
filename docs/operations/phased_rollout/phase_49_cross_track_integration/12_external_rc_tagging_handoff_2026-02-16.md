@@ -37,7 +37,7 @@
 
 ```bash
 cd "/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust"
-./.venv/bin/python scripts/release_gate_check.py
+./.venv/bin/python scripts/release/release_gate_check.py
 ./.venv/bin/python -m photonstrust.cli run configs/pilot_day0_kickoff.yml --validate-only
 ```
 

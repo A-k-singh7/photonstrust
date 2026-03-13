@@ -32,7 +32,7 @@ QKD model behavior and maps each anchor to executable checks.
 Command:
 
 ```bash
-python scripts/validate_recent_research_examples.py
+python scripts/validation/validate_recent_research_examples.py
 ```
 
 Output artifact:

@@ -61,7 +61,7 @@ Validation checks executed:
 `datasets/benchmarks/open/open_demo_qkd_analytic_001/benchmark_bundle.json`
 (and its registry index entry).
 
-A fresh run of `scripts/release_gate_check.py` is now fully green:
+A fresh run of `scripts/release/release_gate_check.py` is now fully green:
 - tests: PASS
 - benchmark drift: PASS
 - open benchmarks: PASS

@@ -31,7 +31,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
 2. Add open benchmark index refresh/check path:
    - `photonstrust/benchmarks/open_index.py`
    - `scripts/refresh_open_benchmark_index.py`
-   - `scripts/check_open_benchmarks.py`
+   - `scripts/validation/check_open_benchmarks.py`
    - `datasets/benchmarks/open/index.json`
    - `tests/test_open_benchmark_index_refresh.py`
 3. Add pilot cycle and conversion packet artifacts:

@@ -30,9 +30,9 @@ Core gates to remain green continuously:
 
 ```bash
 python -m pytest -q
-python scripts/ci_checks.py
-python scripts/release_gate_check.py
-python scripts/run_validation_harness.py --output-root results/validation
+python scripts/validation/ci_checks.py
+python scripts/release/release_gate_check.py
+python scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 ### Ownership model

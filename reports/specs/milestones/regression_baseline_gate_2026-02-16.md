@@ -26,5 +26,5 @@
 - [ ] Gate failed
 - Notes:
   - `py -3 scripts/lock_rc_baseline.py --regenerate` generated baseline lock manifest.
-  - `py -3 scripts/check_benchmark_drift.py` passed.
-  - `py -3 scripts/release_gate_check.py` passed.
+  - `py -3 scripts/validation/check_benchmark_drift.py` passed.
+  - `py -3 scripts/release/release_gate_check.py` passed.

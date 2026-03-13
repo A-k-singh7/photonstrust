@@ -124,7 +124,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     ok, failures, _packet = verify_release_gate_packet(
         repo_root,
         packet_path=args.packet,

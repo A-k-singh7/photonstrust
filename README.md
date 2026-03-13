@@ -12,7 +12,7 @@ protocol-family surfaces.
 - CLI or library user: start with the quick start below, then see
   `configs/README.md` and `examples/README.md`.
 - Product UI user: use the React-first product surface in `web/` via
-  `scripts/start_product_local.py`.
+  `scripts/dev/start_product_local.py`.
 - Contributor or maintainer: read `CONTRIBUTING.md`, `docs/README.md`, and
   `scripts/README.md` first.
 
@@ -77,7 +77,7 @@ Web drag-drop editor (Phase 13 MVP, local dev):
 
 ```bash
 pip install -e .[api]
-py scripts/run_api_server.py --reload
+py scripts/dev/run_api_server.py --reload
 cd web
 npm ci
 npm run dev
@@ -123,7 +123,7 @@ pip install -e .[api]
 cd web
 npm ci
 cd ..
-py scripts/start_product_local.py
+py scripts/dev/start_product_local.py
 ```
 
 This launches the FastAPI backend plus the React/Vite product shell. Useful flags:
@@ -144,9 +144,9 @@ Product packaging (single-command local start + pilot demo):
 ```bash
 pip install -e .[api]
 cd web && npm ci && cd ..
-python scripts/start_product_local.py
-python scripts/run_product_pilot_demo.py --project-id pilot_demo_week4
-python scripts/product_readiness_gate.py --spawn-api
+python scripts/dev/start_product_local.py
+python scripts/product/run_product_pilot_demo.py --project-id pilot_demo_week4
+python scripts/product/product_readiness_gate.py --spawn-api
 ```
 
 Quickstart runbook:
@@ -258,7 +258,7 @@ python scripts/replay_satellite_chain_reports.py \
   --sweep-report results/satellite_chain_sweep/satellite_chain_sweep.json \
   --optuna-report results/satellite_chain_optuna/satellite_chain_optuna_report.json
 
-python scripts/release_gate_check.py --quick
+python scripts/release/release_gate_check.py --quick
 ```
 
 Optional MLflow and Prefect lanes:
@@ -280,7 +280,7 @@ CI + tests:
 
 ```bash
 pip install -e .[dev]
-python scripts/ci_checks.py
+python scripts/validation/ci_checks.py
 ```
 
 Day-30 integrity baseline (lint/hooks/runtime-contract checks + DVC stages):
@@ -300,17 +300,17 @@ Regression baselines + canonical validation harness:
 python scripts/generate_baselines.py
 python scripts/generate_phase41_canonical_baselines.py
 pytest tests/test_regression_baselines.py tests/test_phase41_canonical_baselines.py tests/test_validation_harness.py
-python scripts/check_benchmark_drift.py
-python scripts/run_validation_harness.py --output-root results/validation
+python scripts/validation/check_benchmark_drift.py
+python scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 Open benchmarks (shareable bundles) + repro packs:
 
 ```bash
-python scripts/check_open_benchmarks.py
+python scripts/validation/check_open_benchmarks.py
 python scripts/generate_repro_pack.py configs/demo1_quick_smoke.yml results/repro_pack_demo1_quick_smoke
-python scripts/validate_recent_research_examples.py
-python scripts/compare_recent_research_benchmarks.py
+python scripts/validation/validate_recent_research_examples.py
+python scripts/validation/compare_recent_research_benchmarks.py
 ```
 
 Measurement bundles (ingestion + opt-in artifact packs):
@@ -330,7 +330,7 @@ pytest tests/test_golden_report.py
 Release gate:
 
 ```bash
-python scripts/release_gate_check.py
+python scripts/release/release_gate_check.py
 ```
 
 Production readiness (isolated + fail-closed):
@@ -355,8 +355,8 @@ python scripts/init_pic_gate_e_metrics_templates.py --output-dir results/pic_rea
 python scripts/build_pic_gate_e_packet.py --claim-matrix results/pic_readiness/governance/claim_evidence_matrix_2026-03-03.json --ci-history-json results/pic_readiness/governance/ci_history_metrics_2026-03-03.json --triage-metrics-json results/pic_readiness/governance/triage_metrics_2026-03-03.json --output results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --e2-min-runs 3 --e2-sla-seconds 600
 python scripts/build_pic_readiness_scorecard.py --tapeout-gate results/pic_readiness/tapeout_gate_report.json --gate-b results/pic_readiness/gate_b/packet_missing_data_seeded_2026-03-03.json --gate-cd5 results/pic_readiness/process_repro/pic_c_d5_packet_2026-03-03.json --gate-e results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --output results/pic_readiness/scorecard/pic_readiness_scorecard_2026-03-03.json
 python scripts/build_pic_preflight_policy_packet.py --output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --run-id pic_preflight_2026-03-03
-python scripts/sign_release_gate_packet.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature-output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --private-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.private.pem --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem --generate-keypair --key-id pic_preflight_policy_packet_2026-03-03
-python scripts/verify_release_gate_packet_signature.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem
+python scripts/release/sign_release_gate_packet.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature-output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --private-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.private.pem --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem --generate-keypair --key-id pic_preflight_policy_packet_2026-03-03
+python scripts/release/verify_release_gate_packet_signature.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem
 python scripts/build_pic_external_data_manifest.py --gate-b results/pic_readiness/gate_b/packet_missing_data_seeded_2026-03-03.json --gate-e results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --rc-id rc_next --output results/pic_readiness/handoff/pic_required_external_data_manifest_2026-03-03.json
 python scripts/build_pic_integration_task_board.py --manifest results/pic_readiness/handoff/pic_required_external_data_manifest_2026-03-03.json --output-json results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.json --output-csv results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.csv --default-status in_progress --start-date 2026-03-03 --target-step-days 2
 python scripts/refresh_pic_handoff_daily.py --gate-b results/pic_readiness/gate_b/packet_missing_data_seeded_2026-03-03.json --gate-e results/pic_readiness/governance/pic_gate_e_packet_2026-03-03.json --rc-id rc_next --manifest-output results/pic_readiness/handoff/pic_required_external_data_manifest_2026-03-03.json --task-board-json results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.json --task-board-csv results/pic_readiness/handoff/pic_integration_task_board_in_progress_2026-03-03.csv --task-status in_progress --start-date 2026-03-03 --target-step-days 2

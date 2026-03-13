@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load_script_module():
-    script_path = REPO_ROOT / "scripts" / "release_gate_check.py"
+    script_path = REPO_ROOT / "scripts" / "release" / "release_gate_check.py"
     spec = importlib.util.spec_from_file_location("release_gate_check_under_test", script_path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)

@@ -75,7 +75,7 @@ Contents:
 - Unit tests:
   - `py -m pytest -q`
 - Release gate:
-  - `py scripts/release_gate_check.py --output results/release_gate/phase11_release_gate_report.json`
+  - `py scripts/release/release_gate_check.py --output results/release_gate/phase11_release_gate_report.json`
 - Manual smoke:
   - `photonstrust run configs/demo11_orbit_pass_envelope.yml --output results/orbit_demo11`
 

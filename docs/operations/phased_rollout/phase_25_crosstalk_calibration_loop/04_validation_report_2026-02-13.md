@@ -15,7 +15,7 @@ Result: PASS (116 passed, 1 skipped)
 ### 2) Release gate (includes calibration drift gate)
 Command:
 ```bash
-py scripts/release_gate_check.py
+py scripts/release/release_gate_check.py
 ```
 Result: PASS
 

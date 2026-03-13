@@ -25,7 +25,7 @@ Coverage:
 
 ### Release gate
 Command:
-- `py scripts/release_gate_check.py --output results/release_gate/phase12_release_gate_report.json`
+- `py scripts/release/release_gate_check.py --output results/release_gate/phase12_release_gate_report.json`
 
 Result:
 - PASS

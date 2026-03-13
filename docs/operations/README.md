@@ -70,8 +70,8 @@ Program-level completion summary:
 - `../../reports/specs/milestones/release_gate_v1_0_2026-02-12.md`
 
 Release tooling:
-- `../../scripts/check_benchmark_drift.py`
-- `../../scripts/release_gate_check.py`
+- `../../scripts/validation/check_benchmark_drift.py`
+- `../../scripts/release/release_gate_check.py`
 
 Customer/pilot demo operations:
 - `phase2e_demo_pack.md`

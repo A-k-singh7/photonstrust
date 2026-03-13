@@ -21,8 +21,8 @@ The wrapper script `scripts/regenerate_baseline_fixtures.py` reuses current proj
    to enforce deterministic regeneration
    - Note: Phase 41 fixture metadata timestamp is deterministic by default (`SOURCE_DATE_EPOCH` if set, else fixed epoch).
 4. `python -m pytest tests/test_regression_baselines.py tests/test_phase41_canonical_baselines.py tests/test_validation_harness.py`
-5. `python scripts/check_benchmark_drift.py`
-6. `python scripts/run_validation_harness.py --output-root results/validation`
+5. `python scripts/validation/check_benchmark_drift.py`
+6. `python scripts/validation/run_validation_harness.py --output-root results/validation`
 
 ## Success criteria
 

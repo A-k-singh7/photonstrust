@@ -32,9 +32,9 @@ Core gates to remain green continuously:
 
 ```bash
 python -m pytest -q
-python scripts/ci_checks.py
-python scripts/release_gate_check.py
-python scripts/run_validation_harness.py --output-root results/validation
+python scripts/validation/ci_checks.py
+python scripts/release/release_gate_check.py
+python scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 ### Ownership model
@@ -72,7 +72,7 @@ Source anchors:
 ### W01 (2026-02-16 to 2026-02-22) - Program lock and phase scaffolding
 - Work: Open `phase_50_quality_security_foundation`, lock owner map, refresh risk register and gates.
 - Artifacts: Phase 50 `01/02/03/04` docs, updated risk table in weekly ops notes.
-- Validation: `python scripts/release_gate_check.py`
+- Validation: `python scripts/release/release_gate_check.py`
 - Exit: No open owner gaps on release-critical workstreams.
 
 ### W02 (2026-02-23 to 2026-03-01) - CI matrix and coverage floor
@@ -119,7 +119,7 @@ Source anchors:
 ### W08 (2026-04-06 to 2026-04-12) - Multifidelity evidence integration
 - Work: Include `multifidelity_report` in evidence bundles and trust panel surfaces.
 - Artifacts: bundle schema update, UI trust section update.
-- Validation: `python scripts/release_gate_check.py`
+- Validation: `python scripts/release/release_gate_check.py`
 - Exit: Multifidelity results exported, schema-valid, and diffable.
 
 ## Phase 52 (W9-W12): Protocol expansion track
@@ -201,7 +201,7 @@ Source anchors:
 ### W19 (2026-06-22 to 2026-06-28) - Satellite canonical benchmarks
 - Work: Add canonical satellite scenarios and drift governance.
 - Artifacts: canonical configs + baseline fixtures.
-- Validation: `python scripts/check_benchmark_drift.py`
+- Validation: `python scripts/validation/check_benchmark_drift.py`
 - Exit: Satellite regimes covered by reproducible benchmark harness.
 
 ### W20 (2026-06-29 to 2026-07-05) - Pilot packet v2
@@ -401,7 +401,7 @@ Source anchors:
 ### W46 (2026-12-28 to 2027-01-03) - Benchmark and repro pack refresh
 - Work: Refresh open benchmarks and reproducibility packs.
 - Artifacts: updated open benchmark index and repro bundles.
-- Validation: `python scripts/check_open_benchmarks.py`
+- Validation: `python scripts/validation/check_open_benchmarks.py`
 - Exit: External reproducibility path current and stable.
 
 ### W47 (2027-01-04 to 2027-01-10) - External pilot cycles
@@ -437,7 +437,7 @@ Source anchors:
 ### W51 (2027-02-01 to 2027-02-07) - Final release gate package
 - Work: Complete milestone acceptance templates and final release notes.
 - Artifacts: release gate packet and signed approvals.
-- Validation: `python scripts/release_gate_check.py`
+- Validation: `python scripts/release/release_gate_check.py`
 - Exit: release gate PASS with approver signoff.
 
 ### W52 (2027-02-08 to 2027-02-14) - GA publish and next-cycle handoff

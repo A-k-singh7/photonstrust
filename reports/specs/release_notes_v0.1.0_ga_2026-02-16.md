@@ -14,12 +14,12 @@ pip install -e .[qutip,qiskit]
 
 ## Key Commands
 ```bash
-py -3 scripts/release_gate_check.py
+py -3 scripts/release/release_gate_check.py
 py -3 scripts/check_external_reviewer_findings.py
-py -3 scripts/build_release_gate_packet.py
-py -3 scripts/verify_release_gate_packet.py
-py -3 scripts/sign_release_gate_packet.py
-py -3 scripts/verify_release_gate_packet_signature.py
+py -3 scripts/release/build_release_gate_packet.py
+py -3 scripts/release/verify_release_gate_packet.py
+py -3 scripts/release/sign_release_gate_packet.py
+py -3 scripts/release/verify_release_gate_packet_signature.py
 py -3 scripts/publish_ga_release_bundle.py
 py -3 scripts/verify_ga_release_bundle.py
 py -3 scripts/run_ga_replay_matrix.py

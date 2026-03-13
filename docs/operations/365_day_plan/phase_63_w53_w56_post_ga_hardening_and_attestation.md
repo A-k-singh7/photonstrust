@@ -26,5 +26,5 @@ Source anchors:
 ### W56 (2027-03-08 to 2027-03-14) - Handoff polish and readiness notes
 - Work: finalize Phase 63 docs, risk posture, and next-cycle handoff notes.
 - Artifacts: phased rollout docs and weekly consolidated notes.
-- Validation: `python scripts/ci_checks.py` and release-gate validations.
+- Validation: `python scripts/validation/ci_checks.py` and release-gate validations.
 - Exit: post-GA hardening cycle approved for continuation.

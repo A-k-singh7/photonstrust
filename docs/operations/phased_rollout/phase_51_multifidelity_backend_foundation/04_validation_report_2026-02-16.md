@@ -104,7 +104,7 @@ py -3 -m pytest -q
 - Command:
 
 ```text
-py -3 scripts/release_gate_check.py
+py -3 scripts/release/release_gate_check.py
 ```
 
 - Result:

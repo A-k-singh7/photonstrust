@@ -22,7 +22,7 @@
   - Command: `py -m pytest -q`
   - Result: PASS (`106 passed`)
 - Release gate:
-  - Command: `py scripts/release_gate_check.py`
+  - Command: `py scripts/release/release_gate_check.py`
   - Result: PASS
   - Report: `results/release_gate/release_gate_report.json`
 - Web lint:

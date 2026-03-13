@@ -7,8 +7,8 @@
 - Date: 2026-02-13
 - Related modules (expected):
   - `photonstrust/datasets/`
-  - `scripts/check_benchmark_drift.py`
-  - `scripts/release_gate_check.py`
+  - `scripts/validation/check_benchmark_drift.py`
+  - `scripts/release/release_gate_check.py`
   - report/provenance exports (`photonstrust/report.py`, `photonstrust/sweep.py`)
 
 ## 1) Problem and motivation

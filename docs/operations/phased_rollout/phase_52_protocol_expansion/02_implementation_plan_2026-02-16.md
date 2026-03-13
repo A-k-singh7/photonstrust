@@ -37,7 +37,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - update `tests/api/test_api_server_optional.py`
 5. Execute validation gates:
    - `py -3 -m pytest -q`
-   - `py -3 scripts/release_gate_check.py`
+   - `py -3 scripts/release/release_gate_check.py`
 6. Add migration note for protocol dispatch contract:
    - `05_protocol_dispatch_migration_notes_2026-02-16.md`
 

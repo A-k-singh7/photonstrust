@@ -20,7 +20,7 @@ Week 1 objective is governance and execution hygiene lock:
   - `docs/operations/phased_rollout/phase_49_cross_track_integration/10_phase49_closeout_report_2026-02-16.md`
   - `docs/operations/phased_rollout/phase_49_cross_track_integration/13_day0_rehearsal_report_2026-02-16.md`
 - Core release gate command is available:
-  - `scripts/release_gate_check.py`
+  - `scripts/release/release_gate_check.py`
 - Weekly phase artifact contract is active and mandatory:
   - `docs/operations/phased_rollout/README.md`
 
@@ -89,7 +89,7 @@ accumulates unbounded delivery risk.
 - CI workflow baseline:
   - `.github/workflows/ci.yml`
 - Build/test guardrail entry point:
-  - `scripts/ci_checks.py`
+  - `scripts/validation/ci_checks.py`
 - Packaging and coverage policy configuration:
   - `pyproject.toml`
 

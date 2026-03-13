@@ -12,7 +12,7 @@ optional dependency stacks, and enforcing a minimum test coverage floor.
 | Control ID | Control | Implementation | Status |
 |---|---|---|---|
 | P50-W2-C1 | Python-version CI matrix | `.github/workflows/ci.yml` test job runs on `3.9/3.10/3.11/3.12` | Implemented |
-| P50-W2-C2 | Coverage enforcement in CI | `scripts/ci_checks.py` invocation now passes `--cov-fail-under=70` args | Implemented |
+| P50-W2-C2 | Coverage enforcement in CI | `scripts/validation/ci_checks.py` invocation now passes `--cov-fail-under=70` args | Implemented |
 | P50-W2-C3 | Coverage policy codification | `pyproject.toml` defines coverage source/branch/report with `fail_under = 70` | Implemented |
 | P50-W2-C4 | Optional dependency lanes | CI job adds non-blocking extras lanes (`qutip`, `qiskit`, `api`, `layout`) with install/import smoke | Implemented |
 

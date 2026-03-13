@@ -128,7 +128,7 @@ def _is_port_available(host: str, port: int) -> bool:
 
 def main() -> int:
     args = parse_args()
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     results_root = args.results_root if args.results_root.is_absolute() else (repo_root / args.results_root)
     results_root = results_root.resolve()
     api_runs_root = (results_root / "api_runs").resolve()

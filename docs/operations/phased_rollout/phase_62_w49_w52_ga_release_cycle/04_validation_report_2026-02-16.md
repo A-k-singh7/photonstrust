@@ -7,11 +7,11 @@ Date: 2026-02-16
 1. `py -3 -m pytest tests/test_phase62_ga_release_cycle.py`
 2. `py -3 scripts/lock_rc_baseline.py --regenerate`
 3. `py -3 scripts/check_external_reviewer_findings.py`
-4. `py -3 scripts/release_gate_check.py`
-5. `py -3 scripts/build_release_gate_packet.py`
+4. `py -3 scripts/release/release_gate_check.py`
+5. `py -3 scripts/release/build_release_gate_packet.py`
 6. `py -3 scripts/publish_ga_release_bundle.py`
 7. `py -3 scripts/verify_ga_release_bundle.py`
-8. `py -3 scripts/ci_checks.py`
+8. `py -3 scripts/validation/ci_checks.py`
 
 ## Results
 

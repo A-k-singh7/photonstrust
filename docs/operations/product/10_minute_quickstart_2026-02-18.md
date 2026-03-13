@@ -21,7 +21,7 @@ cd ..
 ## 2) Start API + UI in one command (1 min)
 
 ```bash
-py -3 scripts/start_product_local.py
+py -3 scripts/dev/start_product_local.py
 ```
 
 Expected startup output includes:
@@ -48,7 +48,7 @@ Telemetry is written to:
 Open a second terminal at repo root:
 
 ```bash
-py -3 scripts/run_product_pilot_demo.py --project-id pilot_demo_week4
+py -3 scripts/product/run_product_pilot_demo.py --project-id pilot_demo_week4
 ```
 
 Outputs are written under:
@@ -66,7 +66,7 @@ Press `Ctrl+C` in the launcher terminal running `start_product_local.py`.
 This gate runs API health, one QKD run, PIC chain + MZI simulations, and the 3-case pilot script in fail-closed mode:
 
 ```bash
-py -3 scripts/product_readiness_gate.py --spawn-api
+py -3 scripts/product/product_readiness_gate.py --spawn-api
 ```
 
 Report output:
@@ -75,11 +75,11 @@ Report output:
 ## Troubleshooting
 
 - API not reachable:
-  - Re-run `py -3 scripts/start_product_local.py`.
+  - Re-run `py -3 scripts/dev/start_product_local.py`.
   - Confirm `http://127.0.0.1:8000/healthz` returns JSON.
 - Web port already in use:
-  - Re-run `py -3 scripts/start_product_local.py --web-port 5174`.
+  - Re-run `py -3 scripts/dev/start_product_local.py --web-port 5174`.
 - Streamlit surface needed instead:
-  - Run `py -3 scripts/start_product_local.py --surface streamlit`.
+  - Run `py -3 scripts/dev/start_product_local.py --surface streamlit`.
 - Pilot demo health check fails:
   - Ensure launcher is still running and API host/port match `--api-base-url`.

@@ -214,9 +214,9 @@ Mapping (recommended):
     - `photonstrust/benchmarks/open_benchmarks.py`
     - `photonstrust/benchmarks/repro_pack.py`
   - scripts:
-    - `scripts/check_open_benchmarks.py`
+    - `scripts/validation/check_open_benchmarks.py`
     - `scripts/generate_repro_pack.py`
-    - `scripts/release_gate_check.py` includes `open_benchmarks`
+    - `scripts/release/release_gate_check.py` includes `open_benchmarks`
   - seeded open benchmark:
     - `datasets/benchmarks/open/open_demo_qkd_analytic_001/`
   - tests:
@@ -270,7 +270,7 @@ Mapping (recommended):
     - `tests/test_pic_simulation.py` (chain loss accounting + MZI routing)
 - Validation (v0.1):
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - manual smoke:
     - compile: `photonstrust graph compile graphs/demo8_pic_circuit_graph.json --output results/graphs`
     - simulate: `photonstrust pic simulate results/graphs/demo8_pic_circuit/compiled_netlist.json --output results/pic/demo8_pic_circuit`
@@ -295,7 +295,7 @@ Mapping (recommended):
     - `tests/test_pic_sweep.py`
 - Validation (v0.1):
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
 
 ### Phase 11: OrbitVerify mission templates (pass envelopes + metadata)
 - Research:
@@ -318,7 +318,7 @@ Mapping (recommended):
     - `tests/test_orbit_pass_envelope.py` (known-sense invariants + schema validation)
 - Validation (v0.1):
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - manual smoke:
     - `photonstrust run configs/demo11_orbit_pass_envelope.yml --output results/orbit_demo11`
 
@@ -347,7 +347,7 @@ Mapping (recommended):
     - `tests/fixtures/measurement_bundle_bad_secret/`
 - Validation (v0.1):
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - smoke:
     - `python scripts/ingest_measurement_bundle.py tests/fixtures/measurement_bundle_demo/measurement_bundle.json --open-root results/measurements_open_demo`
     - `python scripts/publish_artifact_pack.py tests/fixtures/measurement_bundle_demo/measurement_bundle.json results/artifact_pack_demo`
@@ -359,7 +359,7 @@ Mapping (recommended):
 - Build (implemented v0.1):
   - Backend API (local dev surface):
     - `photonstrust/api/server.py`
-    - `scripts/run_api_server.py`
+    - `scripts/dev/run_api_server.py`
     - `pyproject.toml` optional dependencies (`api = ["fastapi", "uvicorn"]`)
   - Web editor (React Flow):
     - `web/src/App.jsx` (palette, templates, inspector, compile/run wiring)
@@ -371,7 +371,7 @@ Mapping (recommended):
     - API server rejects `pic.touchstone_2port` (file access stays CLI-only by default).
 - Validation (v0.1):
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -389,7 +389,7 @@ Mapping (recommended):
     - quick-edit scalar params via generated controls (units/ranges/defaults visible)
 - Validation (v0.2):
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -407,7 +407,7 @@ Mapping (recommended):
     - compile tab surfaces diagnostics blocks (errors + warnings)
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -424,7 +424,7 @@ Mapping (recommended):
     - `Run` triggers Orbit pass execution and returns artifact paths + parsed results JSON
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -445,7 +445,7 @@ Mapping (recommended):
     - Orbit Pass mode adds `Validate` action + diagnostics tab
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -463,7 +463,7 @@ Mapping (recommended):
     - semantic validation for `clear_fraction` range
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -489,7 +489,7 @@ Mapping (recommended):
     - API optional tests cover run listing, manifest retrieval, and artifact serving
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -511,7 +511,7 @@ Mapping (recommended):
     - API optional tests cover `POST /v0/runs/diff` bounded behavior
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -531,7 +531,7 @@ Mapping (recommended):
     - API optional tests assert `outputs_summary` exists and `scope=outputs_summary` diffs report changes when outputs differ
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 
@@ -552,7 +552,7 @@ Mapping (recommended):
     - API optional tests cover project listing, run filtering, and approvals append/list behavior
 - Validation:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run build`
   - `cd web && npm run lint`
 

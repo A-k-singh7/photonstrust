@@ -83,9 +83,9 @@ def main() -> int:
             return 1
 
     _run([python_exe, "-m", "pytest", *BASELINE_TESTS], cwd=repo_root)
-    _run([python_exe, "scripts/check_benchmark_drift.py"], cwd=repo_root)
+    _run([python_exe, "scripts/validation/check_benchmark_drift.py"], cwd=repo_root)
     _run(
-        [python_exe, "scripts/run_validation_harness.py", "--output-root", str(args.output_root)],
+        [python_exe, "scripts/validation/run_validation_harness.py", "--output-root", str(args.output_root)],
         cwd=repo_root,
     )
 

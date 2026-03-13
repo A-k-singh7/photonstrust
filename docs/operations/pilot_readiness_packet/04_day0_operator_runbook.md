@@ -93,7 +93,7 @@ print("OK: trust metadata + safe_use_label")
 PY
 
 # G4: harness replay (customer confidence check)
-./.venv/bin/python scripts/run_validation_harness.py --output-root results/validation
+./.venv/bin/python scripts/validation/run_validation_harness.py --output-root results/validation
 HARNESS_SUMMARY="$(ls -1dt results/validation/*/summary.json | head -n 1)"
 export HARNESS_SUMMARY
 ./.venv/bin/python - <<'PY'
@@ -104,7 +104,7 @@ print("OK: validation harness", os.environ["HARNESS_SUMMARY"])
 PY
 
 # G5: benchmark drift governance (includes canonical satellite fixtures)
-./.venv/bin/python scripts/check_benchmark_drift.py
+./.venv/bin/python scripts/validation/check_benchmark_drift.py
 ```
 
 ### T+40 to T+60 — closeout + decision framing

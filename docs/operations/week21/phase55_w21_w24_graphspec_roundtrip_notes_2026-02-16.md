@@ -25,10 +25,10 @@
 ## Validation executed
 
 - `py -3 -m pytest` -> `274 passed, 2 skipped, 1 warning`.
-- `py -3 scripts/check_benchmark_drift.py` -> PASS.
-- `py -3 scripts/release_gate_check.py` -> PASS.
-- `py -3 scripts/ci_checks.py` -> PASS.
-- `py -3 scripts/run_validation_harness.py --output-root results/validation` -> PASS (`case_count: 10`, `failed_cases: 0`).
+- `py -3 scripts/validation/check_benchmark_drift.py` -> PASS.
+- `py -3 scripts/release/release_gate_check.py` -> PASS.
+- `py -3 scripts/validation/ci_checks.py` -> PASS.
+- `py -3 scripts/validation/run_validation_harness.py --output-root results/validation` -> PASS (`case_count: 10`, `failed_cases: 0`).
 
 ## Remaining follow-ups
 

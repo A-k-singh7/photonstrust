@@ -14,7 +14,7 @@ DEMO_GRAPH_PATH = REPO_ROOT / "graphs" / "demo_qkd_transmitter.json"
 
 
 def test_run_certify_demo_script_dry_run_writes_certificate_path(tmp_path: Path) -> None:
-    script = REPO_ROOT / "scripts" / "run_certify_demo.py"
+    script = REPO_ROOT / "scripts" / "product" / "run_certify_demo.py"
     output_dir = tmp_path / "certify_demo_output"
 
     completed = subprocess.run(

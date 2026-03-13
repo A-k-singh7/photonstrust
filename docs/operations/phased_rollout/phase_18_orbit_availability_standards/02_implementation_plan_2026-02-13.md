@@ -56,7 +56,7 @@
 
 - Python:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
 - Web:
   - `cd web && npm run lint`
   - `cd web && npm run build`

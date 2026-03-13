@@ -115,7 +115,7 @@ def _fmt_number(value: Any) -> str:
 
 def main() -> int:
     args = parse_args()
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     results_root = args.results_root if args.results_root.is_absolute() else (repo_root / args.results_root)
     results_root = results_root.resolve()
     run_label = str(args.label or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"))

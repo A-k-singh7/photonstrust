@@ -16,7 +16,7 @@ pre-commit install
 1. `ruff` lint gate (`E9`, `F63`, `F7`, `F82`) must pass.
 2. Physics model metadata contract must pass (`scripts/check_model_metadata_contract.py`).
 3. Runtime hardcoded-constant gate must pass (`scripts/check_hardcoded_physics_constants.py`).
-4. Pytest and validation harness smoke must pass via `scripts/ci_checks.py`.
+4. Pytest and validation harness smoke must pass via `scripts/validation/ci_checks.py`.
 
 ## Physics model metadata contract
 

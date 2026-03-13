@@ -25,7 +25,7 @@ py -3 -m pytest -q tests/test_free_space_channel.py tests/test_channel_engine_un
 - Command:
 
 ```text
-py -3 scripts/check_benchmark_drift.py
+py -3 scripts/validation/check_benchmark_drift.py
 ```
 
 - Result:
@@ -53,7 +53,7 @@ py -3 -m pytest -q
 - Command:
 
 ```text
-py -3 scripts/release_gate_check.py
+py -3 scripts/release/release_gate_check.py
 ```
 
 - Result:
@@ -68,7 +68,7 @@ Release gate: PASS
 - Command:
 
 ```text
-py -3 scripts/ci_checks.py
+py -3 scripts/validation/ci_checks.py
 ```
 
 - Result:
@@ -82,7 +82,7 @@ py -3 scripts/ci_checks.py
 - Command:
 
 ```text
-py -3 scripts/run_validation_harness.py --output-root results/validation
+py -3 scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 - Result:

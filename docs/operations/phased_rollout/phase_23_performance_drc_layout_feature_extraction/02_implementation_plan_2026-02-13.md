@@ -24,7 +24,7 @@
   - API optional test covers `/v0/performance_drc/crosstalk` with routes: PASS
 - Gates:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run lint`
   - `cd web && npm run build`
 

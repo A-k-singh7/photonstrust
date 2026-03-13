@@ -42,17 +42,17 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     steps = [
         [
             sys.executable,
-            "scripts/build_release_gate_packet.py",
+            "scripts/release/build_release_gate_packet.py",
             "--output",
             str(args.packet),
         ],
         [
             sys.executable,
-            "scripts/sign_release_gate_packet.py",
+            "scripts/release/sign_release_gate_packet.py",
             "--packet",
             str(args.packet),
             "--signature-output",
@@ -64,13 +64,13 @@ def main() -> int:
         ],
         [
             sys.executable,
-            "scripts/verify_release_gate_packet.py",
+            "scripts/release/verify_release_gate_packet.py",
             "--packet",
             str(args.packet),
         ],
         [
             sys.executable,
-            "scripts/verify_release_gate_packet_signature.py",
+            "scripts/release/verify_release_gate_packet_signature.py",
             "--packet",
             str(args.packet),
             "--signature",

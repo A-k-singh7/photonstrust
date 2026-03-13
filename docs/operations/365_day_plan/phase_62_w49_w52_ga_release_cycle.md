@@ -20,7 +20,7 @@ Source anchors:
 ### W51 (2027-02-01 to 2027-02-07) - Final release gate package
 - Work: Complete milestone acceptance templates and final release notes.
 - Artifacts: release gate packet and signed approvals.
-- Validation: `python scripts/release_gate_check.py`
+- Validation: `python scripts/release/release_gate_check.py`
 - Exit: release gate PASS with approver signoff.
 
 ### W52 (2027-02-08 to 2027-02-14) - GA publish and next-cycle handoff

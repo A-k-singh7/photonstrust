@@ -30,7 +30,7 @@ PhotonTrust distinguishes between:
   - `datasets/benchmarks/open/<benchmark_id>/benchmark_bundle.json`
   - `datasets/benchmarks/open/index.json` (machine-readable index)
 - Drift check script:
-  - `scripts/check_open_benchmarks.py`
+  - `scripts/validation/check_open_benchmarks.py`
 
 The bundle carries:
 - the scenario config (as a config dict),

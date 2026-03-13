@@ -49,7 +49,7 @@
 ## Day 1 — Environment Rehydration + Baseline
 - [ ] Create clean venv and install dev deps
 - [ ] Run `pytest -q`
-- [ ] Run `python scripts/run_validation_harness.py --output-root results/validation`
+- [ ] Run `python scripts/validation/run_validation_harness.py --output-root results/validation`
 - [ ] Log failing tests by module and severity
 
 **Owner:** PLT + QAV  
@@ -211,7 +211,7 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -e ".[dev]"
 pytest -q
-python scripts/run_validation_harness.py --output-root results/validation
+python scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 **Baseline fixture refresh + validation (demo + phase41, one command):**

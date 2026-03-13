@@ -5,7 +5,7 @@
 ### Python
 - `py -m pytest -q`
   - Result: PASS (122 passed, 1 skipped)
-- `py scripts/release_gate_check.py`
+- `py scripts/release/release_gate_check.py`
   - Result: PASS
 
 ### Web

@@ -11,7 +11,7 @@ Date: 2026-02-16
 - Command:
 
 ```text
-py -3 scripts/release_gate_check.py
+py -3 scripts/release/release_gate_check.py
 ```
 
 - Result:

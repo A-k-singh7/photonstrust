@@ -112,7 +112,7 @@ Implementation:
 - Unit tests:
   - `py -m pytest -q`
 - Release gate:
-  - `py scripts/release_gate_check.py --output results/release_gate/phase09_release_gate_report.json`
+  - `py scripts/release/release_gate_check.py --output results/release_gate/phase09_release_gate_report.json`
 - Manual smoke:
   - compile demo PIC graph:
     - `photonstrust graph compile graphs/demo8_pic_circuit_graph.json --output results/graphs`

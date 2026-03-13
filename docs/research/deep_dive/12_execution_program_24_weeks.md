@@ -441,9 +441,9 @@ tasks, dependencies, quality gates, and explicit outputs.
 - Program completion summary:
   `../../operations/program_completion_report_2026-02-12.md`
 - Release gate automation:
-  `../../../scripts/release_gate_check.py`
+  `../../../scripts/release/release_gate_check.py`
 - Benchmark drift check:
-  `../../../scripts/check_benchmark_drift.py`
+  `../../../scripts/validation/check_benchmark_drift.py`
 - Milestone acceptance artifacts:
   `../../../reports/specs/milestones/milestone_readiness_m6_2026-02-12.md`,
   `../../../reports/specs/milestones/regression_baseline_gate_2026-02-12.md`,

@@ -183,9 +183,9 @@ jobs:
 
       - name: Run release gate checks
         run: |
-          python scripts/release_gate_check.py --output results/release_gate_ci/release_gate_report.json
-          python scripts/verify_release_gate_packet.py
-          python scripts/verify_release_gate_packet_signature.py
+          python scripts/release/release_gate_check.py --output results/release_gate_ci/release_gate_report.json
+          python scripts/release/verify_release_gate_packet.py
+          python scripts/release/verify_release_gate_packet_signature.py
 
       - name: Run production readiness checks (tags only)
         if: startsWith(github.ref, 'refs/tags/')

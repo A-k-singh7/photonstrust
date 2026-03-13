@@ -12,8 +12,8 @@
 |---|---|---|
 | Baseline regen + deterministic check | `./.venv/bin/python scripts/regenerate_baseline_fixtures.py` | ✅ PASS |
 | Full test suite | `./.venv/bin/python -m pytest -q` | ✅ PASS (`177 passed, 7 skipped`) |
-| CI guardrail bundle | `./.venv/bin/python scripts/ci_checks.py` | ✅ PASS |
-| Full validation harness (7 canonical cases) | `./.venv/bin/python scripts/run_validation_harness.py --output-root results/validation` | ✅ PASS (`ok=true`, `failed_cases=0`) |
+| CI guardrail bundle | `./.venv/bin/python scripts/validation/ci_checks.py` | ✅ PASS |
+| Full validation harness (7 canonical cases) | `./.venv/bin/python scripts/validation/run_validation_harness.py --output-root results/validation` | ✅ PASS (`ok=true`, `failed_cases=0`) |
 
 ### Baseline fixture provenance (post-closeout)
 - `tests/fixtures/baselines.json`  

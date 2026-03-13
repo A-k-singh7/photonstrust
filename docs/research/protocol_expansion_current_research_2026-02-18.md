@@ -6,7 +6,7 @@ This note maps recent protocol research to PhotonTrust modeling coverage and ben
 
 Benchmark runner:
 
-- `scripts/compare_recent_research_benchmarks.py`
+- `scripts/validation/compare_recent_research_benchmarks.py`
 
 Protocols currently benchmarked:
 

@@ -18,7 +18,7 @@ Result:
 ### Release gate
 Command:
 ```bash
-py scripts/release_gate_check.py
+py scripts/release/release_gate_check.py
 ```
 Result:
 - PASS (writes `results/release_gate/release_gate_report.json`)

@@ -10,7 +10,7 @@
 Python:
 - `py -m pytest -q`
   - Result: PASS (`86 passed`)
-- `py scripts/release_gate_check.py`
+- `py scripts/release/release_gate_check.py`
   - Result: PASS
   - Report: `results/release_gate/release_gate_report.json`
 
@@ -24,7 +24,7 @@ Web:
 
 1. Start API:
    - `cd photonstrust`
-   - `py scripts/run_api_server.py --reload`
+   - `py scripts/dev/run_api_server.py --reload`
 2. Validate an intentionally-broken PIC graph:
    - send a `pic_circuit` graph to `POST /v0/graph/validate` with an invalid
      `from_port`

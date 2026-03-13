@@ -26,8 +26,8 @@ Result: `GO`.
 
 ### 4) Release evidence integrity checks
 ```bash
-py scripts/verify_release_gate_packet.py
-py scripts/verify_release_gate_packet_signature.py
+py scripts/release/verify_release_gate_packet.py
+py scripts/release/verify_release_gate_packet_signature.py
 ```
 Result: PASS / PASS.
 
@@ -79,8 +79,8 @@ Result: weighted score `82.5`, grade band `<9.0`, declaration_95_allowed `false`
 ### 11) Preflight policy packet + signature execution
 ```bash
 py scripts/build_pic_preflight_policy_packet.py --output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --run-id pic_preflight_2026-03-03
-py scripts/sign_release_gate_packet.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature-output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --private-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.private.pem --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem --generate-keypair --key-id pic_preflight_policy_packet_2026-03-03
-py scripts/verify_release_gate_packet_signature.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem
+py scripts/release/sign_release_gate_packet.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature-output results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --private-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.private.pem --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem --generate-keypair --key-id pic_preflight_policy_packet_2026-03-03
+py scripts/release/verify_release_gate_packet_signature.py --packet results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.json --signature results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.ed25519.sig.json --public-key results/pic_readiness/policy/pic_preflight_policy_packet_2026-03-03.public.pem
 ```
 Result: policy packet pass + signature pass + verification pass.
 

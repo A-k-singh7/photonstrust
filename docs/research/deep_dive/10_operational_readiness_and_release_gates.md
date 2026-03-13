@@ -23,7 +23,7 @@ This document defines hard gates before declaring release readiness.
 - Changelog and release notes updated
 - Bundle generated and verified
 - Automated gate command passes:
-  `python scripts/release_gate_check.py`
+  `python scripts/release/release_gate_check.py`
 
 ## Definition of done
 - All gates pass with signed release approval from maintainers.

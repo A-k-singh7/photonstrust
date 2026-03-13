@@ -122,7 +122,7 @@ def _evaluate_e1(
 ) -> dict[str, Any]:
     required_files = [
         (repo_root / ".pre-commit-config.yaml").resolve(),
-        (repo_root / "scripts" / "ci_checks.py").resolve(),
+        (repo_root / "scripts" / "validation" / "ci_checks.py").resolve(),
         ci_workflow_path,
     ]
     missing = [str(path) for path in required_files if not path.exists()]
@@ -358,7 +358,7 @@ def _evaluate_e5(*, repo_root: Path, run_release_verifiers: bool) -> dict[str, A
     required_files = [
         (repo_root / ".pre-commit-config.yaml").resolve(),
         (repo_root / ".github" / "workflows" / "ci.yml").resolve(),
-        (repo_root / "scripts" / "release_gate_check.py").resolve(),
+        (repo_root / "scripts" / "release" / "release_gate_check.py").resolve(),
         (repo_root / "scripts" / "check_pic_tapeout_gate.py").resolve(),
     ]
     missing = [str(path) for path in required_files if not path.exists()]
@@ -374,8 +374,8 @@ def _evaluate_e5(*, repo_root: Path, run_release_verifiers: bool) -> dict[str, A
         "release_signature_verify": None,
     }
     if bool(run_release_verifiers):
-        ok_packet, output_packet = _run_script("scripts/verify_release_gate_packet.py", repo_root=repo_root)
-        ok_sig, output_sig = _run_script("scripts/verify_release_gate_packet_signature.py", repo_root=repo_root)
+        ok_packet, output_packet = _run_script("scripts/release/verify_release_gate_packet.py", repo_root=repo_root)
+        ok_sig, output_sig = _run_script("scripts/release/verify_release_gate_packet_signature.py", repo_root=repo_root)
         verifier_results = {
             "release_packet_verify": {"ok": bool(ok_packet), "output": output_packet[-2000:]},
             "release_signature_verify": {"ok": bool(ok_sig), "output": output_sig[-2000:]},

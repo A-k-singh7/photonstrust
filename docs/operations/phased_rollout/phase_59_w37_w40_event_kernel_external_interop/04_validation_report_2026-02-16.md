@@ -5,8 +5,8 @@ Date: 2026-02-16
 ## Validation commands executed
 
 1. `py -3 -m pytest tests/test_event_kernel.py tests/api/test_api_server_optional.py`
-2. `py -3 scripts/ci_checks.py`
-3. `py -3 scripts/release_gate_check.py`
+2. `py -3 scripts/validation/ci_checks.py`
+3. `py -3 scripts/release/release_gate_check.py`
 
 ## Results
 

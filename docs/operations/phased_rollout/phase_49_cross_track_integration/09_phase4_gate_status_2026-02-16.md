@@ -18,7 +18,7 @@
 
 ### Consistency + infrastructure
 4. Unified relay-segment channel diagnostics integrated into MDI/PM paths with backward-compatible noise semantics.
-5. CI guardrail runner integrated (`scripts/ci_checks.py`) and wired into workflow.
+5. CI guardrail runner integrated (`scripts/validation/ci_checks.py`) and wired into workflow.
 6. Deterministic demo pack and pilot-readiness packet delivered.
 7. One-command baseline fixture regeneration + validation flow added:
    - `scripts/regenerate_baseline_fixtures.py`
@@ -49,7 +49,7 @@ Fixture hashes after regeneration:
 Command:
 
 ```bash
-.venv/bin/python scripts/ci_checks.py
+.venv/bin/python scripts/validation/ci_checks.py
 ```
 
 Result: **PASS**

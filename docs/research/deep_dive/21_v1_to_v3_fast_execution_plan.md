@@ -91,7 +91,7 @@ The repo already has implemented v0.1 building blocks for:
 - measurement bundle ingestion + artifact pack publishing (Phase 12),
 - graph schema + compiler (Phase 08),
 - open benchmark ingestion + reproducibility packs (Phase 07),
-- release gate automation (`scripts/release_gate_check.py`).
+- release gate automation (`scripts/release/release_gate_check.py`).
 
 Managed-service UI and governance surfaces are implemented through Phase 22:
 - Phase 13: web drag-drop MVP (authoring surface)

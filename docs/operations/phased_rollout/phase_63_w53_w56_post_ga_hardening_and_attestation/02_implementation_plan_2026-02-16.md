@@ -22,9 +22,9 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
 ## Implementation tasks
 
 1. Add release packet verification and attestation scripts:
-   - `scripts/verify_release_gate_packet.py`
-   - `scripts/sign_release_gate_packet.py`
-   - `scripts/verify_release_gate_packet_signature.py`
+   - `scripts/release/verify_release_gate_packet.py`
+   - `scripts/release/sign_release_gate_packet.py`
+   - `scripts/release/verify_release_gate_packet_signature.py`
 2. Add replay matrix and archive audit scripts:
    - `scripts/run_ga_replay_matrix.py`
    - `scripts/check_milestone_archive.py`

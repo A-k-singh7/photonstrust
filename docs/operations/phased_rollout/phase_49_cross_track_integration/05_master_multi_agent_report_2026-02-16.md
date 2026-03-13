@@ -99,7 +99,7 @@ The parallel-agent sprint produced a strong first integration pass across **QKD 
 
 ### Implemented
 - `photonstrust/benchmarks/validation_harness.py`
-- Script entry: `scripts/run_validation_harness.py`
+- Script entry: `scripts/validation/run_validation_harness.py`
 - Harness export in `photonstrust/benchmarks/__init__.py`
 - Test: `tests/test_validation_harness.py`
 - README regression flow updated
@@ -197,7 +197,7 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -e ".[dev]"
 pytest -q
-python scripts/run_validation_harness.py --output-root results/validation
+python scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 If pytest fails, fix in this order:

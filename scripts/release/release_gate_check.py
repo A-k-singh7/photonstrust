@@ -88,12 +88,12 @@ def _checks(*, quick: bool) -> list[dict[str, Any]]:
         },
         {
             "name": "benchmark_drift",
-            "cmd": [python, "scripts/check_benchmark_drift.py"],
+            "cmd": [python, "scripts/validation/check_benchmark_drift.py"],
             "timeout_s": 300,
         },
         {
             "name": "open_benchmarks",
-            "cmd": [python, "scripts/check_open_benchmarks.py"],
+            "cmd": [python, "scripts/validation/check_open_benchmarks.py"],
             "timeout_s": 300,
         },
         {
@@ -103,7 +103,7 @@ def _checks(*, quick: bool) -> list[dict[str, Any]]:
         },
         {
             "name": "recent_research_validation",
-            "cmd": [python, "scripts/validate_recent_research_examples.py"],
+            "cmd": [python, "scripts/validation/validate_recent_research_examples.py"],
             "timeout_s": 300,
         },
         {

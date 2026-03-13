@@ -20,9 +20,9 @@
 
 ## 2) Script-level validation
 - Open benchmark drift check:
-  - `py scripts/check_open_benchmarks.py` -> PASS
+  - `py scripts/validation/check_open_benchmarks.py` -> PASS
 - Release gate:
-  - `py scripts/release_gate_check.py --output results/release_gate/phase07_release_gate_report.json` -> PASS
+  - `py scripts/release/release_gate_check.py --output results/release_gate/phase07_release_gate_report.json` -> PASS
 
 ## 3) Repro pack replay (manual)
 - Generated:

@@ -10,9 +10,9 @@ Repo: `/mnt/c/Users/aksin/Desktop/Qutip+qskit projects/photonstrust`
 - Verified venv: `.venv` (Python 3.12.3)
 - Installed required deps into venv (base + dev): `numpy`, `pyyaml`, `matplotlib`, `pytest`, `jsonschema`, `cryptography`
 - Ran:
-  1. `python scripts/ci_checks.py`
+  1. `python scripts/validation/ci_checks.py`
   2. `pytest -q`
-  3. `python scripts/run_validation_harness.py --output-root results/validation`
+  3. `python scripts/validation/run_validation_harness.py --output-root results/validation`
 
 Logs:
 - `results/phase1a_validation_logs/ci_checks.log`
@@ -25,9 +25,9 @@ Logs:
 |---|---|---|---|
 | Venv present | `.venv/bin/python -V` | ✅ PASS | Python 3.12.3 |
 | Dependencies installed | `pip install ...` + import check | ✅ PASS | All required base/dev deps import successfully |
-| CI checks | `.venv/bin/python scripts/ci_checks.py` | ❌ FAIL | Fails at pytest gate |
+| CI checks | `.venv/bin/python scripts/validation/ci_checks.py` | ❌ FAIL | Fails at pytest gate |
 | Test suite | `.venv/bin/python -m pytest -q` | ❌ FAIL | `7 failed, 169 passed, 7 skipped, 2 warnings` |
-| Validation harness | `.venv/bin/python scripts/run_validation_harness.py --output-root results/validation` | ❌ FAIL | `ok=false`, `failed_cases=2`, `total_failures=114` |
+| Validation harness | `.venv/bin/python scripts/validation/run_validation_harness.py --output-root results/validation` | ❌ FAIL | `ok=false`, `failed_cases=2`, `total_failures=114` |
 
 ## Exact failing tests/errors (pytest -q)
 1. `tests/test_completion_quality.py::test_channel_polarization_penalty_is_optional_and_reduces_key_rate`

@@ -46,9 +46,9 @@ Out of scope (later phases):
 
 ### Step 3: Open benchmark runner + drift checks
 - Add:
-  - `scripts/check_open_benchmarks.py` (runs all open benchmarks; fails on drift)
+  - `scripts/validation/check_open_benchmarks.py` (runs all open benchmarks; fails on drift)
 - Integrate:
-  - add this as an optional check in `scripts/release_gate_check.py`
+  - add this as an optional check in `scripts/release/release_gate_check.py`
     (initially non-blocking, then promote to blocking once seeded).
 - Tests:
   - minimal fixture benchmark bundle and deterministic comparison tests.

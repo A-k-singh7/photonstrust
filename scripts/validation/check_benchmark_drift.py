@@ -83,7 +83,7 @@ def main() -> int:
     if (args.config is None) != (args.baseline is None):
         parser.error("--config and --baseline must be provided together for single-case mode")
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     thresholds = _build_thresholds(rel_tol=args.rel_tol, abs_tol=args.abs_tol)
     cases = None
     if args.config is not None and args.baseline is not None:

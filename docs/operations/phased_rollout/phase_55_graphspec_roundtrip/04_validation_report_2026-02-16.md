@@ -59,7 +59,7 @@ py -3 -m pytest
 - Command:
 
 ```text
-py -3 scripts/check_benchmark_drift.py
+py -3 scripts/validation/check_benchmark_drift.py
 ```
 
 - Result:
@@ -73,7 +73,7 @@ Benchmark drift check: PASS
 - Command:
 
 ```text
-py -3 scripts/release_gate_check.py
+py -3 scripts/release/release_gate_check.py
 ```
 
 - Result:
@@ -88,7 +88,7 @@ Release gate: PASS
 - Command:
 
 ```text
-py -3 scripts/ci_checks.py
+py -3 scripts/validation/ci_checks.py
 ```
 
 - Result:
@@ -102,7 +102,7 @@ py -3 scripts/ci_checks.py
 - Command:
 
 ```text
-py -3 scripts/run_validation_harness.py --output-root results/validation
+py -3 scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 - Result:

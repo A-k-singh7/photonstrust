@@ -36,7 +36,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `scripts/generate_phase54_satellite_canonical_baselines.py`
    - `tests/fixtures/canonical_phase54_satellite_baselines.json`
    - `photonstrust/benchmarks/validation_harness.py`
-   - `scripts/check_benchmark_drift.py`
+   - `scripts/validation/check_benchmark_drift.py`
    - `scripts/regenerate_baseline_fixtures.py`
 4. Add/refresh regression tests:
    - `tests/test_free_space_channel.py`
@@ -53,10 +53,10 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `docs/operations/pilot_readiness_packet/04_day0_operator_runbook.md`
 6. Execute validation gates:
    - `py -3 -m pytest -q`
-   - `py -3 scripts/check_benchmark_drift.py`
-   - `py -3 scripts/release_gate_check.py`
-   - `py -3 scripts/ci_checks.py`
-   - `py -3 scripts/run_validation_harness.py --output-root results/validation`
+   - `py -3 scripts/validation/check_benchmark_drift.py`
+   - `py -3 scripts/release/release_gate_check.py`
+   - `py -3 scripts/validation/ci_checks.py`
+   - `py -3 scripts/validation/run_validation_harness.py --output-root results/validation`
 
 ## Acceptance gates
 

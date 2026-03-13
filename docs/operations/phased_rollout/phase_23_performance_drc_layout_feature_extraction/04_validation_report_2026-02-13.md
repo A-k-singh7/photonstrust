@@ -15,7 +15,7 @@ Result: PASS (112 tests)
 ### 2) Release gate
 Command:
 ```bash
-py scripts/release_gate_check.py
+py scripts/release/release_gate_check.py
 ```
 Result: PASS
 

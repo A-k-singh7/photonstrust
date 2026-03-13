@@ -26,10 +26,10 @@
 | Time-to-decision (days) | ____ | ____ | kickoff-to-decision log | ____ | ____ |
 | Reproducibility rate (%) | ____ | ____ | rerun same config, compare artifacts | ____ | ____ |
 | Report acceptance (Y/N) | ____ | ____ | stakeholder signoff on reliability outputs | ____ | ____ |
-| Validation pass rate (%) | ____ | ____ | `scripts/run_validation_harness.py` summary | ____ | ____ |
+| Validation pass rate (%) | ____ | ____ | `scripts/validation/run_validation_harness.py` summary | ____ | ____ |
 | Day vs night background direction | ____ | ____ | radiance-proxy check (`day > night`) | ____ | ____ |
 | Orbit finite-key sensitivity | ____ | ____ | pass-duration budget comparison report | ____ | ____ |
-| Benchmark drift status (satellite canonicals) | ____ | ____ | `scripts/check_benchmark_drift.py` | ____ | ____ |
+| Benchmark drift status (satellite canonicals) | ____ | ____ | `scripts/validation/check_benchmark_drift.py` | ____ | ____ |
 
 ## 4) Mandatory acceptance gates
 

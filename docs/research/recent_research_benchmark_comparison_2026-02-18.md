@@ -2,7 +2,7 @@
 
 This report summarizes a direct model-vs-literature comparison using:
 
-- `scripts/compare_recent_research_benchmarks.py`
+- `scripts/validation/compare_recent_research_benchmarks.py`
 - output artifacts in `results/research_validation/`
 
 ## Scope
@@ -57,13 +57,13 @@ Persistent mismatch in paper-locked mode:
 ## Reproduce
 
 ```bash
-python scripts/compare_recent_research_benchmarks.py
+python scripts/validation/compare_recent_research_benchmarks.py
 ```
 
 Optional knobs:
 
 ```bash
-python scripts/compare_recent_research_benchmarks.py --grid-size 41 --fit-passes 4
+python scripts/validation/compare_recent_research_benchmarks.py --grid-size 41 --fit-passes 4
 ```
 
 Artifacts:

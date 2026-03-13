@@ -19,7 +19,7 @@ Source anchors:
 ### W19 (2026-06-22 to 2026-06-28) - Satellite canonical benchmarks
 - Work: Add canonical satellite scenarios and drift governance.
 - Artifacts: canonical configs + baseline fixtures.
-- Validation: `python scripts/check_benchmark_drift.py`
+- Validation: `python scripts/validation/check_benchmark_drift.py`
 - Exit: Satellite regimes covered by reproducible benchmark harness.
 
 ### W20 (2026-06-29 to 2026-07-05) - Pilot packet v2

@@ -131,8 +131,8 @@ py scripts/check_pic_tapeout_gate.py \
 
 ### 8.3 Release evidence integrity
 ```bash
-py scripts/verify_release_gate_packet.py
-py scripts/verify_release_gate_packet_signature.py
+py scripts/release/verify_release_gate_packet.py
+py scripts/release/verify_release_gate_packet_signature.py
 ```
 
 ## 9) Evidence Inventory for Review Pack

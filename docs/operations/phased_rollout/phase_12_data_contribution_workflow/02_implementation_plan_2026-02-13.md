@@ -90,7 +90,7 @@ Artifact pack is an opt-in shareable directory (and optional zip) that includes:
 - Unit tests:
   - `py -m pytest -q`
 - Release gate:
-  - `py scripts/release_gate_check.py --output results/release_gate/phase12_release_gate_report.json`
+  - `py scripts/release/release_gate_check.py --output results/release_gate/phase12_release_gate_report.json`
 - Manual smoke:
   - `python scripts/ingest_measurement_bundle.py tests/fixtures/measurement_bundle_demo/measurement_bundle.json`
   - `python scripts/publish_artifact_pack.py tests/fixtures/measurement_bundle_demo/measurement_bundle.json results/artifact_pack_demo`

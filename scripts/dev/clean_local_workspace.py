@@ -30,7 +30,7 @@ EXCLUDED_TOP_LEVEL_DIRS = {".venv", ".venv.production", "open_source", "local"}
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def _matches(root: Path, patterns: tuple[str, ...]) -> list[Path]:

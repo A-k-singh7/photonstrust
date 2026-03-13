@@ -102,9 +102,9 @@ Tasks:
 3. Sign manifest and verify signature in release workflow.
 
 Target touchpoints:
-1. `scripts/build_release_gate_packet.py`
+1. `scripts/release/build_release_gate_packet.py`
 2. `scripts/build_tapeout_package.py`
-3. `scripts/release_gate_check.py`
+3. `scripts/release/release_gate_check.py`
 4. `photonstrust/pic/tapeout_package.py`
 5. `photonstrust/evidence/bundle.py`
 

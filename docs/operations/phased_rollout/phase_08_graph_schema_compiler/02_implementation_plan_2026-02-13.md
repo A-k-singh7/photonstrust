@@ -71,7 +71,7 @@ Out of scope (later phases):
 ## 3) Validation plan
 - Run:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
 - Manual spot checks:
   - compile both demo graphs
   - run compiled QKD config via CLI to produce a reliability card

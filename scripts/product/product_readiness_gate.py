@@ -242,7 +242,7 @@ def _require_nonempty_string(value: Any, *, field: str) -> str:
 
 def main() -> int:
     args = parse_args()
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     report_path = args.report_path if args.report_path.is_absolute() else (repo_root / args.report_path)
     report_path = report_path.resolve()
     pilot_results_root = args.pilot_results_root if args.pilot_results_root.is_absolute() else (repo_root / args.pilot_results_root)

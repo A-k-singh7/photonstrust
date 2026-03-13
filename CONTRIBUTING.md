@@ -91,9 +91,9 @@ Run the smallest relevant checks first, then broader gates as needed.
 Common commands:
 
 ```bash
-python scripts/ci_checks.py
-python scripts/check_benchmark_drift.py
-python scripts/run_validation_harness.py --output-root results/validation
+python scripts/validation/ci_checks.py
+python scripts/validation/check_benchmark_drift.py
+python scripts/validation/run_validation_harness.py --output-root results/validation
 ```
 
 For UI work:
@@ -132,4 +132,4 @@ policy:
 Release and completion references:
 
 - `docs/operations/program_completion_report_2026-02-12.md`
-- `scripts/release_gate_check.py`
+- `scripts/release/release_gate_check.py`

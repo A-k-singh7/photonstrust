@@ -116,8 +116,8 @@ Tasks:
 Target touchpoints:
 1. `datasets/benchmarks/`
 2. `tests/fixtures/`
-3. `scripts/check_benchmark_drift.py`
-4. `scripts/compare_recent_research_benchmarks.py`
+3. `scripts/validation/check_benchmark_drift.py`
+4. `scripts/validation/compare_recent_research_benchmarks.py`
 
 Acceptance:
 1. Calibration provenance fields present in artifacts.
@@ -134,7 +134,7 @@ Tasks:
 3. Add signed scientific integrity appendix artifact.
 
 Target touchpoints:
-1. `scripts/release_gate_check.py`
+1. `scripts/release/release_gate_check.py`
 2. evidence packet generation scripts
 3. `docs/` scientific governance notes
 
@@ -155,7 +155,7 @@ Tasks:
 Target touchpoints:
 1. `.github/workflows/ci.yml`
 2. `.github/workflows/cv-quick-verify.yml`
-3. `scripts/release_gate_check.py`
+3. `scripts/release/release_gate_check.py`
 
 Acceptance:
 1. Parity and uncertainty gates are hard-blocking where applicable.

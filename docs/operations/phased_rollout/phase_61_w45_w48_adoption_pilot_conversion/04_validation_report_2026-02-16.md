@@ -6,11 +6,11 @@ Date: 2026-02-16
 
 1. `py -3 -m pytest tests/test_phase61_packaging_readiness.py tests/test_open_benchmark_index_refresh.py tests/test_pilot_packet_completeness.py`
 2. `py -3 scripts/refresh_open_benchmark_index.py`
-3. `py -3 scripts/check_open_benchmarks.py --check-index`
+3. `py -3 scripts/validation/check_open_benchmarks.py --check-index`
 4. `py -3 scripts/check_pilot_packet.py`
 5. `py -3 scripts/measure_quickstart_timing.py --command "py -3 -m photonstrust.cli --help" --timeout 30`
-6. `py -3 scripts/ci_checks.py`
-7. `py -3 scripts/release_gate_check.py`
+6. `py -3 scripts/validation/ci_checks.py`
+7. `py -3 scripts/release/release_gate_check.py`
 
 ## Results
 

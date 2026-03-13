@@ -9,7 +9,7 @@ Source anchors:
 ### W01 (2026-02-16 to 2026-02-22) - Program lock and phase scaffolding
 - Work: Open `phase_50_quality_security_foundation`, lock owner map, refresh risk register and gates.
 - Artifacts: Phase 50 `01/02/03/04` docs, updated risk table in weekly ops notes.
-- Validation: `python scripts/release_gate_check.py`
+- Validation: `python scripts/release/release_gate_check.py`
 - Exit: No open owner gaps on release-critical workstreams.
 
 ### W02 (2026-02-23 to 2026-03-01) - CI matrix and coverage floor

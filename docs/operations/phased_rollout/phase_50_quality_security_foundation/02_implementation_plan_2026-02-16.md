@@ -35,10 +35,10 @@ No release-critical stream is left without accountable and responsible roles.
 2. Update phased-rollout index to include Phase 50 status.
 3. Add weekly ops note with refreshed risk table.
 4. Execute validation gate:
-   - `py -3 scripts/release_gate_check.py`
+   - `py -3 scripts/release/release_gate_check.py`
 5. Upgrade CI workflow (`.github/workflows/ci.yml`) to include:
    - Python matrix (`3.9`, `3.10`, `3.11`, `3.12`),
-   - coverage-enforced pytest invocation through `scripts/ci_checks.py`,
+   - coverage-enforced pytest invocation through `scripts/validation/ci_checks.py`,
    - optional dependency lanes for `qutip`, `qiskit`, `api`, `layout` extras.
 6. Update package/dev and coverage policy config (`pyproject.toml`):
    - add `pytest-cov` to `dev` extras,

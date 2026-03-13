@@ -156,7 +156,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     required_artifacts: Sequence[str]
     if args.required_artifacts:
         required_artifacts = tuple(str(item) for item in args.required_artifacts)

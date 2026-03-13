@@ -21,5 +21,5 @@ This section is the best entry point for people trying to use PhotonTrust.
 ```bash
 photonstrust run configs/demo1_default.yml
 photonstrust run configs/demo1_quick_smoke.yml --output results/smoke_quick
-py scripts/start_product_local.py
+py scripts/dev/start_product_local.py
 ```

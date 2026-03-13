@@ -30,7 +30,7 @@ Inverse-design expansion for PIC workflows:
 
 ### Gates
 - `py -m pytest -q`: PASS (129 passed, 3 skipped)
-- `py scripts/release_gate_check.py`: PASS
+- `py scripts/release/release_gate_check.py`: PASS
 - `cd web && npm run lint`: PASS
 - `cd web && npm run build`: PASS
 

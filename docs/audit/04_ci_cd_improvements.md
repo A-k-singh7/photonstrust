@@ -7,7 +7,7 @@
 2. Python 3.11 only
 3. `pip install -e .[dev]`
 4. `pytest -q`
-5. `python scripts/check_benchmark_drift.py`
+5. `python scripts/validation/check_benchmark_drift.py`
 
 This is a minimal CI. Below are the gaps and the corrected workflow.
 
@@ -146,13 +146,13 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - name: Check benchmark drift
-        run: python scripts/check_benchmark_drift.py
+        run: python scripts/validation/check_benchmark_drift.py
       - name: Check golden reports
         run: |
           python scripts/generate_golden_report.py
           pytest tests/test_golden_report.py -q
       - name: Release gate check
-        run: python scripts/release_gate_check.py
+        run: python scripts/release/release_gate_check.py
 
   security:
     runs-on: ubuntu-latest

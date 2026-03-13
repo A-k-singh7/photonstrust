@@ -179,7 +179,7 @@ Build:
 
 Repo targets:
 1. `.github/workflows/*`
-2. `scripts/release_gate_check.py`
+2. `scripts/release/release_gate_check.py`
 3. `scripts/build_tapeout_package.py`
 4. `photonstrust/pic/tapeout_package.py`
 5. governance docs under `docs/`

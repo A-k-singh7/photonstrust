@@ -19,14 +19,14 @@ This report consolidates evidence for Weeks 1-24 execution status against
 | 12 | completed | this report + Week 1-11 evidence references |
 | 13 | completed | `photonstrust/scenarios/teleportation.py`, `tests/test_completion_quality.py` |
 | 14 | completed | `photonstrust/scenarios/source_benchmark.py`, benchmark configs and outputs |
-| 15 | completed | `scripts/check_benchmark_drift.py`, baseline fixtures, CI integration |
+| 15 | completed | `scripts/validation/check_benchmark_drift.py`, baseline fixtures, CI integration |
 | 16 | completed | this report + updated tests/coverage state |
 | 17 | completed | `photonstrust/calibrate/bayes.py` diagnostics fields, calibration workflow docs |
 | 18 | completed | `photonstrust/qkd.py` outage probability propagation, `photonstrust/report.py` card uncertainty mapping |
 | 19 | completed | `photonstrust/optimize/optimizer.py` sensitivity output |
 | 20 | completed | this report + M5-aligned evidence references |
 | 21 | completed | report/renderer and UI-ready artifacts remain consistent with schema and run registry model |
-| 22 | completed | `scripts/release_gate_check.py`, release gate policy docs in research/deep_dive |
+| 22 | completed | `scripts/release/release_gate_check.py`, release gate policy docs in research/deep_dive |
 | 23 | completed | dry-run capable gate script + reproducibility checks documented |
 | 24 | completed | `results/release_gate/release_gate_report.json` from release gate run |
 
@@ -45,7 +45,7 @@ This report consolidates evidence for Weeks 1-24 execution status against
 
 ## Final release gate command
 ```bash
-python scripts/release_gate_check.py
+python scripts/release/release_gate_check.py
 ```
 
 Expected artifact:
@@ -53,4 +53,4 @@ Expected artifact:
 
 Latest verification snapshot (2026-02-12):
 - `pytest -q` -> `32 passed`
-- `py -3 scripts/release_gate_check.py` -> `PASS`
+- `py -3 scripts/release/release_gate_check.py` -> `PASS`

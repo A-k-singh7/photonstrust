@@ -25,5 +25,5 @@ Source anchors:
 ### W08 (2026-04-06 to 2026-04-12) - Multifidelity evidence integration
 - Work: Include `multifidelity_report` in evidence bundles and trust panel surfaces.
 - Artifacts: bundle schema update, UI trust section update.
-- Validation: `python scripts/release_gate_check.py`
+- Validation: `python scripts/release/release_gate_check.py`
 - Exit: Multifidelity results exported, schema-valid, and diffable.

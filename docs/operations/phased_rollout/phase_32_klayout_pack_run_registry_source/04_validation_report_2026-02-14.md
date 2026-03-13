@@ -35,7 +35,7 @@ Allow running the trusted KLayout macro template ("KLayout run artifact pack") o
 
 ### Gates
 - `py -m pytest -q`: PASS (126 passed, 3 skipped)
-- `py scripts/release_gate_check.py`: PASS
+- `py scripts/release/release_gate_check.py`: PASS
 - `cd web && npm run lint`: PASS
 - `cd web && npm run build`: PASS
 

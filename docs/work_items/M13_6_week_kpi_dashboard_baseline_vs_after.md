@@ -45,13 +45,13 @@ Use `docs/work_items/kpi_6_week_metric_catalog.csv` as source of truth.
 
 1. KPI-01:
    - Source: CI `pytest` coverage output.
-   - Command: `py -3 scripts/ci_checks.py --pytest-args "-q --cov=photonstrust --cov-report=term --cov-fail-under=70"`.
+   - Command: `py -3 scripts/validation/ci_checks.py --pytest-args "-q --cov=photonstrust --cov-report=term --cov-fail-under=70"`.
 2. KPI-02:
    - Source: repeated CI test runs.
    - Method: `flaky_rate = flaky_tests / total_tests`.
 3. KPI-03:
    - Source: release gate report JSON.
-   - Command: `py -3 scripts/release_gate_check.py --output results/release_gate/release_gate_report.json`.
+   - Command: `py -3 scripts/release/release_gate_check.py --output results/release_gate/release_gate_report.json`.
 4. KPI-04:
    - Source: PR metadata (`opened_at` to merge commit timestamp).
    - Method: median over merged PRs in week window.
@@ -75,8 +75,8 @@ Use `docs/work_items/kpi_6_week_metric_catalog.csv` as source of truth.
 10. KPI-10:
    - Source: signature verification reports.
    - Commands:
-     - `py -3 scripts/verify_release_gate_packet.py`
-     - `py -3 scripts/verify_release_gate_packet_signature.py`
+     - `py -3 scripts/release/verify_release_gate_packet.py`
+     - `py -3 scripts/release/verify_release_gate_packet_signature.py`
 11. KPI-11:
    - Source: timing report for flagship run.
    - Command: `py -3 scripts/measure_quickstart_timing.py --command "py -3 -m photonstrust.cli run configs/canonical/phase54_satellite_day_downlink_c_1550.yml --output results/kpi_runtime_weekX"`.

@@ -75,7 +75,7 @@ No release-critical stream is left without accountable and responsible roles.
     - `web/src/App.jsx`
 17. Execute W07/W08 validation gates:
     - `py -3 -m pytest -q`
-    - `py -3 scripts/release_gate_check.py`
+    - `py -3 scripts/release/release_gate_check.py`
 
 ## Week 5 acceptance gates
 

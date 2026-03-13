@@ -73,7 +73,7 @@ Parameters (v1):
 - Unit tests:
   - `py -m pytest -q`
 - Release gate:
-  - `py scripts/release_gate_check.py --output results/release_gate/phase10_release_gate_report.json`
+  - `py scripts/release/release_gate_check.py --output results/release_gate/phase10_release_gate_report.json`
 - Manual smoke (optional but recommended):
   - run a sweep on a compiled PIC netlist:
     - `photonstrust pic simulate <netlist.json> --wavelength-sweep-nm 1540 1550 1560 --output results/pic/sweep_demo`

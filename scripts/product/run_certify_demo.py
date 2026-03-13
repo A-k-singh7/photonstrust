@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     graph_path = repo_root / "graphs" / "demo_qkd_transmitter.json"
     output_dir = Path(args.output)
     if not output_dir.is_absolute():

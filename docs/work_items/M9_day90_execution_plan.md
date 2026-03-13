@@ -141,7 +141,7 @@ Tasks:
 Target touchpoints:
 1. `photonstrust/workflow/schema.py`
 2. `schemas/*sweep*` and `schemas/*optuna*` (as needed)
-3. `scripts/release_gate_check.py`
+3. `scripts/release/release_gate_check.py`
 
 Acceptance:
 1. Repro replay succeeds on clean runner with pinned inputs.

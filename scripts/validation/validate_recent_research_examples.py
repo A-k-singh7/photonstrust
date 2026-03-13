@@ -19,7 +19,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     report = run_research_validation_suite(repo_root=repo_root)
 
     output_path = args.output if args.output.is_absolute() else (repo_root / args.output)

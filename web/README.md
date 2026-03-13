@@ -18,14 +18,14 @@ pip install -e .[api]
 cd web
 npm ci
 cd ..
-py scripts/start_product_local.py
+py scripts/dev/start_product_local.py
 ```
 
 Manual split-terminal flow:
 
 ```bash
 cd photonstrust
-py scripts/run_api_server.py --reload
+py scripts/dev/run_api_server.py --reload
 
 cd web
 npm ci

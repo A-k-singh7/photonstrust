@@ -9,7 +9,7 @@
 - Impacted contracts:
 
 ## Validation
-- [ ] Ran local smoke checks (`python scripts/ci_checks.py --pytest-args "-q <targeted tests>"`)
+- [ ] Ran local smoke checks (`python scripts/validation/ci_checks.py --pytest-args "-q <targeted tests>"`)
 - [ ] Added/updated tests for changed behavior
 - [ ] Schema validation unaffected or updated (`tests/test_schema_validation.py`)
 - [ ] Regression/golden checks reviewed when outputs changed

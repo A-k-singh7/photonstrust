@@ -61,7 +61,7 @@ Approach:
   - display the returned results JSON and artifact paths.
 - Automated gates pass:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run lint`
   - `cd web && npm run build`
 

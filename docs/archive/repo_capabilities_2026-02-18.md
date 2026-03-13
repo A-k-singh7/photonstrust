@@ -86,9 +86,9 @@ Implemented tooling:
 
 Files:
 - `photonstrust/cli.py` (`bundle` command family)
-- `scripts/sign_release_gate_packet.py`
-- `scripts/verify_release_gate_packet.py`
-- `scripts/verify_release_gate_packet_signature.py`
+- `scripts/release/sign_release_gate_packet.py`
+- `scripts/release/verify_release_gate_packet.py`
+- `scripts/release/verify_release_gate_packet_signature.py`
 
 ## 4. PIC Capabilities
 
@@ -260,14 +260,14 @@ Files:
 ## 9. Product Packaging and Pilot Operations
 
 Implemented Week-4 product scripts:
-- `scripts/start_product_local.py`
+- `scripts/dev/start_product_local.py`
   - One-command local boot for API + React web surface by default.
   - Optional `--surface streamlit` fallback.
   - Port preflight checks.
   - API health wait and smoke-mode auto stop.
-- `scripts/run_product_pilot_demo.py`
+- `scripts/product/run_product_pilot_demo.py`
   - 3-scenario pilot pack run with JSON/Markdown summary outputs.
-- `scripts/product_readiness_gate.py`
+- `scripts/product/product_readiness_gate.py`
   - Fail-closed product gate for API + QKD + PIC + pilot flow.
   - Machine-readable report output.
 
@@ -278,7 +278,7 @@ Related docs:
 ## 10. Verification, QA, and Release Gates
 
 Implemented verification tooling includes:
-- CI checks orchestration (`scripts/ci_checks.py`).
+- CI checks orchestration (`scripts/validation/ci_checks.py`).
 - Production readiness isolated gate (`scripts/production_readiness_check.py`).
 - Release gate checks and packet verification scripts.
 - QuTiP parity lane and Qiskit lane scripts.
@@ -286,14 +286,14 @@ Implemented verification tooling includes:
 - Validation harness and recent-research comparison scripts.
 
 Representative scripts:
-- `scripts/ci_checks.py`
+- `scripts/validation/ci_checks.py`
 - `scripts/production_readiness_check.py`
-- `scripts/release_gate_check.py`
+- `scripts/release/release_gate_check.py`
 - `scripts/run_qutip_parity_lane.py`
 - `scripts/run_qiskit_lane.py`
-- `scripts/check_benchmark_drift.py`
-- `scripts/run_validation_harness.py`
-- `scripts/compare_recent_research_benchmarks.py`
+- `scripts/validation/check_benchmark_drift.py`
+- `scripts/validation/run_validation_harness.py`
+- `scripts/validation/compare_recent_research_benchmarks.py`
 
 ## 11. Data and Benchmark Operations
 
@@ -306,7 +306,7 @@ Implemented data operations:
 
 Representative scripts:
 - `python -m photonstrust.datasets.generate ...`
-- `scripts/check_open_benchmarks.py`
+- `scripts/validation/check_open_benchmarks.py`
 - `scripts/ingest_measurement_bundle.py`
 - `scripts/publish_artifact_pack.py`
 - `scripts/generate_repro_pack.py`

@@ -10,7 +10,7 @@
 Python:
 - `py -m pytest -q`
   - Result: PASS (`81 passed`)
-- `py scripts/release_gate_check.py`
+- `py scripts/release/release_gate_check.py`
   - Result: PASS
   - Report: `results/release_gate/release_gate_report.json`
 
@@ -24,7 +24,7 @@ Web:
 
 ### 2.1 Start backend API
 1. `cd photonstrust`
-2. `py scripts/run_api_server.py --reload`
+2. `py scripts/dev/run_api_server.py --reload`
 3. Confirm:
    - `GET http://127.0.0.1:8000/healthz` returns `{ "status": "ok", ... }`
 

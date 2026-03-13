@@ -138,7 +138,7 @@ File: `tests/api/test_api_server_optional.py`
 
 ## Validation Gates (Must Pass)
 - `py -m pytest -q`
-- `py scripts/release_gate_check.py`
+- `py scripts/release/release_gate_check.py`
 - `cd web; npm run lint`
 - `cd web; npm run build`
 

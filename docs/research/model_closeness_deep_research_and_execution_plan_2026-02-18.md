@@ -8,7 +8,7 @@ Your current harness already shows this: median relative error drops from `0.611
 
 ## Current baseline (from repo)
 
-- Script: `scripts/compare_recent_research_benchmarks.py`
+- Script: `scripts/validation/compare_recent_research_benchmarks.py`
 - Output: `results/research_validation/recent_research_benchmark_comparison.json`
 - Current summary:
   - median baseline rel. error: `0.611838`
@@ -143,7 +143,7 @@ Goal: move from 1D `mu` fitting to constrained multi-parameter inverse fitting.
 
 Code targets:
 
-- `scripts/compare_recent_research_benchmarks.py`
+- `scripts/validation/compare_recent_research_benchmarks.py`
 - `photonstrust/calibrate/bayes.py` + `photonstrust/calibrate/priors.py`
 - new paper-profile config files
 

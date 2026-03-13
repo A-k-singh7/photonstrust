@@ -30,7 +30,7 @@
   - API test covers `source_run_id` + `gds_artifact_path` path (hermetic dummy GDS file).
 - Gates:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run lint`
   - `cd web && npm run build`
 

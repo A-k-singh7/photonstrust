@@ -32,7 +32,7 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
       - name: Run CI guardrails smoke
         run: |
-          python scripts/ci_checks.py --pytest-args "-q tests/test_protocol_compiler.py open_source/qiskit_protocols_public/tests/test_protocol_compiler.py tests/test_protocol_engine_contract.py tests/test_qkd_basic.py"
+          python scripts/validation/ci_checks.py --pytest-args "-q tests/test_protocol_compiler.py open_source/qiskit_protocols_public/tests/test_protocol_compiler.py tests/test_protocol_engine_contract.py tests/test_qkd_basic.py"
 
   api-contract-smoke:
     name: api-contract-smoke

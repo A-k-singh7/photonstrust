@@ -16,9 +16,9 @@
 - Decision date: 2026-02-16
 - Approvers: TL, QA, DOC
 - Final notes:
-  - `py -3 scripts/release_gate_check.py` returned `PASS`.
+  - `py -3 scripts/release/release_gate_check.py` returned `PASS`.
   - `py -3 scripts/check_external_reviewer_findings.py` returned `PASS`.
-  - `py -3 scripts/build_release_gate_packet.py` produced packet manifest.
+  - `py -3 scripts/release/build_release_gate_packet.py` produced packet manifest.
   - `py -3 scripts/publish_ga_release_bundle.py` and `py -3 scripts/verify_ga_release_bundle.py` passed.
   - Milestone acceptance artifacts are archived under `reports/specs/milestones/`.
 

@@ -560,7 +560,7 @@ Mitigation: add `--require-signed` flag that exits non-zero if no signature pres
 - Reference design: `graphs/demo_qkd_transmitter.json` (committed to repo)
 - Reference certificate: `results/certify/reference/certificate.json` (committed)
 - Reference public key: `results/certify/reference/public_key.pem` (committed)
-- Script: `scripts/run_certify_demo.py`
+- Script: `scripts/product/run_certify_demo.py`
 - CI: `photonstrust certify graphs/demo_qkd_transmitter.json --dry-run` in CV workflow
 - Notebook: `examples/Design_to_Certificate.ipynb` (open in Colab link)
 
@@ -628,7 +628,7 @@ M1 can be built in parallel with M3 arxiv writing. Estimated effort: 3 weeks.
 
 ### Step 7: Reference design + demo
 - New file: `graphs/demo_qkd_transmitter.json`
-- New file: `scripts/run_certify_demo.py`
+- New file: `scripts/product/run_certify_demo.py`
 - New file: `examples/Design_to_Certificate.ipynb`
 
 ### Step 8: Extended signoff ladder (5 levels)

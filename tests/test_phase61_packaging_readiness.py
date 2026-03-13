@@ -23,7 +23,7 @@ def test_citation_cff_contains_required_metadata() -> None:
     assert "cff-version:" in content
     assert "title: \"PhotonTrust\"" in content
     assert "type: software" in content
-    assert "license: MIT" in content
+    assert "license: AGPL-3.0-only" in content
     assert "authors:" in content
     assert "repository-code:" in content
 
@@ -71,7 +71,7 @@ def test_measure_quickstart_timing_script_runs_trivial_command() -> None:
 
 
 def test_start_product_local_script_dry_run_prints_commands() -> None:
-    script = REPO_ROOT / "scripts" / "start_product_local.py"
+    script = REPO_ROOT / "scripts" / "dev" / "start_product_local.py"
     assert script.exists(), "Week 4 local launcher script should exist"
 
     completed = subprocess.run(
@@ -90,7 +90,7 @@ def test_start_product_local_script_dry_run_prints_commands() -> None:
 
 
 def test_run_product_pilot_demo_script_dry_run_writes_requests(tmp_path: Path) -> None:
-    script = REPO_ROOT / "scripts" / "run_product_pilot_demo.py"
+    script = REPO_ROOT / "scripts" / "product" / "run_product_pilot_demo.py"
     assert script.exists(), "Week 4 pilot demo script should exist"
 
     results_root = tmp_path / "pilot_results"
@@ -120,7 +120,7 @@ def test_run_product_pilot_demo_script_dry_run_writes_requests(tmp_path: Path) -
 
 
 def test_product_readiness_gate_script_dry_run() -> None:
-    script = REPO_ROOT / "scripts" / "product_readiness_gate.py"
+    script = REPO_ROOT / "scripts" / "product" / "product_readiness_gate.py"
     assert script.exists(), "Product readiness gate script should exist"
 
     completed = subprocess.run(

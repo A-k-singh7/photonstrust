@@ -19,7 +19,7 @@
 ### Python
 - `py -m pytest -q`
   - Result: `95 passed in 9.63s`
-- `py scripts/release_gate_check.py`
+- `py scripts/release/release_gate_check.py`
   - Result: `Release gate: PASS`
   - Report: `results\\release_gate\\release_gate_report.json`
 

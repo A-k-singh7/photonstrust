@@ -30,7 +30,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `reports/specs/milestones/external_reviewer_dry_run_2026-02-16.json`
    - `reports/specs/milestones/external_reviewer_severity_closure_plan_2026-02-16.md`
 3. Add release gate packet assembly and milestone acceptance docs:
-   - `scripts/build_release_gate_packet.py`
+   - `scripts/release/build_release_gate_packet.py`
    - `reports/specs/milestones/release_approvals_2026-02-16.json`
    - `reports/specs/milestones/milestone_readiness_ga_2026-02-16.md`
    - `reports/specs/milestones/regression_baseline_gate_2026-02-16.md`

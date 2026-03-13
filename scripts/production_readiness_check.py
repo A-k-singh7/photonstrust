@@ -91,13 +91,13 @@ def build_command_plan(
                 "--require-local-venv",
             ],
         ),
-        ("ci_checks", [str(python_exe), "scripts/ci_checks.py"]),
+        ("ci_checks", [str(python_exe), "scripts/validation/ci_checks.py"]),
     ]
     if include_qiskit:
         commands.append(("qiskit_lane", [str(python_exe), "scripts/run_qiskit_lane.py", "--strict"]))
     commands.extend(
         [
-        ("release_gate", [str(python_exe), "scripts/release_gate_check.py"]),
+        ("release_gate", [str(python_exe), "scripts/release/release_gate_check.py"]),
         (
             "runtime_smoke",
             [
@@ -120,16 +120,16 @@ def build_command_plan(
         commands.append(
             (
                 "release_packet_refresh",
-                [str(python_exe), "scripts/refresh_release_gate_packet.py"],
+                [str(python_exe), "scripts/release/refresh_release_gate_packet.py"],
             )
         )
     else:
         commands.extend(
             [
-                ("release_packet_verify", [str(python_exe), "scripts/verify_release_gate_packet.py"]),
+                ("release_packet_verify", [str(python_exe), "scripts/release/verify_release_gate_packet.py"]),
                 (
                     "release_packet_signature_verify",
-                    [str(python_exe), "scripts/verify_release_gate_packet_signature.py"],
+                    [str(python_exe), "scripts/release/verify_release_gate_packet_signature.py"],
                 ),
             ]
         )

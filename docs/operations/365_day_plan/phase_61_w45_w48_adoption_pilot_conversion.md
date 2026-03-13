@@ -14,7 +14,7 @@ Source anchors:
 ### W46 (2026-12-28 to 2027-01-03) - Benchmark and repro pack refresh
 - Work: Refresh open benchmarks and reproducibility packs.
 - Artifacts: updated open benchmark index and repro bundles.
-- Validation: `python scripts/check_open_benchmarks.py`
+- Validation: `python scripts/validation/check_open_benchmarks.py`
 - Exit: External reproducibility path current and stable.
 
 ### W47 (2027-01-04 to 2027-01-10) - External pilot cycles

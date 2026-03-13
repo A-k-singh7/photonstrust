@@ -32,7 +32,7 @@
   - Endpoint returns `200` and writes a new run with a manifest and artifact pack JSON
 - Gates:
   - `py -m pytest -q`
-  - `py scripts/release_gate_check.py`
+  - `py scripts/release/release_gate_check.py`
   - `cd web && npm run lint`
   - `cd web && npm run build`
 
