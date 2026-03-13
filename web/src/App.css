@@ -29,14 +29,49 @@
 .ptTopbar {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px 11px;
+  align-items: start;
+  gap: 18px;
+  padding: 16px 18px 14px;
   border-bottom: 1px solid rgba(16, 23, 34, 0.12);
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.54));
   box-shadow: 0 6px 20px rgba(16, 23, 34, 0.08);
   backdrop-filter: blur(10px);
   animation: ptFadeIn 220ms ease;
+}
+
+.ptTopbarBody {
+  display: grid;
+  gap: 10px;
+}
+
+.ptTopbarPrimaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ptTopbarActionRow {
+  justify-content: flex-end;
+}
+
+.ptTopbarDetails {
+  border: 1px solid rgba(16, 23, 34, 0.1);
+  border-radius: var(--pt-radius-sm);
+  background: rgba(255, 255, 255, 0.54);
+  padding: 8px 10px 10px;
+}
+
+.ptTopbarDetails summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pt-muted);
+  user-select: none;
+}
+
+.ptTopbarDetails[open] summary {
+  margin-bottom: 10px;
 }
 
 .ptStageNav {
@@ -88,7 +123,7 @@
   background: rgba(255, 255, 255, 0.74);
   color: var(--pt-muted);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -104,17 +139,24 @@
 }
 
 .ptLanding {
-  margin: 12px 14px 0;
-  border-radius: 18px;
+  margin: 18px 18px 0;
+  border-radius: 22px;
   border: 1px solid rgba(15, 20, 23, 0.14);
   background: linear-gradient(165deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.52));
   box-shadow: 0 16px 38px rgba(15, 20, 23, 0.12);
-  padding: 14px;
+  padding: 20px;
+}
+
+.ptLandingHeroSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .ptLandingHero {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .ptLandingKicker {
@@ -128,26 +170,91 @@
 .ptLandingTitle {
   margin: 0;
   font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 24px;
+  font-size: 30px;
   letter-spacing: -0.02em;
+  max-width: 820px;
 }
 
 .ptLandingLead {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(15, 20, 23, 0.88);
-  line-height: 1.45;
-  max-width: 980px;
+  line-height: 1.55;
+  max-width: 760px;
 }
 
 .ptLandingSub {
   margin: 0;
+  font-size: 13px;
+  color: var(--pt-muted);
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+.ptLandingActionPanel {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.74);
+  padding: 14px;
+  box-shadow: 0 12px 26px rgba(15, 20, 23, 0.08);
+}
+
+.ptLandingPanelTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ptLandingPanelCopy {
+  margin-top: 6px;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--pt-muted);
 }
 
-.ptLandingStages {
+.ptLandingActionStack {
   margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.ptLandingCapabilityGrid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ptLandingCapability {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 14px;
+  min-height: 160px;
+}
+
+.ptLandingCapabilityTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ptLandingCapabilityDesc {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(15, 20, 23, 0.86);
+  line-height: 1.5;
+}
+
+.ptLandingCapabilityOutcome {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--pt-muted);
+  line-height: 1.45;
+}
+
+.ptLandingStages {
+  margin-top: 18px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
@@ -181,7 +288,7 @@
 }
 
 .ptGuidanceStrip {
-  margin: 12px 14px 0;
+  margin: 16px 18px 0;
 }
 
 .ptGuidanceTop {
@@ -401,21 +508,27 @@
   font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
   font-weight: 600;
   letter-spacing: -0.03em;
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .ptBrandSub {
   margin-top: 3px;
   font-size: 12px;
   color: var(--pt-muted);
+  max-width: 280px;
+  line-height: 1.4;
 }
 
 .ptTopControls {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
+}
+
+.ptTopControlsAdvanced {
+  padding-top: 2px;
 }
 
 .ptMain {
@@ -473,6 +586,7 @@
   border: 1px solid var(--pt-border);
   background: rgba(255, 255, 255, 0.8);
   color: var(--pt-muted);
+  box-shadow: 0 6px 14px rgba(16, 23, 34, 0.06);
 }
 
 .ptApiPill.ok {
@@ -521,6 +635,12 @@
   min-width: 260px;
 }
 
+.ptWorkspaceContextHead {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
 .ptBtn {
   height: 34px;
   padding: 0 12px;
@@ -537,6 +657,10 @@
 .ptBtn:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 22px rgba(15, 20, 23, 0.12);
+}
+
+.ptRightSection .ptBtn {
+  scroll-margin: 120px 0 96px 0;
 }
 
 .ptBtn:disabled {
@@ -745,10 +869,37 @@
   background: rgba(44, 154, 116, 0.06);
 }
 
+.ptTabsWrap {
+  display: grid;
+  gap: 8px;
+}
+
+.ptTabGroupLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px;
+}
+
+.ptTabGroupChip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 20, 23, 0.1);
+  background: rgba(255, 255, 255, 0.54);
+  color: var(--pt-muted);
+  font-size: 11px;
+}
+
+.ptTabGroupChip.active {
+  border-color: rgba(44, 154, 116, 0.3);
+  background: rgba(44, 154, 116, 0.1);
+  color: rgba(8, 38, 28, 0.92);
+}
+
 .ptTabs {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
   gap: 8px;
   padding: 12px 14px;
@@ -767,6 +918,19 @@
   font-size: 12px;
   color: var(--pt-muted);
   cursor: pointer;
+  scroll-margin: 96px 0 96px 0;
+}
+
+.ptTab[data-group="advanced"] {
+  border-style: dashed;
+}
+
+.ptTab[data-group="diagnostics"] {
+  border-color: rgba(22, 115, 180, 0.24);
+}
+
+.ptTab[data-group="evidence"] {
+  border-color: rgba(120, 90, 30, 0.22);
 }
 
 .ptTab.active {
@@ -780,6 +944,13 @@
   outline-offset: 2px;
 }
 
+.ptTabGuide {
+  padding: 0 14px 10px;
+  font-size: 12px;
+  color: var(--pt-muted);
+  line-height: 1.45;
+}
+
 .ptRightBody {
   padding: 14px;
 }
@@ -787,8 +958,8 @@
 .ptRightSection {
   border: 1px solid rgba(15, 20, 23, 0.12);
   border-radius: var(--pt-radius);
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 10px 26px rgba(16, 23, 34, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 28px rgba(16, 23, 34, 0.09);
   padding: 12px 12px 14px;
   margin-bottom: 12px;
 }
@@ -808,8 +979,8 @@
 .ptCard {
   border: 1px solid rgba(15, 20, 23, 0.12);
   border-radius: var(--pt-radius);
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 8px 20px rgba(15, 20, 23, 0.08);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(15, 20, 23, 0.08);
   padding: 12px;
   margin-bottom: 12px;
 }
@@ -820,6 +991,19 @@
   letter-spacing: -0.02em;
   font-size: 13px;
   margin-bottom: 10px;
+}
+
+.ptSectionLead {
+  margin-bottom: 10px;
+}
+
+.ptDisclosureCard {
+  margin-top: 10px;
+}
+
+.ptDisclosureCard .ptJsonBox,
+.ptDisclosureCard .ptPre {
+  margin-top: 8px;
 }
 
 .ptHint {
@@ -887,8 +1071,8 @@
   word-break: break-word;
   padding: 10px;
   border-radius: var(--pt-radius-sm);
-  border: 1px solid rgba(15, 20, 23, 0.14);
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(16, 23, 34, 0.12);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.92));
   font-size: 12px;
   line-height: 1.35;
 }
@@ -906,9 +1090,58 @@
 .ptTrustBox {
   margin-top: 10px;
   border-radius: var(--pt-radius-sm);
-  border: 1px solid rgba(15, 20, 23, 0.12);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(22, 115, 180, 0.18);
+  background: rgba(22, 115, 180, 0.05);
   padding: 10px 10px 12px;
+}
+
+.ptJourneyRibbon {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ptJourneyStep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--pt-muted);
+  font-size: 12px;
+}
+
+.ptJourneyStep.isActive {
+  border-color: rgba(44, 154, 116, 0.32);
+  background: rgba(44, 154, 116, 0.1);
+  color: rgba(8, 38, 28, 0.92);
+}
+
+.ptJourneyStep.isReady {
+  border-color: rgba(22, 115, 180, 0.28);
+  background: rgba(22, 115, 180, 0.08);
+  color: rgba(22, 58, 91, 0.92);
+}
+
+.ptJourneyStepNum {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(15, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.ptJourneyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .ptParamGrid {
@@ -1012,8 +1245,8 @@
 .ptCallout {
   margin-top: 10px;
   border-radius: var(--pt-radius-sm);
-  border: 1px solid rgba(231, 52, 63, 0.22);
-  background: rgba(231, 52, 63, 0.08);
+  border: 1px solid rgba(44, 154, 116, 0.18);
+  background: rgba(44, 154, 116, 0.07);
   padding: 10px;
 }
 
@@ -1021,13 +1254,14 @@
   font-weight: 600;
   font-size: 12px;
   margin-bottom: 6px;
+  color: rgba(8, 38, 28, 0.94);
 }
 
 .ptList {
   margin: 0;
   padding-left: 18px;
   font-size: 12px;
-  color: rgba(91, 16, 21, 0.95);
+  color: rgba(15, 20, 23, 0.88);
 }
 
 .ptStatusbar {
@@ -1041,6 +1275,7 @@
   backdrop-filter: blur(8px);
   font-size: 12px;
   color: var(--pt-muted);
+  pointer-events: none;
 }
 
 .ptStatusLeft {
@@ -1265,6 +1500,10 @@
 }
 
 @media (max-width: 980px) {
+  .ptLandingHeroSplit,
+  .ptLandingCapabilityGrid {
+    grid-template-columns: 1fr;
+  }
   .ptLandingStages {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1295,6 +1534,10 @@
     grid-template-columns: 1fr;
     gap: 10px;
   }
+  .ptTopbarPrimaryRow,
+  .ptTopbarActionRow {
+    justify-content: flex-start;
+  }
   .ptTopControls {
     justify-content: flex-start;
   }
@@ -1310,6 +1553,9 @@
 }
 
 @media (max-width: 640px) {
+  .ptJourneyRibbon,
+  .ptJourneyGrid,
+  .ptLandingStages,
   .ptGuidanceChecklist {
     grid-template-columns: 1fr;
   }

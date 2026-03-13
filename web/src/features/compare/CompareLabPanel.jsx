@@ -16,6 +16,12 @@ function _runLabel(run) {
   return projectId ? `${runType} | ${projectId} | ${runId}` : `${runType} | ${runId}`;
 }
 
+function _runById(runs, runId) {
+  const target = String(runId || "").trim();
+  if (!target) return null;
+  return runs.find((run) => String(run?.run_id || "").trim() === target) || null;
+}
+
 function _asNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -122,16 +128,46 @@ export default function CompareLabPanel({
   onCandidateRunChange,
   onDiffScopeChange,
   onCompare,
+  onContinueToCertify,
 }) {
   const runs = _toRuns(runsIndex);
   const summary = _violationSummary(runsDiffResult);
   const previewRows = _changedFieldRows(runsDiffResult, 6);
   const canCompare = !busy && String(baselineRunId || "") && String(candidateRunId || "");
+  const baselineRun = _runById(runs, baselineRunId);
+  const candidateRun = _runById(runs, candidateRunId);
+  const compareReady = summary.available || previewRows.length > 0;
 
   return (
     <section className="ptRightSection" aria-label="Week 6 compare lab panel">
-      <div className="ptRightTitle">Week 6 Compare Lab</div>
-      <div className="ptHint">Frame comparisons as baseline vs candidate and compare by manifest scope.</div>
+      <div className="ptRightTitle">Decision Review</div>
+      <div className="ptHint">Compare the baseline against a candidate, understand what changed, and decide whether it is ready for certification.</div>
+
+      <div className="ptJourneyRibbon" style={{ marginTop: 10 }} aria-label="Decision journey progress">
+        <div className="ptJourneyStep isActive">
+          <span className="ptJourneyStepNum">1</span>
+          <span>Select runs</span>
+        </div>
+        <div className={`ptJourneyStep ${compareReady ? "isActive" : ""}`}>
+          <span className="ptJourneyStepNum">2</span>
+          <span>Review delta</span>
+        </div>
+        <div className={`ptJourneyStep ${compareReady ? "isReady" : ""}`}>
+          <span className="ptJourneyStepNum">3</span>
+          <span>Move to certify</span>
+        </div>
+      </div>
+
+      <div className="ptJourneyGrid" style={{ marginTop: 10 }}>
+        <div>
+          <div className="ptJsonTitle">Baseline</div>
+          <div className="ptHint">Reference run used as the decision anchor.</div>
+        </div>
+        <div>
+          <div className="ptJsonTitle">Candidate</div>
+          <div className="ptHint">Alternative you want to justify or reject.</div>
+        </div>
+      </div>
 
       <label className="ptField" style={{ marginTop: 10 }}>
         <span>Baseline run</span>
@@ -185,21 +221,42 @@ export default function CompareLabPanel({
         <button className="ptBtn ptBtnPrimary" onClick={() => onCompare && onCompare()} disabled={!canCompare}>
           {busy ? "Comparing..." : "Compare baseline vs candidate"}
         </button>
+        {compareReady && onContinueToCertify ? (
+          <button className="ptBtn" onClick={() => onContinueToCertify()}>
+            Continue to certify
+          </button>
+        ) : null}
       </div>
 
+      {(baselineRun || candidateRun) ? (
+        <div className="ptTrustBox" style={{ marginTop: 10 }}>
+          <div className="ptCalloutTitle">Decision framing</div>
+          <div className="ptHint">
+            {baselineRun ? <span className="ptMono">baseline={_runLabel(baselineRun)}</span> : <span className="ptMono">baseline not selected</span>}
+            <br />
+            {candidateRun ? <span className="ptMono">candidate={_runLabel(candidateRun)}</span> : <span className="ptMono">candidate not selected</span>}
+            <br />
+            scope=<span className="ptMono">{String(diffScope || "input")}</span>
+          </div>
+        </div>
+      ) : null}
+
       {summary.available ? (
-        <div className="ptHint" style={{ marginTop: 10 }}>
-          <div className="ptJsonTitle">Semantic summary</div>
-          <div className="ptMono">
+        <div className="ptCallout" style={{ marginTop: 10 }}>
+          <div className="ptCalloutTitle">Decision summary</div>
+          <div className="ptMono" style={{ marginBottom: 6 }}>
             new: {summary.newCount} | resolved: {summary.resolvedCount} | applicability-changed: {summary.applicabilityChangedCount}
+          </div>
+          <div className="ptHint">
+            Use this summary to decide whether the candidate is safer, riskier, or simply different from the baseline before moving to signoff.
           </div>
         </div>
       ) : (
-        <div className="ptHint" style={{ marginTop: 10 }}>Run a compare action to see semantic diff counts.</div>
+        <div className="ptHint" style={{ marginTop: 10 }}>Run a compare action to see the decision-relevant differences before certification.</div>
       )}
 
       {previewRows.length ? (
-        <div className="ptHint" style={{ marginTop: 10 }}>
+        <div className="ptTrustBox" style={{ marginTop: 10 }}>
           <div className="ptJsonTitle">Changed fields (preview)</div>
           {previewRows.map((row, idx) => (
             <div key={`changed-field:${idx}`} className="ptMono">
@@ -208,7 +265,7 @@ export default function CompareLabPanel({
           ))}
         </div>
       ) : (
-        <div className="ptHint" style={{ marginTop: 10 }}>No changed-field preview available for this compare result.</div>
+        <div className="ptHint" style={{ marginTop: 10 }}>No changed-field preview available yet. After comparing, this panel will summarize the main deltas you need to explain.</div>
       )}
     </section>
   );

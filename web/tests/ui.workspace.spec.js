@@ -22,12 +22,12 @@ test("shows workspace context bar with project role and view controls", async ({
 });
 
 test("Save View adds a recent activity chip", async ({ page }) => {
-  const topbarSaveView = page.locator("header.ptTopbar").getByRole("button", { name: "Save View", exact: true });
   const contextBar = page.locator('section[aria-label="Workspace context bar"]');
+  const contextSaveView = contextBar.getByRole("button", { name: "Save view", exact: true });
   const activityChip = contextBar.getByRole("button", { name: "Saved workspace view preset.", exact: true });
 
-  await expect(topbarSaveView).toBeVisible();
-  await topbarSaveView.click();
+  await expect(contextSaveView).toBeVisible();
+  await contextSaveView.click();
   await expect(activityChip).toBeVisible();
 });
 
@@ -37,8 +37,8 @@ test("selecting Reviewer role highlights Compare stage or shows runs cues", asyn
   const compareActive = page.locator('nav[aria-label="Product stage navigation"] button.ptStagePill.active').filter({
     hasText: "Compare",
   });
-  const modeSelect = page.getByLabel("Mode", { exact: true });
   const runsBrowser = page.locator('section[aria-label="Run registry browser"]');
+  const compareLab = page.locator('section[aria-label="Week 6 compare lab panel"]');
 
   await rolePreset.selectOption("reviewer");
 
@@ -48,8 +48,7 @@ test("selecting Reviewer role highlights Compare stage or shows runs cues", asyn
         return "compare";
       }
 
-      const modeValue = await modeSelect.inputValue();
-      if (modeValue === "runs" && (await runsBrowser.isVisible().catch(() => false))) {
+      if ((await runsBrowser.isVisible().catch(() => false)) || (await compareLab.isVisible().catch(() => false))) {
         return "runs";
       }
 
@@ -63,7 +62,6 @@ test("guided mode shows guidance checklist and compare checklist action opens co
   const checklist = guidanceStrip.getByRole("list", { name: "Onboarding checklist" });
   const compareStep = checklist.getByRole("listitem").filter({ hasText: "Compare baseline vs candidate" });
   const compareStepOpen = compareStep.getByRole("button", { name: "Open", exact: true });
-  const modeSelect = page.locator("header.ptTopbar label").filter({ hasText: "Mode" }).first().locator("select");
   const compareStage = page.locator('nav[aria-label="Product stage navigation"] button.ptStagePill.active').filter({
     hasText: "Compare",
   });
@@ -81,7 +79,6 @@ test("guided mode shows guidance checklist and compare checklist action opens co
   await compareStepOpen.click();
 
   await expect(compareStage).toBeVisible();
-  await expect.poll(async () => modeSelect.inputValue()).toBe("runs");
   await expect(compareLab).toBeVisible();
 
   await expect

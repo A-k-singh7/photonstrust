@@ -2951,41 +2951,45 @@ export default function App() {
         })}
       </nav>
 
-      <WorkspaceContextBar
-        projects={(projectsIndex?.projects || [])
-          .map((p) => {
-            const id = String(p?.project_id || "").trim();
-            if (!id) return null;
-            const count = Number(p?.run_count ?? 0);
-            const name = Number.isFinite(count) && count > 0 ? `${id} (${count})` : id;
-            return { id, name };
-          })
-          .filter(Boolean)}
-        selectedProjectId={selectedProjectId}
-        onProjectChange={handleWorkspaceProjectChange}
-        rolePresets={ROLE_PRESET_OPTIONS}
-        selectedRolePreset={userMode}
-        onRolePresetChange={applyRolePreset}
-        savedViews={(savedViews || []).map((v) => ({ id: String(v?.id || ""), name: String(v?.name || v?.id || "") })).filter((v) => v.id)}
-        selectedSavedViewId={selectedViewPresetId}
-        onSavedViewChange={applyViewPresetById}
-        onSaveView={saveCurrentViewPreset}
-        saveViewLabel="Save view"
-        saveViewDisabled={demoModeOpen}
-        recentActivity={recentActivity}
-        onRecentActivityClick={handleRecentActivityClick}
-        disabled={demoModeOpen}
-      />
+      {!showLanding ? (
+        <WorkspaceContextBar
+          projects={(projectsIndex?.projects || [])
+            .map((p) => {
+              const id = String(p?.project_id || "").trim();
+              if (!id) return null;
+              const count = Number(p?.run_count ?? 0);
+              const name = Number.isFinite(count) && count > 0 ? `${id} (${count})` : id;
+              return { id, name };
+            })
+            .filter(Boolean)}
+          selectedProjectId={selectedProjectId}
+          onProjectChange={handleWorkspaceProjectChange}
+          rolePresets={ROLE_PRESET_OPTIONS}
+          selectedRolePreset={userMode}
+          onRolePresetChange={applyRolePreset}
+          savedViews={(savedViews || []).map((v) => ({ id: String(v?.id || ""), name: String(v?.name || v?.id || "") })).filter((v) => v.id)}
+          selectedSavedViewId={selectedViewPresetId}
+          onSavedViewChange={applyViewPresetById}
+          onSaveView={saveCurrentViewPreset}
+          saveViewLabel="Save view"
+          saveViewDisabled={demoModeOpen}
+          recentActivity={recentActivity}
+          onRecentActivityClick={handleRecentActivityClick}
+          disabled={demoModeOpen}
+        />
+      ) : null}
 
-      <GuidanceStrip
-        experienceMode={experienceMode}
-        checklist={guidedChecklist}
-        glossaryTerms={GUIDED_GLOSSARY_TERMS}
-        onStartGuidedFlow={startGuidedFlow}
-        onOpenStage={openProgramStage}
-        onExperienceModeChange={applyExperienceMode}
-        onChecklistAction={handleChecklistAction}
-      />
+      {!showLanding && mode === "graph" ? (
+        <GuidanceStrip
+          experienceMode={experienceMode}
+          checklist={guidedChecklist}
+          glossaryTerms={GUIDED_GLOSSARY_TERMS}
+          onStartGuidedFlow={startGuidedFlow}
+          onOpenStage={openProgramStage}
+          onExperienceModeChange={applyExperienceMode}
+          onChecklistAction={handleChecklistAction}
+        />
+      ) : null}
 
       {showLanding ? (
         <Suspense fallback={<PanelLoading message="Loading start workspace..." />}>
@@ -3441,6 +3445,7 @@ export default function App() {
                   packetVerifyResult={bundleVerifyResult}
                   approvalControls={approvalControlsNode}
                   issues={decisionContext.blockers.map((message) => ({ level: "block", message }))}
+                  onReturnToCompare={() => openProgramStage("compare", { statusText: "Returned to compare to review the decision delta." })}
                 />
 
                 <ManifestPanel
@@ -3494,6 +3499,7 @@ export default function App() {
                       onCandidateRunChange={setDiffRhsRunId}
                       onDiffScopeChange={setDiffScope}
                       onCompare={diffRuns}
+                      onContinueToCertify={() => openProgramStage("certify", { statusText: "Moved from compare into decision and evidence review." })}
                     />
                   }
                 />

@@ -18,15 +18,41 @@ export const PRODUCT_STAGE_ROUTES = {
 
 export const PRODUCT_COPY = {
   valueProposition:
-    "PhotonTrust lets teams build, run, validate, compare, and export trustworthy quantum outcomes without founder intervention.",
+    "PhotonTrust helps teams simulate, compare, certify, and export trusted quantum outcomes with reviewable evidence.",
   startHere:
-    "Start here: choose a guided path or open a stage directly. The goal is first credible result in under 10 minutes.",
+    "Choose the job you want to complete first. Guided paths hide complexity; power mode exposes the full engineering surface when you need it.",
   quickActions: {
     guidedQkd: "Guided QKD quickstart",
     guidedPic: "Guided PIC quickstart",
     compareRuns: "Open compare lab",
     investorDemo: "Mark investor demo checkpoint",
   },
+  capabilityCards: [
+    {
+      id: "qkd",
+      title: "Simulate a QKD link",
+      description: "Build a first trusted run, inspect key-rate outputs, and move directly into compare-ready evidence.",
+      outcome: "Produces run manifests, cards, and compare-ready outputs.",
+    },
+    {
+      id: "pic",
+      title: "Generate PIC layout and GDS",
+      description: "Use the PIC flow to build layout artifacts, emit a GDS file, and run KLayout-based extraction and DRC-lite checks.",
+      outcome: "Produces layout.gds, ports, routes, and KLayout packs.",
+    },
+    {
+      id: "compare",
+      title: "Compare candidates and explain the delta",
+      description: "Frame one run as the baseline, another as the candidate, and review the changes that matter for decision-making.",
+      outcome: "Produces semantic diff summaries and review context.",
+    },
+    {
+      id: "certify",
+      title: "Certify and export the decision",
+      description: "Review blockers, approvals, packets, and published evidence in one trust workflow.",
+      outcome: "Produces decision packets, publishable bundles, and verification results.",
+    },
+  ],
 };
 
 export function stageLabel(stage) {

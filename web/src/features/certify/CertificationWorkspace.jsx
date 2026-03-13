@@ -115,6 +115,7 @@ export default function CertificationWorkspace({
   packetVerifyDisabled,
   packetVerifyResult,
   issues,
+  onReturnToCompare,
 }) {
   const checklist = Array.isArray(readinessChecklist)
     ? readinessChecklist
@@ -136,13 +137,53 @@ export default function CertificationWorkspace({
   const verifyDisabled = Boolean(packetVerifyDisabled) || !packetPublishResult?.bundle_sha256;
   const publishDigest = _toText(packetPublishResult?.bundle_sha256, "");
   const verifyOk = packetVerifyResult?.verify?.ok === true;
+  const approvalCount = _asArray(projectApprovals?.approvals).length;
+  const blockCount = issueRows.filter((issue) => _statusLabel(issue.level) === "block").length;
+  const cautionCount = issueRows.filter((issue) => _statusLabel(issue.level) === "caution").length;
 
   return (
     <section className="ptRightSection" aria-label="Certification workspace">
-      <div className="ptRightTitle">Certification Workspace</div>
+      <div className="ptRightTitle">Decision and Evidence</div>
+
+      <div className="ptHint">Finish the decision journey here: confirm readiness, collect approvals, export the packet, and publish verified evidence.</div>
+
+      <div className="ptJourneyRibbon" style={{ marginTop: 10 }} aria-label="Certification flow progress">
+        <div className="ptJourneyStep isActive">
+          <span className="ptJourneyStepNum">1</span>
+          <span>Review readiness</span>
+        </div>
+        <div className={`ptJourneyStep ${approvalCount ? "isActive" : ""}`}>
+          <span className="ptJourneyStepNum">2</span>
+          <span>Collect signoff</span>
+        </div>
+        <div className={`ptJourneyStep ${(publishDigest || packetExportHref) ? "isReady" : ""}`}>
+          <span className="ptJourneyStepNum">3</span>
+          <span>Export and verify</span>
+        </div>
+      </div>
 
       <div className="ptCallout" style={{ marginTop: 10 }}>
-        <div className="ptCalloutTitle">Readiness checklist</div>
+        <div className="ptCalloutTitle">Decision state</div>
+        <div className="ptMono">run_id={runId || "not selected"}</div>
+        <div className="ptHint" style={{ marginTop: 6 }}>
+          blockers={blockCount} | cautions={cautionCount} | approvals={approvalCount}
+        </div>
+        <div className="ptBtnRow" style={{ marginTop: 8 }}>
+          {onReturnToCompare ? (
+            <button className="ptBtn ptBtnGhost" onClick={() => onReturnToCompare()}>
+              Return to compare
+            </button>
+          ) : null}
+          {onPacketExport ? (
+            <button className="ptBtn" onClick={() => onPacketExport()} disabled={exportDisabled}>
+              Open decision packet
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="ptCallout" style={{ marginTop: 10 }}>
+        <div className="ptCalloutTitle">Decision readiness</div>
         <ul className="ptList">
           {checklist.map((item, idx) => {
             const status = _statusLabel(item?.status);
@@ -159,12 +200,14 @@ export default function CertificationWorkspace({
       </div>
 
       <div className="ptCallout" style={{ marginTop: 10 }}>
-        <div className="ptCalloutTitle">Approvals</div>
+        <div className="ptCalloutTitle">Signoff</div>
+        <div className="ptHint" style={{ marginBottom: 8 }}>Capture the approval record before sharing evidence outside the workspace.</div>
         {approvalControls ? approvalControls : <div className="ptHint">No approval controls connected.</div>}
       </div>
 
       <div className="ptCallout" style={{ marginTop: 10 }}>
-        <div className="ptCalloutTitle">Decision packet</div>
+        <div className="ptCalloutTitle">Export package</div>
+        <div className="ptHint" style={{ marginBottom: 8 }}>Create the decision packet you can hand to reviewers, operators, or downstream evidence workflows.</div>
         <div className="ptBtnRow" style={{ marginTop: 8 }}>
           <button className="ptBtn ptBtnPrimary" onClick={() => onPacketExport && onPacketExport()} disabled={exportDisabled}>
             {String(packetExportLabel || "Export decision packet")}
@@ -178,7 +221,8 @@ export default function CertificationWorkspace({
       </div>
 
       <div className="ptCallout" style={{ marginTop: 10 }}>
-        <div className="ptCalloutTitle">Published packet</div>
+        <div className="ptCalloutTitle">Share and verify</div>
+        <div className="ptHint" style={{ marginBottom: 8 }}>Publish a shareable bundle and confirm the verification result before treating the evidence as ready.</div>
         <div className="ptBtnRow" style={{ marginTop: 8 }}>
           <button className="ptBtn" onClick={() => onPacketPublish && onPacketPublish()} disabled={publishDisabled}>
             Publish shareable packet
@@ -201,7 +245,7 @@ export default function CertificationWorkspace({
       </div>
 
       <div className="ptCallout" style={{ marginTop: 10 }}>
-        <div className="ptCalloutTitle">Issues</div>
+        <div className="ptCalloutTitle">Blockers and cautions</div>
         <ul className="ptList">
           {issueRows.map((issue, idx) => (
             <li key={`issue:${idx}`}>

@@ -29,11 +29,12 @@ function _helpers(diffHelpers) {
 export default function DiffPanel({ runsDiffResult = null, busy = false, diffHelpers = null, compareLabNode = null }) {
   const h = _helpers(diffHelpers);
   const violationDiff = runsDiffResult?.diff?.violation_diff || null;
+  const hasDiff = Boolean(runsDiffResult);
 
   return (
     <div className="ptRightSection">
-      <div className="ptRightTitle">Run Diff</div>
-      <div className="ptHint">Diff compares selected manifest scopes (input by default).</div>
+      <div className="ptRightTitle">Compare and Explain</div>
+      <div className="ptHint">Use compare to explain why a candidate should replace the baseline before moving into signoff and evidence export.</div>
 
       {compareLabNode || null}
 
@@ -63,8 +64,11 @@ export default function DiffPanel({ runsDiffResult = null, busy = false, diffHel
         </div>
       ) : null}
 
-      {runsDiffResult ? (
-        <pre className="ptPre">{h.pretty(runsDiffResult)}</pre>
+      {hasDiff ? (
+        <details className="ptTopbarDetails" style={{ marginTop: 10 }}>
+          <summary>Raw diff JSON</summary>
+          <pre className="ptPre">{h.pretty(runsDiffResult)}</pre>
+        </details>
       ) : (
         <div className="ptHint">{busy ? "Diff in progress..." : "Select two runs and click Diff."}</div>
       )}

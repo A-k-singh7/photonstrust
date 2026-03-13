@@ -81,6 +81,11 @@ export default function WorkspaceContextBar({
 
   return (
     <section className="ptCard" aria-label="Workspace context bar">
+      <div className="ptWorkspaceContextHead">
+        <div className="ptRightTitle">Workspace essentials</div>
+        <div className="ptHint">Project, role, and saved view controls stay here so the main workspace can stay focused.</div>
+      </div>
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "end" }}>
         <SelectField
           label="Project"
@@ -116,11 +121,11 @@ export default function WorkspaceContextBar({
         </div>
       </div>
 
-      <div style={{ marginTop: 10 }}>
-        <div className="ptHint" style={{ marginBottom: 6 }}>
-          Recent activity
-        </div>
-        {activityRows.length ? (
+      {activityRows.length ? (
+        <div style={{ marginTop: 10 }}>
+          <div className="ptHint" style={{ marginBottom: 6 }}>
+            Recent activity
+          </div>
           <div className="ptBtnRow" style={{ flexWrap: "wrap" }}>
             {activityRows.map((item) => (
               <button
@@ -135,10 +140,8 @@ export default function WorkspaceContextBar({
               </button>
             ))}
           </div>
-        ) : (
-          <div className="ptHint">No recent activity yet.</div>
-        )}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

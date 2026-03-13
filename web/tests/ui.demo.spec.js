@@ -11,12 +11,14 @@ test.beforeEach(async ({ page }) => {
 
 test("demo mode locks narrative scenes and stage progression", async ({ page }) => {
   const topbar = page.locator("header.ptTopbar");
+  const advancedToggle = topbar.locator("summary", { hasText: "Advanced setup and diagnostics" }).first();
   const demoModeButton = topbar.getByRole("button", { name: "Demo Mode", exact: true });
   const orchestrator = page.locator('section[aria-label="Demo mode narrative orchestrator"]');
   const stageNav = page.getByRole("navigation", { name: "Product stage navigation" });
   const activeStagePill = stageNav.locator("button.ptStagePill.active");
   const nextButton = orchestrator.getByRole("button", { name: "Next", exact: true });
 
+  await advancedToggle.click();
   await demoModeButton.click();
 
   await expect(orchestrator).toBeVisible();
@@ -34,6 +36,7 @@ test("demo mode locks narrative scenes and stage progression", async ({ page }) 
 
 test("demo mode exits and unlocks controls", async ({ page }) => {
   const topbar = page.locator("header.ptTopbar");
+  const advancedToggle = topbar.locator("summary", { hasText: "Advanced setup and diagnostics" }).first();
   const demoModeButton = topbar.getByRole("button", { name: "Demo Mode", exact: true });
   const orchestrator = page.locator('section[aria-label="Demo mode narrative orchestrator"]');
   const compileButton = topbar.getByRole("button", { name: "Compile", exact: true });
@@ -47,6 +50,7 @@ test("demo mode exits and unlocks controls", async ({ page }) => {
     return null;
   }
 
+  await advancedToggle.click();
   await demoModeButton.click();
   await expect(orchestrator).toBeVisible();
 

@@ -51,7 +51,8 @@ export default function ManifestPanel({
 
   return (
     <div className="ptRightSection">
-      <div className="ptRightTitle">Run Manifest</div>
+      <div className="ptRightTitle">Evidence and Run Details</div>
+      <div className="ptHint">Use this panel for approval history, workflow lineage, GDS packaging, and raw manifest evidence after the decision is made.</div>
       {hasRun ? (
         <div className="ptHint">
           run_id: <span className="ptMono">{String(selectedRunManifest.run_id)}</span>
@@ -270,7 +271,12 @@ export default function ManifestPanel({
         </div>
       ) : null}
 
-      {selectedRunManifest ? <pre className="ptPre">{pretty(selectedRunManifest)}</pre> : null}
+      {selectedRunManifest ? (
+        <details className="ptTopbarDetails" style={{ marginTop: 10 }}>
+          <summary>Raw run manifest JSON</summary>
+          <pre className="ptPre">{pretty(selectedRunManifest)}</pre>
+        </details>
+      ) : null}
     </div>
   );
 }

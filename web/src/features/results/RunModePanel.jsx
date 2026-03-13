@@ -84,7 +84,8 @@ export default function RunModePanel({
       ) : null}
 
       <div className="ptRightSection">
-        <div className="ptRightTitle">Run Result</div>
+        <div className="ptRightTitle">Execution evidence</div>
+        <div className="ptHint">This panel keeps the raw execution payload and served artifacts available after the higher-level decision blocks above have already summarized what matters most.</div>
         {mode === "orbit" && runResult?.results_path ? (
           <div className="ptHint">
             results: <span className="ptMono">{String(runResult.results_path)}</span>
@@ -152,7 +153,12 @@ export default function RunModePanel({
             </ul>
           </div>
         ) : null}
-        {runResult ? <pre className="ptPre">{formatPretty(prettyJson, runResult)}</pre> : <div className="ptHint">Run to see outputs.</div>}
+        {runResult ? (
+          <details className="ptTopbarDetails" style={{ marginTop: 10 }}>
+            <summary>Raw run payload JSON</summary>
+            <pre className="ptPre">{formatPretty(prettyJson, runResult)}</pre>
+          </details>
+        ) : <div className="ptHint">Run to see outputs.</div>}
       </div>
     </div>
   );

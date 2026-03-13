@@ -11,50 +11,36 @@ test.beforeEach(async ({ page }) => {
 
 test("keyboard tab order starts with skip link and top controls", async ({ page }) => {
   const skipLink = page.getByRole("link", { name: "Skip to workspace" }).first();
-  const modeSelect = page.locator("header.ptTopbar label").filter({ hasText: "Mode" }).first().locator("select");
   const experienceSelect = page.locator("header.ptTopbar label").filter({ hasText: "Experience" }).first().locator("select");
-  const userModeSelect = page.locator("header.ptTopbar label").filter({ hasText: "User mode" }).first().locator("select");
-  const viewPresetSelect = page.locator("header.ptTopbar label").filter({ hasText: "View preset" }).first().locator("select");
-  const saveViewButton = page.locator("header.ptTopbar button", { hasText: "Save View" }).first();
+  const profileSelect = page.locator("header.ptTopbar label").filter({ hasText: "Profile" }).first().locator("select");
+  const compileButton = page.locator("header.ptTopbar button", { hasText: "Compile" }).first();
 
   await page.locator("body").press("Tab");
   await expect(skipLink).toBeFocused();
 
   await page.keyboard.press("Tab");
-  await expect(modeSelect).toBeFocused();
-
-  await page.keyboard.press("Tab");
   await expect(experienceSelect).toBeFocused();
 
   await page.keyboard.press("Tab");
-  await expect(userModeSelect).toBeFocused();
+  await expect(profileSelect).toBeFocused();
 
   await page.keyboard.press("Tab");
-  await expect(viewPresetSelect).toBeFocused();
-
-  await page.keyboard.press("Tab");
-  await expect(saveViewButton).toBeFocused();
+  await expect(compileButton).toBeFocused();
 });
 
 test("keyboard reverse tab returns to previous control", async ({ page }) => {
   const experienceSelect = page.locator("header.ptTopbar label").filter({ hasText: "Experience" }).first().locator("select");
-  const userModeSelect = page.locator("header.ptTopbar label").filter({ hasText: "User mode" }).first().locator("select");
-  const viewPresetSelect = page.locator("header.ptTopbar label").filter({ hasText: "View preset" }).first().locator("select");
-  const saveViewButton = page.locator("header.ptTopbar button", { hasText: "Save View" }).first();
+  const profileSelect = page.locator("header.ptTopbar label").filter({ hasText: "Profile" }).first().locator("select");
+  const compileButton = page.locator("header.ptTopbar button", { hasText: "Compile" }).first();
 
   await page.locator("body").press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
-  await expect(saveViewButton).toBeFocused();
+  await expect(compileButton).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
-  await expect(viewPresetSelect).toBeFocused();
-
-  await page.keyboard.press("Shift+Tab");
-  await expect(userModeSelect).toBeFocused();
+  await expect(profileSelect).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
   await expect(experienceSelect).toBeFocused();
@@ -88,7 +74,8 @@ test("right sidebar tabs expose tab semantics", async ({ page }) => {
 
   if ((await tabs.count()) > 1) {
     const secondTab = tabs.nth(1);
-    await secondTab.click();
+    await secondTab.focus();
+    await page.keyboard.press("Enter");
     await expect(secondTab).toHaveAttribute("aria-selected", "true");
     await expect(firstTab).toHaveAttribute("aria-selected", "false");
 

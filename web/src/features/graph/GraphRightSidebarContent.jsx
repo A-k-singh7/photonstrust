@@ -1,6 +1,24 @@
 import JsonBox from "../../components/common/JsonBox";
 import KindTrustPanel from "./KindTrustPanel";
 
+function SectionLead({ title, children }) {
+  return (
+    <div className="ptSectionLead">
+      <div className="ptCalloutTitle">{title}</div>
+      <div className="ptHint">{children}</div>
+    </div>
+  );
+}
+
+function DisclosurePanel({ summary, children }) {
+  return (
+    <details className="ptTopbarDetails ptDisclosureCard">
+      <summary>{summary}</summary>
+      {children}
+    </details>
+  );
+}
+
 export default function GraphRightSidebarContent({
   activeRightTab,
   inspect,
@@ -17,7 +35,8 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-inspect" role="tabpanel" aria-labelledby="pt-tab-graph-inspect" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">Selection</div>
+          <div className="ptRightTitle">Primary design controls</div>
+          <SectionLead title="What to do here">Choose a node to edit the current design element, then use the scenario or circuit panel for the global setup that shapes the first run.</SectionLead>
           {inspect.selectedNode ? (
             <>
               <div className="ptKeyVal">
@@ -45,16 +64,19 @@ export default function GraphRightSidebarContent({
                   Delete node
                 </button>
               </div>
-              <JsonBox title="params" value={inspect.selectedNode?.data?.params} onApply={inspect.onApplySelectedParams} />
+              <DisclosurePanel summary="Advanced node parameters JSON">
+                <JsonBox title="params" value={inspect.selectedNode?.data?.params} onApply={inspect.onApplySelectedParams} />
+              </DisclosurePanel>
             </>
           ) : (
-            <div className="ptHint">Click a node to edit its parameters.</div>
+            <div className="ptHint">Click a node in the graph to edit its parameters. Until then, use the setup panels below to shape the overall scenario.</div>
           )}
         </div>
 
         {inspect.profile === "qkd_link" ? (
           <div className="ptRightSection">
-            <div className="ptRightTitle">Scenario</div>
+            <div className="ptRightTitle">QKD scenario setup</div>
+            <SectionLead title="What this changes">Band, distance, and execution mode define the first trusted run. Use the advanced JSON only when you need direct control over the scenario payload.</SectionLead>
             <label className="ptField">
               <span>Band</span>
               <select
@@ -94,15 +116,16 @@ export default function GraphRightSidebarContent({
               </select>
             </label>
 
-            <JsonBox title="scenario (advanced)" value={inspect.scenario} onApply={inspect.onApplyScenarioText} />
-
-            <JsonBox title="uncertainty (advanced)" value={inspect.uncertainty} onApply={inspect.onApplyUncertaintyText} />
-
-            <JsonBox title="finite_key (advanced)" value={inspect.finiteKey} onApply={inspect.onApplyFiniteKeyText} />
+            <DisclosurePanel summary="Advanced QKD scenario JSON">
+              <JsonBox title="scenario (advanced)" value={inspect.scenario} onApply={inspect.onApplyScenarioText} />
+              <JsonBox title="uncertainty (advanced)" value={inspect.uncertainty} onApply={inspect.onApplyUncertaintyText} />
+              <JsonBox title="finite_key (advanced)" value={inspect.finiteKey} onApply={inspect.onApplyFiniteKeyText} />
+            </DisclosurePanel>
           </div>
         ) : (
           <div className="ptRightSection">
-            <div className="ptRightTitle">Circuit</div>
+            <div className="ptRightTitle">PIC circuit setup</div>
+            <SectionLead title="What this changes">Set the operating wavelength and sweep before moving into layout, KLayout, and GDS-generation steps.</SectionLead>
             <label className="ptField">
               <span>Wavelength (nm)</span>
               <input
@@ -123,13 +146,16 @@ export default function GraphRightSidebarContent({
               />
             </label>
 
-            <JsonBox title="circuit (advanced)" value={inspect.circuit} onApply={inspect.onApplyCircuitText} />
+            <DisclosurePanel summary="Advanced PIC circuit JSON">
+              <JsonBox title="circuit (advanced)" value={inspect.circuit} onApply={inspect.onApplyCircuitText} />
+            </DisclosurePanel>
           </div>
         )}
 
         {inspect.profile === "pic_circuit" ? (
           <div className="ptRightSection">
-            <div className="ptRightTitle">Performance DRC (Crosstalk)</div>
+            <div className="ptRightTitle">PIC crosstalk checks</div>
+            <SectionLead title="When to use this">Run this before layout export when you want quick spacing feedback on likely crosstalk risk.</SectionLead>
 
             <label className="ptField ptFieldWide">
               <span>Gap (um)</span>
@@ -196,7 +222,8 @@ export default function GraphRightSidebarContent({
 
         {inspect.profile === "pic_circuit" ? (
           <div className="ptRightSection">
-            <div className="ptRightTitle">Inverse Design</div>
+            <div className="ptRightTitle">Optimization workflow</div>
+            <SectionLead title="When to use this">Use inverse design when you want the tool to tune a PIC phase or coupler target before moving into the full fabrication-ready workflow chain.</SectionLead>
 
             <label className="ptField">
               <span>Kind</span>
@@ -288,17 +315,19 @@ export default function GraphRightSidebarContent({
               </select>
             </label>
 
-            <JsonBox
-              title="robustness cases (advanced)"
-              value={inspect.invRobustnessCases}
-              onApply={(text) => {
-                const parsed = inspect.safeParseJson(text);
-                if (!parsed.ok) return parsed;
-                if (!Array.isArray(parsed.value)) return { ok: false, error: "Robustness cases must be a JSON array." };
-                inspect.onSetInvRobustnessCases(parsed.value);
-                return { ok: true };
-              }}
-            />
+            <DisclosurePanel summary="Advanced robustness cases JSON">
+              <JsonBox
+                title="robustness cases (advanced)"
+                value={inspect.invRobustnessCases}
+                onApply={(text) => {
+                  const parsed = inspect.safeParseJson(text);
+                  if (!parsed.ok) return parsed;
+                  if (!Array.isArray(parsed.value)) return { ok: false, error: "Robustness cases must be a JSON array." };
+                  inspect.onSetInvRobustnessCases(parsed.value);
+                  return { ok: true };
+                }}
+              />
+            </DisclosurePanel>
 
             <div className="ptBtnRow">
               <button
@@ -321,7 +350,8 @@ export default function GraphRightSidebarContent({
         ) : null}
 
         <div className="ptRightSection">
-          <div className="ptRightTitle">Metadata</div>
+          <div className="ptRightTitle">Decision context</div>
+          <SectionLead title="Why it matters">This title and description travel with the workspace and make later compare, certify, and export steps easier to understand.</SectionLead>
           <label className="ptField">
             <span>Title</span>
             <input value={String(inspect.metadata?.title || "")} onChange={(e) => inspect.onSetMetadata((m) => ({ ...(m || {}), title: String(e.target.value) }))} />
@@ -342,7 +372,8 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-compile" role="tabpanel" aria-labelledby="pt-tab-graph-compile" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">Compile Result</div>
+          <div className="ptRightTitle">Compile and assumptions</div>
+          <SectionLead title="Why compile first">Compile turns the current graph into a validated execution payload, explains the assumptions in force, and surfaces issues before you run or certify.</SectionLead>
           {compile.compileResult?.assumptions_md ? (
             <pre className="ptPre">{String(compile.compileResult.assumptions_md)}</pre>
           ) : (
@@ -382,7 +413,11 @@ export default function GraphRightSidebarContent({
               </ul>
             </div>
           ) : null}
-          {compile.compileResult ? <pre className="ptPre">{compile.prettyJson(compile.compileResult)}</pre> : null}
+          {compile.compileResult ? (
+            <DisclosurePanel summary="Raw compile payload JSON">
+              <pre className="ptPre">{compile.prettyJson(compile.compileResult)}</pre>
+            </DisclosurePanel>
+          ) : null}
         </div>
       </div>
     );
@@ -392,7 +427,8 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-drc" role="tabpanel" aria-labelledby="pt-tab-graph-drc" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">Performance DRC Result</div>
+          <div className="ptRightTitle">PIC crosstalk review</div>
+          <SectionLead title="What to look for">Use this result to decide whether spacing and parallel-run choices are safe enough to continue into layout and packaging.</SectionLead>
           {drc.xtResult?.run_id && drc.xtResult?.artifact_relpaths ? (
             <div className="ptCallout">
               <div className="ptCalloutTitle">Artifacts (served)</div>
@@ -421,7 +457,11 @@ export default function GraphRightSidebarContent({
               </div>
             </div>
           ) : null}
-          {drc.xtResult ? <pre className="ptPre">{drc.prettyJson(drc.xtResult)}</pre> : <div className="ptHint">Run DRC to see outputs.</div>}
+          {drc.xtResult ? (
+            <DisclosurePanel summary="Raw DRC payload JSON">
+              <pre className="ptPre">{drc.prettyJson(drc.xtResult)}</pre>
+            </DisclosurePanel>
+          ) : <div className="ptHint">Run DRC to see outputs.</div>}
         </div>
       </div>
     );
@@ -431,7 +471,8 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-invdesign" role="tabpanel" aria-labelledby="pt-tab-graph-invdesign" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">Inverse Design Result</div>
+          <div className="ptRightTitle">Optimization result</div>
+          <SectionLead title="What to look for">Review the optimized design payload and whether it improved the target before you commit to a full fabrication-ready workflow.</SectionLead>
           {invdesign.invResult?.run_id && invdesign.invResult?.artifact_relpaths ? (
             <div className="ptCallout">
               <div className="ptCalloutTitle">Artifacts (served)</div>
@@ -460,11 +501,16 @@ export default function GraphRightSidebarContent({
               </div>
             </div>
           ) : null}
-          {invdesign.invResult ? <pre className="ptPre">{invdesign.prettyJson(invdesign.invResult)}</pre> : <div className="ptHint">Run inverse design to see outputs.</div>}
+          {invdesign.invResult ? (
+            <DisclosurePanel summary="Raw optimization payload JSON">
+              <pre className="ptPre">{invdesign.prettyJson(invdesign.invResult)}</pre>
+            </DisclosurePanel>
+          ) : <div className="ptHint">Run inverse design to see outputs.</div>}
         </div>
 
         <div className="ptRightSection">
-          <div className="ptRightTitle">Workflow Chain Result</div>
+          <div className="ptRightTitle">Workflow chain evidence</div>
+          <SectionLead title="Why this matters">This chain shows how optimization, layout, LVS-lite, KLayout, and SPICE outputs connect into one reproducible engineering trail.</SectionLead>
           {invdesign.workflowResult?.run_id && invdesign.workflowResult?.artifact_relpaths ? (
             <div className="ptCallout">
               <div className="ptCalloutTitle">Artifacts (served)</div>
@@ -541,7 +587,11 @@ export default function GraphRightSidebarContent({
               </div>
             </div>
           ) : null}
-          {invdesign.workflowResult ? <pre className="ptPre">{invdesign.prettyJson(invdesign.workflowResult)}</pre> : <div className="ptHint">Run full workflow to see chained evidence.</div>}
+          {invdesign.workflowResult ? (
+            <DisclosurePanel summary="Raw workflow chain JSON">
+              <pre className="ptPre">{invdesign.prettyJson(invdesign.workflowResult)}</pre>
+            </DisclosurePanel>
+          ) : <div className="ptHint">Run full workflow to see chained evidence.</div>}
         </div>
       </div>
     );
@@ -551,31 +601,34 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-layout" role="tabpanel" aria-labelledby="pt-tab-graph-layout" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">Layout Build</div>
+          <div className="ptRightTitle">Layout and GDS generation</div>
+          <SectionLead title="What this produces">Generate ports, routes, provenance, and a GDS artifact when the layout toolchain is available.</SectionLead>
 
-          <JsonBox
-            title="pdk (advanced)"
-            value={layout.layoutPdk}
-            onApply={(text) => {
-              const parsed = layout.safeParseJson(text);
-              if (!parsed.ok) return parsed;
-              if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "PDK must be a JSON object." };
-              layout.onSetLayoutPdk(parsed.value);
-              return { ok: true };
-            }}
-          />
+          <DisclosurePanel summary="Advanced layout and PDK JSON">
+            <JsonBox
+              title="pdk (advanced)"
+              value={layout.layoutPdk}
+              onApply={(text) => {
+                const parsed = layout.safeParseJson(text);
+                if (!parsed.ok) return parsed;
+                if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "PDK must be a JSON object." };
+                layout.onSetLayoutPdk(parsed.value);
+                return { ok: true };
+              }}
+            />
 
-          <JsonBox
-            title="layout settings (advanced)"
-            value={layout.layoutSettings}
-            onApply={(text) => {
-              const parsed = layout.safeParseJson(text);
-              if (!parsed.ok) return parsed;
-              if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-              layout.onSetLayoutSettings(parsed.value);
-              return { ok: true };
-            }}
-          />
+            <JsonBox
+              title="layout settings (advanced)"
+              value={layout.layoutSettings}
+              onApply={(text) => {
+                const parsed = layout.safeParseJson(text);
+                if (!parsed.ok) return parsed;
+                if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
+                layout.onSetLayoutSettings(parsed.value);
+                return { ok: true };
+              }}
+            />
+          </DisclosurePanel>
 
           <div className="ptBtnRow">
             <button className="ptBtn ptBtnPrimary" onClick={layout.onRunLayoutBuild} disabled={layout.busy}>
@@ -589,7 +642,7 @@ export default function GraphRightSidebarContent({
         </div>
 
         <div className="ptRightSection">
-          <div className="ptRightTitle">Layout Build Result</div>
+          <div className="ptRightTitle">Layout outputs</div>
           {layout.layoutBuildResult?.run_id && layout.layoutBuildResult?.artifact_relpaths ? (
             <div className="ptCallout">
               <div className="ptCalloutTitle">Artifacts (served)</div>
@@ -665,7 +718,11 @@ export default function GraphRightSidebarContent({
               </div>
             </div>
           ) : null}
-          {layout.layoutBuildResult ? <pre className="ptPre">{layout.prettyJson(layout.layoutBuildResult)}</pre> : <div className="ptHint">Build to see outputs.</div>}
+          {layout.layoutBuildResult ? (
+            <DisclosurePanel summary="Raw layout payload JSON">
+              <pre className="ptPre">{layout.prettyJson(layout.layoutBuildResult)}</pre>
+            </DisclosurePanel>
+          ) : <div className="ptHint">Build to see outputs.</div>}
         </div>
       </div>
     );
@@ -675,19 +732,22 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-lvs" role="tabpanel" aria-labelledby="pt-tab-graph-lvs" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">LVS-lite</div>
+          <div className="ptRightTitle">Layout-vs-netlist check</div>
+          <SectionLead title="When to use this">Run LVS-lite after layout build to catch mismatches before you rely on the generated fabrication artifacts.</SectionLead>
 
-          <JsonBox
-            title="lvs settings (advanced)"
-            value={lvs.lvsSettings}
-            onApply={(text) => {
-              const parsed = lvs.safeParseJson(text);
-              if (!parsed.ok) return parsed;
-              if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-              lvs.onSetLvsSettings(parsed.value);
-              return { ok: true };
-            }}
-          />
+          <DisclosurePanel summary="Advanced LVS settings JSON">
+            <JsonBox
+              title="lvs settings (advanced)"
+              value={lvs.lvsSettings}
+              onApply={(text) => {
+                const parsed = lvs.safeParseJson(text);
+                if (!parsed.ok) return parsed;
+                if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
+                lvs.onSetLvsSettings(parsed.value);
+                return { ok: true };
+              }}
+            />
+          </DisclosurePanel>
 
           <div className="ptBtnRow">
             <button className="ptBtn ptBtnPrimary" onClick={lvs.onRunLvsLite} disabled={lvs.busy || !lvs.layoutBuildResult?.run_id}>
@@ -702,7 +762,7 @@ export default function GraphRightSidebarContent({
         </div>
 
         <div className="ptRightSection">
-          <div className="ptRightTitle">LVS-lite Result</div>
+          <div className="ptRightTitle">LVS-lite result</div>
           {lvs.lvsResult?.run_id && lvs.lvsResult?.artifact_relpaths ? (
             <div className="ptCallout">
               <div className="ptCalloutTitle">Artifacts (served)</div>
@@ -722,7 +782,11 @@ export default function GraphRightSidebarContent({
               </div>
             </div>
           ) : null}
-          {lvs.lvsResult ? <pre className="ptPre">{lvs.prettyJson(lvs.lvsResult)}</pre> : <div className="ptHint">Run LVS-lite to see mismatches.</div>}
+          {lvs.lvsResult ? (
+            <DisclosurePanel summary="Raw LVS payload JSON">
+              <pre className="ptPre">{lvs.prettyJson(lvs.lvsResult)}</pre>
+            </DisclosurePanel>
+          ) : <div className="ptHint">Run LVS-lite to see mismatches.</div>}
         </div>
       </div>
     );
@@ -732,19 +796,22 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-klayout" role="tabpanel" aria-labelledby="pt-tab-graph-klayout" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">KLayout Artifact Pack (DRC-lite)</div>
+          <div className="ptRightTitle">KLayout packaging and extraction</div>
+          <SectionLead title="What this adds">Use KLayout after layout build to produce extraction artifacts, DRC-lite outputs, and a reviewable artifact pack around the generated GDS.</SectionLead>
 
-          <JsonBox
-            title="klayout pack settings (advanced)"
-            value={klayout.klayoutPackSettings}
-            onApply={(text) => {
-              const parsed = klayout.safeParseJson(text);
-              if (!parsed.ok) return parsed;
-              if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-              klayout.onSetKlayoutPackSettings(parsed.value);
-              return { ok: true };
-            }}
-          />
+          <DisclosurePanel summary="Advanced KLayout pack settings JSON">
+            <JsonBox
+              title="klayout pack settings (advanced)"
+              value={klayout.klayoutPackSettings}
+              onApply={(text) => {
+                const parsed = klayout.safeParseJson(text);
+                if (!parsed.ok) return parsed;
+                if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
+                klayout.onSetKlayoutPackSettings(parsed.value);
+                return { ok: true };
+              }}
+            />
+          </DisclosurePanel>
 
           <div className="ptBtnRow">
             <button
@@ -770,7 +837,7 @@ export default function GraphRightSidebarContent({
         </div>
 
         <div className="ptRightSection">
-          <div className="ptRightTitle">KLayout Pack Result</div>
+          <div className="ptRightTitle">KLayout outputs</div>
           {klayout.klayoutPackResult?.run_id && klayout.klayoutPackResult?.artifact_relpaths ? (
             <div className="ptCallout">
               <div className="ptCalloutTitle">Artifacts (served)</div>
@@ -872,7 +939,11 @@ export default function GraphRightSidebarContent({
               </div>
             </div>
           ) : null}
-          {klayout.klayoutPackResult ? <pre className="ptPre">{klayout.prettyJson(klayout.klayoutPackResult)}</pre> : <div className="ptHint">Run KLayout pack to see outputs.</div>}
+          {klayout.klayoutPackResult ? (
+            <DisclosurePanel summary="Raw KLayout payload JSON">
+              <pre className="ptPre">{klayout.prettyJson(klayout.klayoutPackResult)}</pre>
+            </DisclosurePanel>
+          ) : <div className="ptHint">Run KLayout pack to see outputs.</div>}
         </div>
       </div>
     );
@@ -882,19 +953,22 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-spice" role="tabpanel" aria-labelledby="pt-tab-graph-spice" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">SPICE Export</div>
+          <div className="ptRightTitle">SPICE export and mapping</div>
+          <SectionLead title="What this produces">Export a deterministic netlist and mapping package for downstream circuit analysis after the design flow is settled.</SectionLead>
 
-          <JsonBox
-            title="spice settings (advanced)"
-            value={spice.spiceSettings}
-            onApply={(text) => {
-              const parsed = spice.safeParseJson(text);
-              if (!parsed.ok) return parsed;
-              if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
-              spice.onSetSpiceSettings(parsed.value);
-              return { ok: true };
-            }}
-          />
+          <DisclosurePanel summary="Advanced SPICE settings JSON">
+            <JsonBox
+              title="spice settings (advanced)"
+              value={spice.spiceSettings}
+              onApply={(text) => {
+                const parsed = spice.safeParseJson(text);
+                if (!parsed.ok) return parsed;
+                if (!parsed.value || typeof parsed.value !== "object" || Array.isArray(parsed.value)) return { ok: false, error: "Settings must be a JSON object." };
+                spice.onSetSpiceSettings(parsed.value);
+                return { ok: true };
+              }}
+            />
+          </DisclosurePanel>
 
           <div className="ptBtnRow">
             <button className="ptBtn ptBtnPrimary" onClick={spice.onRunSpiceExport} disabled={spice.busy}>
@@ -905,7 +979,7 @@ export default function GraphRightSidebarContent({
         </div>
 
         <div className="ptRightSection">
-          <div className="ptRightTitle">SPICE Export Result</div>
+          <div className="ptRightTitle">SPICE outputs</div>
           {spice.spiceResult?.run_id && spice.spiceResult?.artifact_relpaths ? (
             <div className="ptCallout">
               <div className="ptCalloutTitle">Artifacts (served)</div>
@@ -960,7 +1034,11 @@ export default function GraphRightSidebarContent({
               </div>
             </div>
           ) : null}
-          {spice.spiceResult ? <pre className="ptPre">{spice.prettyJson(spice.spiceResult)}</pre> : <div className="ptHint">Export to see netlist + mapping.</div>}
+          {spice.spiceResult ? (
+            <DisclosurePanel summary="Raw SPICE payload JSON">
+              <pre className="ptPre">{spice.prettyJson(spice.spiceResult)}</pre>
+            </DisclosurePanel>
+          ) : <div className="ptHint">Export to see netlist + mapping.</div>}
         </div>
       </div>
     );
@@ -970,7 +1048,8 @@ export default function GraphRightSidebarContent({
     return (
       <div id="pt-panel-graph-graph" role="tabpanel" aria-labelledby="pt-tab-graph-graph" className="ptRightBody">
         <div className="ptRightSection">
-          <div className="ptRightTitle">Graph Payload</div>
+          <div className="ptRightTitle">Raw graph payload</div>
+          <SectionLead title="When to use this">Use the raw payload only for debugging, copy-paste review, or advanced edits that are easier in JSON than in the visual graph.</SectionLead>
           <pre className="ptPre">{graphJson.exportText}</pre>
           <div className="ptBtnRow">
             <button

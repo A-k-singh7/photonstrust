@@ -13,11 +13,11 @@ export default function GuidanceStrip({
     <section className="ptCard ptGuidanceStrip" aria-label="Start here guidance">
       <div className="ptGuidanceTop">
         <div>
-          <div className="ptRightTitle">Start Here</div>
+          <div className="ptRightTitle">Next best step</div>
           <div className="ptHint">
             {guided
-              ? "Guided mode is active. Complete the first-run checklist, then move to compare and certify."
-              : "Power mode is active. All advanced controls are visible for fast expert workflows."}
+              ? "Guided mode keeps only the essential next actions visible. Complete a first run, then move to compare and certify."
+              : "Power mode exposes the full engineering surface for expert workflows and deeper diagnostics."}
           </div>
         </div>
         <div className="ptBtnRow">

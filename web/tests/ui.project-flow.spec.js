@@ -16,6 +16,9 @@ test("landing bootstraps the sample project workspace", async ({ page }) => {
     .poll(() => mock.requests.bootstrapCalls.length)
     .toBe(1);
 
+  await page.getByRole("button", { name: "Continue to workspace", exact: true }).click();
+  await expect(page.locator('section[aria-label="Product landing workspace"]')).toBeHidden();
+
   const projectSelect = page
     .locator('section[aria-label="Workspace context bar"]')
     .locator("label")
@@ -24,9 +27,6 @@ test("landing bootstraps the sample project workspace", async ({ page }) => {
     .locator("select");
 
   await expect.poll(async () => projectSelect.inputValue()).toBe("pilot_demo");
-
-  await page.getByRole("button", { name: "Continue to workspace", exact: true }).click();
-  await expect(page.locator('section[aria-label="Product landing workspace"]')).toBeHidden();
 });
 
 test("project workspace autosaves and restores after reload", async ({ page }) => {
@@ -55,11 +55,11 @@ test("project workspace autosaves and restores after reload", async ({ page }) =
     .filter({ hasText: "Role preset" })
     .first()
     .locator("select");
-  const modeSelect = page.locator("header.ptTopbar label").filter({ hasText: "Mode" }).first().locator("select");
+  const evidenceTab = page.getByRole("tab", { name: "Evidence", exact: true });
 
   await expect(activeStage).toHaveText("Certify");
   await expect(rolePreset).toHaveValue("exec");
-  await expect(modeSelect).toHaveValue("runs");
+  await expect(evidenceTab).toBeVisible();
 
   await page.getByRole("navigation", { name: "Product stage navigation" }).getByRole("button", { name: "Build" }).click();
   await expect(activeStage).toHaveText("Build");
@@ -70,7 +70,7 @@ test("project workspace autosaves and restores after reload", async ({ page }) =
   await page.reload();
 
   await expect(activeStage).toHaveText("Build");
-  await expect(page.locator("header.ptTopbar label").filter({ hasText: "Mode" }).first().locator("select")).toHaveValue("graph");
+  await expect(page.getByRole("tab", { name: "Setup", exact: true })).toBeVisible();
 });
 
 test("certification workspace publishes and verifies a packet", async ({ page }) => {
@@ -154,8 +154,8 @@ test("compare selections and approvals survive a reload", async ({ page }) => {
   await page.goto("/");
 
   const activeStage = page.locator('nav[aria-label="Product stage navigation"] button.ptStagePill.active');
-  const diffTab = page.getByRole("tab", { name: "Diff", exact: true });
-  const manifestTab = page.getByRole("tab", { name: "Manifest", exact: true });
+  const diffTab = page.getByRole("tab", { name: "Decision Review", exact: true });
+  const evidenceTab = page.getByRole("tab", { name: "Evidence", exact: true });
   const compareLab = page.locator('section[aria-label="Week 6 compare lab panel"]');
   const baselineSelect = compareLab.getByRole("combobox", { name: "Baseline run", exact: true });
   const candidateSelect = compareLab.getByRole("combobox", { name: "Candidate run", exact: true });
@@ -185,7 +185,7 @@ test("compare selections and approvals survive a reload", async ({ page }) => {
     )
     .toBe(true);
 
-  await manifestTab.click();
+  await evidenceTab.click();
   const certWorkspace = page.locator('section[aria-label="Certification workspace"]');
   await expect(certWorkspace).toBeVisible();
   await certWorkspace.getByLabel("actor", { exact: true }).fill("reviewer@test");
@@ -204,7 +204,7 @@ test("compare selections and approvals survive a reload", async ({ page }) => {
   await page.reload();
 
   await expect(activeStage).toHaveText("Compare");
-  await expect(manifestTab).toHaveAttribute("aria-selected", "true");
+  await expect(evidenceTab).toHaveAttribute("aria-selected", "true");
   await expect(approvalJson).toBeVisible();
 
   await diffTab.click();
