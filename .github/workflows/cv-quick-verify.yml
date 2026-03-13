@@ -50,7 +50,7 @@ jobs:
 
       - name: Upload CV verify artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cv-quick-verify-artifacts
           path: |
@@ -153,7 +153,7 @@ jobs:
 
       - name: Upload tapeout artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cv-tapeout-artifacts
           path: |
@@ -194,7 +194,7 @@ jobs:
 
       - name: Upload release gate artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-gate-artifacts
           path: |
