@@ -28,7 +28,8 @@ _BUNDLE_DIGEST_RE = re.compile(r"^[a-f0-9]{64}$")
 
 def iter_manifest_artifact_relpaths(manifest: dict[str, Any]) -> list[str]:
     out: list[str] = []
-    arts = manifest.get("artifacts") if isinstance(manifest.get("artifacts"), dict) else {}
+    arts_raw = manifest.get("artifacts")
+    arts: dict[str, Any] = dict(arts_raw) if isinstance(arts_raw, dict) else {}
     for value in arts.values():
         if isinstance(value, str) and value.strip():
             out.append(str(value).strip())
@@ -38,7 +39,8 @@ def iter_manifest_artifact_relpaths(manifest: dict[str, Any]) -> list[str]:
         for card in cards:
             if not isinstance(card, dict):
                 continue
-            card_artifacts = card.get("artifacts") if isinstance(card.get("artifacts"), dict) else {}
+            card_artifacts_raw = card.get("artifacts")
+            card_artifacts: dict[str, Any] = dict(card_artifacts_raw) if isinstance(card_artifacts_raw, dict) else {}
             for value in card_artifacts.values():
                 if isinstance(value, str) and value.strip():
                     out.append(str(value).strip())
@@ -57,13 +59,16 @@ def iter_manifest_artifact_relpaths(manifest: dict[str, Any]) -> list[str]:
 def is_workflow_manifest(manifest: dict[str, Any]) -> bool:
     if str(manifest.get("run_type", "")).strip() == "pic_workflow_invdesign_chain":
         return True
-    outputs = manifest.get("outputs_summary") if isinstance(manifest.get("outputs_summary"), dict) else {}
+    outputs_raw = manifest.get("outputs_summary")
+    outputs: dict[str, Any] = dict(outputs_raw) if isinstance(outputs_raw, dict) else {}
     return isinstance(outputs.get("pic_workflow"), dict)
 
 
 def workflow_child_run_ids(manifest: dict[str, Any]) -> list[str]:
-    outputs = manifest.get("outputs_summary") if isinstance(manifest.get("outputs_summary"), dict) else {}
-    workflow = outputs.get("pic_workflow") if isinstance(outputs.get("pic_workflow"), dict) else {}
+    outputs_raw = manifest.get("outputs_summary")
+    outputs: dict[str, Any] = dict(outputs_raw) if isinstance(outputs_raw, dict) else {}
+    workflow_raw = outputs.get("pic_workflow")
+    workflow: dict[str, Any] = dict(workflow_raw) if isinstance(workflow_raw, dict) else {}
     raw = [
         workflow.get("invdesign_run_id"),
         workflow.get("layout_run_id"),
@@ -271,7 +276,8 @@ def export_bundle_for_run(
                 except Exception as exc:
                     missing.append({"run_id": included_run_id, "path": rel, "error": str(exc)})
                     continue
-                files.append((f"runs/run_{included_run_id}/{str(rel).replace('\\', '/')}", artifact_path))
+                rel_posix = str(rel).replace("\\", "/")
+                files.append((f"runs/run_{included_run_id}/{rel_posix}", artifact_path))
         else:
             missing.append({"run_id": included_run_id, "path": None, "error": "manifest not readable"})
 
@@ -285,7 +291,8 @@ def export_bundle_for_run(
         uniq_files.append((arc, file_path))
     uniq_files.sort(key=lambda item: str(item[0]).lower())
 
-    root_input = root_manifest.get("input") if isinstance(root_manifest.get("input"), dict) else {}
+    root_input_raw = root_manifest.get("input")
+    root_input: dict[str, Any] = dict(root_input_raw) if isinstance(root_input_raw, dict) else {}
     root_execution_mode = str(root_input.get("execution_mode", "preview") or "preview").strip().lower() or "preview"
     if root_execution_mode == "certification":
         missing_invdesign = []

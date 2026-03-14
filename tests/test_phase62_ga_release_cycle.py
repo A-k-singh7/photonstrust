@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.build_release_gate_packet import build_release_gate_packet
+from scripts.release.build_release_gate_packet import build_release_gate_packet
 from scripts.check_external_reviewer_findings import evaluate_external_reviewer_report
 from scripts.lock_rc_baseline import build_rc_baseline_lock
 from scripts.publish_ga_release_bundle import build_ga_release_bundle_manifest

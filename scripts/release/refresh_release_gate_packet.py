@@ -37,7 +37,7 @@ def main() -> int:
     parser.add_argument(
         "--public-key",
         type=Path,
-        default=Path("results/release_gate_keys/release_gate_packet_2026-02-16.public.pem"),
+        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.public.pem"),
         help="Path to Ed25519 public key PEM.",
     )
     args = parser.parse_args()
