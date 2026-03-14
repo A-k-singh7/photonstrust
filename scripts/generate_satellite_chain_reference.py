@@ -23,7 +23,7 @@ def _path_to_repo_rel_or_placeholder(raw: object, *, repo_root: Path) -> str:
 
 def _round_floats(obj: Any) -> Any:
     if isinstance(obj, float):
-        return round(float(obj), 15)
+        return round(float(obj), 12)
     if isinstance(obj, list):
         return [_round_floats(item) for item in obj]
     if isinstance(obj, tuple):

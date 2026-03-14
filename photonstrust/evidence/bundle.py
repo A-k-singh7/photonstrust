@@ -207,7 +207,8 @@ def verify_bundle_zip(
 
         # Optional signature verification.
         signature_verified = False
-        sig_zip_path = f"{bundle_root}/{str(signature_relpath).replace('\\', '/')}"
+        signature_relpath_posix = str(signature_relpath).replace("\\", "/")
+        sig_zip_path = f"{bundle_root}/{signature_relpath_posix}"
         sig_present = sig_zip_path in set(zf.namelist())
         if require_signature and not sig_present:
             errors.append({"code": "signature_missing", "path": str(signature_relpath)})
@@ -322,7 +323,8 @@ def sign_bundle_zip(
             out_info.compress_type = info.compress_type
             dst.writestr(out_info, data)
 
-        sig_arc = f"{bundle_root}/{str(signature_relpath).replace('\\', '/')}"
+        signature_relpath_posix = str(signature_relpath).replace("\\", "/")
+        sig_arc = f"{bundle_root}/{signature_relpath_posix}"
         sig_info = zipfile.ZipInfo(sig_arc)
         # Match evidence bundle fixed dt if possible.
         sig_info.date_time = (1980, 1, 1, 0, 0, 0)

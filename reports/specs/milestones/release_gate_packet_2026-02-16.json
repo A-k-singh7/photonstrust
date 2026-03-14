@@ -1,14 +1,14 @@
 {
   "schema_version": "0.1",
   "kind": "photonstrust.release_gate_packet",
-  "generated_at": "2026-03-12T13:27:10.388427+00:00",
+  "generated_at": "2026-03-14T01:12:32.717569+00:00",
   "required_artifact_count": 12,
   "artifact_count": 12,
   "artifacts": [
     {
       "path": "CHANGELOG.md",
-      "sha256": "40f42098113a76ce095119fa22d11c7f29c3b887abd81c26c61681c3e59591c2",
-      "bytes": 1199
+      "sha256": "dfc6ad1197105a26abab732bf7ec7977fd39e6b4e4cac011977c58b17095bf26",
+      "bytes": 1272
     },
     {
       "path": "reports/specs/milestones/external_reviewer_dry_run_2026-02-16.json",
@@ -32,13 +32,13 @@
     },
     {
       "path": "reports/specs/milestones/rc_baseline_lock_2026-02-16.json",
-      "sha256": "d45d5e72496c775a7145b7e0ee1a565e994074a09fed4d6dad7868cdce35f559",
-      "bytes": 1163
+      "sha256": "1ae5170cecc97a2ad295849e94c690dde1913244a26ec26dac1744c496fd7ff4",
+      "bytes": 1131
     },
     {
       "path": "reports/specs/milestones/regression_baseline_gate_2026-02-16.md",
-      "sha256": "ccc64d4f26525ce168d295bd5d6dbac6e06614f81c74c3826b68ee11dcfc2829",
-      "bytes": 1030
+      "sha256": "703c5554560909c37949907721cef6614ee0ca599ae013d24d750164ffe4887d",
+      "bytes": 1058
     },
     {
       "path": "reports/specs/milestones/release_approvals_2026-02-16.json",
@@ -47,8 +47,8 @@
     },
     {
       "path": "reports/specs/milestones/release_gate_v1_0_2026-02-16.md",
-      "sha256": "b36dcfb4a3d19b0a9db81e22a5f782dfca080133e726a6bef50ce5b3fc86022e",
-      "bytes": 995
+      "sha256": "9e0d82f33884c461b346c7212bf6a021fec64a96b41bdf93d5db8dc56ce7d57b",
+      "bytes": 1011
     },
     {
       "path": "reports/specs/milestones/reliability_card_quality_review_2026-02-16.md",
@@ -57,13 +57,13 @@
     },
     {
       "path": "reports/specs/release_notes_v0.1.0_ga_2026-02-16.md",
-      "sha256": "1b3df8c2f4b4843723eba699bb73c5168946e6b8cb84156d9fdcdd61cba323f5",
-      "bytes": 1268
+      "sha256": "3c72154af9bcec51588fcbf8c4f561704379e2d0f561ca971d5c44663a69f0ec",
+      "bytes": 1308
     },
     {
       "path": "results/release_gate/release_gate_report.json",
-      "sha256": "e0bb84b3d1f10457ff06aef0012fe508698d314a2b23c901431e214461e44f0c",
-      "bytes": 4989
+      "sha256": "d1bc057bff33a7d5274cc69a5f18040a33e13645edf1e8334ed681b48d0be5be",
+      "bytes": 4869
     }
   ],
   "approvals": {
@@ -91,5 +91,5 @@
       }
     ]
   },
-  "artifact_set_sha256": "d036defa39f359d14bce13d0014008bfa4f002fe6d02a868e73aabfdafca28d0"
+  "artifact_set_sha256": "81feb85056faee913e70c13dde296940b69fa2bf5e63034eebfc4962f7737cc2"
 }
