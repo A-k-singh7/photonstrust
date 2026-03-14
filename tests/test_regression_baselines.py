@@ -14,7 +14,7 @@ def test_regression_baselines():
         pytest.skip("Baseline file not present. Run scripts/generate_baselines.py")
 
     baselines = json.loads(baseline_path.read_text(encoding="utf-8"))["baselines"]
-    config = load_config(root / "configs" / "demo1_default.yml")
+    config = load_config(root / "configs" / "quickstart" / "qkd_default.yml")
     scenarios = build_scenarios(config)
 
     for scenario in scenarios:

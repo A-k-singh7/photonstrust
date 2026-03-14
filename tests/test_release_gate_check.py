@@ -45,8 +45,9 @@ def test_release_gate_check_quick_mode_writes_report(
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert payload["pass"] is True
     names = {row["name"] for row in payload["checks"]}
-    assert "lineage_gate" in names
-    assert "repro_gate" in names
+    assert "lineage_gate" not in names
+    assert "repro_gate" not in names
+    assert "benchmark_drift" in names
 
 
 def test_release_gate_check_returns_nonzero_on_failed_check(
@@ -58,7 +59,7 @@ def test_release_gate_check_returns_nonzero_on_failed_check(
 
     def _mixed_run(cmd, *, timeout_s=None):  # noqa: ANN001
         _ = timeout_s
-        if "replay_satellite_chain_reports.py" in " ".join(str(part) for part in cmd):
+        if "check_benchmark_drift.py" in " ".join(str(part) for part in cmd):
             return False, "failed"
         return True, "ok"
 

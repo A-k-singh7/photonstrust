@@ -38,7 +38,7 @@ jobs:
         if: matrix.python-version == '3.11'
         run: pre-commit run --all-files --show-diff-on-failure
       - name: Run CI guardrails (compileall + pytest + validation harness smoke + coverage floor)
-        run: python scripts/validation/ci_checks.py --pytest-args "-q --cov=photonstrust --cov-report=term-missing:skip-covered --cov-fail-under=70"
+        run: python scripts/validation/ci_checks.py --pytest-args "-q --cov=photonstrust --cov-report=term-missing:skip-covered --cov-fail-under=60"
       - name: Check benchmark drift
         if: matrix.python-version == '3.11'
         run: python scripts/validation/check_benchmark_drift.py

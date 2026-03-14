@@ -8,9 +8,9 @@ import pytest
 
 from scripts.check_milestone_archive import check_milestone_archive, required_archive_paths
 from scripts.run_ga_replay_matrix import run_ga_replay_matrix
-from scripts.sign_release_gate_packet import sign_release_gate_packet
-from scripts.verify_release_gate_packet import verify_release_gate_packet
-from scripts.verify_release_gate_packet_signature import verify_release_gate_packet_signature
+from scripts.release.sign_release_gate_packet import sign_release_gate_packet
+from scripts.release.verify_release_gate_packet import verify_release_gate_packet
+from scripts.release.verify_release_gate_packet_signature import verify_release_gate_packet_signature
 
 
 def _sha256_text(text: str) -> str:

@@ -65,7 +65,7 @@
     "latitude_deg": 52.5,
     "pic_cert_run_id": null,
     "eta_chip": 0.65,
-    "eta_ground_terminal": 0.160035325463855
+    "eta_ground_terminal": 0.160035325464
   },
   "pass": {
     "altitude_km": 600.0,
@@ -74,9 +74,9 @@
     "samples_evaluated": 84,
     "samples_with_positive_key_rate": 69,
     "key_bits_accumulated": 348977.87174166145,
-    "mean_key_rate_bps": 830.8996946230035,
-    "peak_key_rate_bps": 2298.0907009609978,
-    "peak_elevation_deg": 89.62551770036197
+    "mean_key_rate_bps": 830.899694623003,
+    "peak_key_rate_bps": 2298.090700960998,
+    "peak_elevation_deg": 89.625517700362
   },
   "uncertainty_budget": {
     "enabled": true,
@@ -107,10 +107,10 @@
     "pass": true
   },
   "annual_estimate": {
-    "passes_per_day": 3.691775991406375,
+    "passes_per_day": 3.691775991406,
     "clear_sky_probability": 0.4,
     "key_bits_per_year": 188098826.75048205,
-    "key_mbits_per_year": 188.09882675048206,
+    "key_mbits_per_year": 188.098826750482,
     "notes": "Annual estimate assumes independent pass yield and clear-sky fraction."
   },
   "signoff": {

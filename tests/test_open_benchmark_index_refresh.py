@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from photonstrust.benchmarks.open_index import check_open_index_consistency, rebuild_open_index
-from scripts.check_open_benchmarks import run_checks
+from scripts.validation.check_open_benchmarks import run_checks
 
 
 def _seed_open_registry(tmp_path: Path) -> Path:
