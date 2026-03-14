@@ -1,11 +1,11 @@
 {
   "schema_version": "0.1",
   "kind": "photonstrust.release_gate_packet_signature",
-  "created_at": "2026-03-14T00:53:43.671051+00:00",
+  "created_at": "2026-03-14T01:03:57.699037+00:00",
   "key_id": "release_gate_packet_2026-02-16",
   "packet_path": "reports/specs/milestones/release_gate_packet_2026-02-16.json",
-  "packet_sha256": "c07f35c6a47690dc53015679d7ebc88481c9e8f02ce1b824631749318e56800a",
+  "packet_sha256": "381e01702657a739a743fe267bc0e8035a22bc85a9a3ec6f7e1cc2e665558077",
   "signature_algorithm": "ed25519",
-  "signature_b64": "KOaZYjECpJTSDO/Yx1NyjbB65UJo3pXR0WnvwMK3xzszgU41RyqWZ7fxxoCAoPmaoA39HYy0QfTei2ejaQexDg==",
-  "public_key_path": "results/release_gate_keys/release_gate_packet_2026-02-16.public.pem"
+  "signature_b64": "zPEci3iV1wNOiPTqJJXCgwSPlohps7I1CW5rCWs+U5Vz0ZiaMKfR0akLa4pP02DtRKpEWppvvywUnJPE0HyyDw==",
+  "public_key_path": "reports/specs/milestones/release_gate_packet_2026-02-16.public.pem"
 }
