@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -129,8 +130,11 @@ def _make_local_layout_run_dir(root: Path) -> Path:
 
 def _run_day10(args: list[str]) -> subprocess.CompletedProcess[str]:
     script = REPO_ROOT / "scripts" / "run_day10_tapeout_rehearsal.py"
+    command = [sys.executable, str(script), *args]
+    if os.environ.get("CI") and "--allow-ci" not in command:
+        command.append("--allow-ci")
     return subprocess.run(
-        [sys.executable, str(script), *args],
+        command,
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

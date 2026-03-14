@@ -23,6 +23,10 @@ updates:
       - "dependencies"
       - "security"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "vite"
+        update-types:
+          - "version-update:semver-major"
 
   - package-ecosystem: "github-actions"
     directory: "/"

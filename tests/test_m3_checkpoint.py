@@ -15,7 +15,7 @@ from photonstrust.workflow.schema import m3_checkpoint_report_schema_path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-QKD_CONFIG = REPO_ROOT / "configs" / "demo1_default.yml"
+QKD_CONFIG = REPO_ROOT / "configs" / "quickstart" / "qkd_default.yml"
 REPEATER_CONFIG = REPO_ROOT / "configs" / "demo2_repeater_spacing.yml"
 REFERENCE_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "m3_checkpoint_reference.json"
 
