@@ -1,14 +1,14 @@
 {
   "schema_version": "0.1",
   "kind": "photonstrust.release_gate_packet",
-  "generated_at": "2026-03-12T13:27:10.388427+00:00",
+  "generated_at": "2026-03-14T00:34:19.766706+00:00",
   "required_artifact_count": 12,
   "artifact_count": 12,
   "artifacts": [
     {
       "path": "CHANGELOG.md",
-      "sha256": "40f42098113a76ce095119fa22d11c7f29c3b887abd81c26c61681c3e59591c2",
-      "bytes": 1199
+      "sha256": "dfc6ad1197105a26abab732bf7ec7977fd39e6b4e4cac011977c58b17095bf26",
+      "bytes": 1272
     },
     {
       "path": "reports/specs/milestones/external_reviewer_dry_run_2026-02-16.json",
@@ -37,8 +37,8 @@
     },
     {
       "path": "reports/specs/milestones/regression_baseline_gate_2026-02-16.md",
-      "sha256": "ccc64d4f26525ce168d295bd5d6dbac6e06614f81c74c3826b68ee11dcfc2829",
-      "bytes": 1030
+      "sha256": "e926a5d0781824e6522522a50f16260fdb3dcb533adbe59f2bd03b81c47864dd",
+      "bytes": 1088
     },
     {
       "path": "reports/specs/milestones/release_approvals_2026-02-16.json",
@@ -47,8 +47,8 @@
     },
     {
       "path": "reports/specs/milestones/release_gate_v1_0_2026-02-16.md",
-      "sha256": "b36dcfb4a3d19b0a9db81e22a5f782dfca080133e726a6bef50ce5b3fc86022e",
-      "bytes": 995
+      "sha256": "365d694d1b19ca0aa89d0937d5b13aea567e36f0e6a0a3cf594e0e00767ae2af",
+      "bytes": 1037
     },
     {
       "path": "reports/specs/milestones/reliability_card_quality_review_2026-02-16.md",
@@ -57,8 +57,8 @@
     },
     {
       "path": "reports/specs/release_notes_v0.1.0_ga_2026-02-16.md",
-      "sha256": "1b3df8c2f4b4843723eba699bb73c5168946e6b8cb84156d9fdcdd61cba323f5",
-      "bytes": 1268
+      "sha256": "f3f34f9fd6a14a5691d28de0a6ad408d3fe9e6d682c2c243bdc932afd589f85b",
+      "bytes": 1339
     },
     {
       "path": "results/release_gate/release_gate_report.json",
@@ -91,5 +91,5 @@
       }
     ]
   },
-  "artifact_set_sha256": "d036defa39f359d14bce13d0014008bfa4f002fe6d02a868e73aabfdafca28d0"
+  "artifact_set_sha256": "e19fb37290e3aea6ab42fff09d6d88fe3a8017bafbe56e78fef529c9950429af"
 }
