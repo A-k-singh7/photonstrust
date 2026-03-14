@@ -171,7 +171,8 @@ def main() -> int:
 
     output_path = args.output if args.output.is_absolute() else (repo_root / args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(packet, indent=2), encoding="utf-8")
+    with output_path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(packet, indent=2))
 
     if failures:
         print("Release gate packet: FAIL")

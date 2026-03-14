@@ -58,7 +58,8 @@ def sign_release_gate_packet(
     }
 
     resolved_signature.parent.mkdir(parents=True, exist_ok=True)
-    resolved_signature.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    with resolved_signature.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(payload, indent=2))
     return True, str(resolved_signature)
 
 
@@ -85,7 +86,7 @@ def main() -> int:
     parser.add_argument(
         "--public-key",
         type=Path,
-        default=Path("results/release_gate_keys/release_gate_packet_2026-02-16.public.pem"),
+        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.public.pem"),
         help="Path to Ed25519 public key PEM.",
     )
     parser.add_argument(
