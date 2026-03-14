@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload satellite-chain artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: satellite-chain-artifacts
           path: |
@@ -109,7 +109,7 @@ jobs:
 
       - name: Upload orbit provider parity artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: satellite-chain-parity-artifacts
           path: |
