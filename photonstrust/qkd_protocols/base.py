@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Optional
 
 from photonstrust.qkd_types import QKDResult
 
@@ -27,7 +27,7 @@ class ProtocolApplicability:
         return {"status": self.status, "reasons": list(self.reasons)}
 
 
-ProtocolEvaluator = Callable[[dict, float, dict | None], QKDResult]
+ProtocolEvaluator = Callable[[dict, float, Optional[dict]], QKDResult]
 ProtocolApplicabilityFn = Callable[[dict], ProtocolApplicability]
 
 

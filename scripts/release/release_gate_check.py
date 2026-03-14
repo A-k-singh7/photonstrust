@@ -139,8 +139,6 @@ def _checks(*, quick: bool) -> list[dict[str, Any]]:
             "observability_gate",
             "parity_gate",
             "uncertainty_gate",
-            "lineage_gate",
-            "repro_gate",
             "benchmark_drift",
             "open_benchmarks",
         }
