@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -22,8 +23,11 @@ def _run_materialize(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 def _run_smoke(args: list[str]) -> subprocess.CompletedProcess[str]:
     script = REPO_ROOT / "scripts" / "run_foundry_smoke.py"
+    command = [sys.executable, str(script), *args]
+    if os.environ.get("CI") and "--allow-ci" not in command:
+        command.append("--allow-ci")
     return subprocess.run(
-        [sys.executable, str(script), *args],
+        command,
         cwd=str(REPO_ROOT),
         check=False,
         capture_output=True,
