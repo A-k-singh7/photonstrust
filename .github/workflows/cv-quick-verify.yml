@@ -179,7 +179,7 @@ jobs:
       - name: Install release gate dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,qutip,qiskit]"
+          pip install -e ".[dev,api,qutip,qiskit]"
 
       - name: Run release gate checks
         run: |
