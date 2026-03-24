@@ -22,3 +22,21 @@ def build_star(center: str, nodes: list[str], channel_cfg: dict) -> dict:
     for node in nodes:
         links.append({"a": center, "b": node, "channel": channel_cfg})
     return {"nodes": [center] + nodes, "links": links}
+
+
+def topology_dict_to_network(topo_dict: dict) -> "NetworkTopology":
+    """Convert legacy ``{nodes, links}`` dict to :class:`NetworkTopology`."""
+    from photonstrust.network.types import NetworkLink, NetworkNode, NetworkTopology
+
+    nt = NetworkTopology()
+    for idx, nid in enumerate(topo_dict.get("nodes", [])):
+        nt.add_node(NetworkNode(node_id=str(nid)))
+    for idx, link in enumerate(topo_dict.get("links", [])):
+        nt.add_link(NetworkLink(
+            link_id=f"link_{idx}",
+            node_a=str(link["a"]),
+            node_b=str(link["b"]),
+            channel_cfg=link.get("channel", {}),
+            distance_km=float(link.get("distance_km", 0)),
+        ))
+    return nt

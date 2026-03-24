@@ -1,0 +1,17 @@
+{
+  "component_id": "generic_ingaas",
+  "category": "detector",
+  "subcategory": "ingaas",
+  "vendor": null,
+  "model": null,
+  "version": "1.0",
+  "params": {
+    "pde": 0.20,
+    "dark_counts_cps": 500,
+    "jitter_ps_fwhm": 80,
+    "dead_time_ns": 10000,
+    "afterpulsing_prob": 0.02
+  },
+  "tags": ["ingaas", "avalanche_photodiode", "telecom"],
+  "notes": "Generic InGaAs APD baseline matching original presets.py values."
+}

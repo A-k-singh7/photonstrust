@@ -72,3 +72,9 @@ def get_detector_preset(detector_class, band=None):
             preset["pde"] = max(0.0, min(1.0, preset["pde"] + adj.get("pde_delta", 0.0)))
             preset["dark_counts_cps"] *= adj.get("dark_scale", 1.0)
     return preset
+
+
+def get_catalog():
+    """Return the global :class:`ComponentCatalog` instance (lazy-loaded)."""
+    from photonstrust.catalog.store import ComponentCatalog
+    return ComponentCatalog()

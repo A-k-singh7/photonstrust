@@ -1,0 +1,15 @@
+{
+  "component_id": "c_1550",
+  "category": "band",
+  "subcategory": "c_band",
+  "vendor": null,
+  "model": null,
+  "version": "1.0",
+  "params": {
+    "wavelength_nm": 1550,
+    "fiber_loss_db_per_km": 0.20,
+    "dispersion_ps_per_km": 5.0
+  },
+  "tags": ["c_band", "telecom", "1550nm"],
+  "notes": "C-band (1550 nm) standard telecom window."
+}

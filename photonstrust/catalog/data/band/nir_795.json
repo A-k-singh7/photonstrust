@@ -1,0 +1,15 @@
+{
+  "component_id": "nir_795",
+  "category": "band",
+  "subcategory": "nir",
+  "vendor": null,
+  "model": null,
+  "version": "1.0",
+  "params": {
+    "wavelength_nm": 795,
+    "fiber_loss_db_per_km": 2.5,
+    "dispersion_ps_per_km": 2.0
+  },
+  "tags": ["nir", "near_infrared", "795nm"],
+  "notes": "Near-IR 795 nm band."
+}

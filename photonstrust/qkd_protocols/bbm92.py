@@ -37,7 +37,7 @@ from photonstrust.qkd_protocols.common import (
     misalignment_error_with_visibility_factor,
     relay_split_distances_km,
 )
-from photonstrust.qkd_protocols.finite_key import apply_composable_finite_key
+from photonstrust.qkd_protocols.finite_key import apply_finite_key_dispatch
 from photonstrust.qkd_types import QKDResult
 from photonstrust.utils import binary_entropy, clamp
 
@@ -248,10 +248,15 @@ def compute_point_bbm92(
     h2 = binary_entropy(qber_total)
     privacy_term_asymptotic = max(0.0, 1.0 - f_ec * h2 - h2)
 
-    fk = apply_composable_finite_key(
+    fk = apply_finite_key_dispatch(
         finite_key_cfg=scenario.get("finite_key"),
         sifting=sifting,
         privacy_term_asymptotic=privacy_term_asymptotic,
+        protocol_name="bbm92",
+        single_photon_yield_lb=0.0,
+        single_photon_error_ub=float(qber_total),
+        qber=float(qber_total),
+        f_ec=f_ec,
     )
 
     key_rate = r_herald * fk.sifting_effective * fk.privacy_term_effective

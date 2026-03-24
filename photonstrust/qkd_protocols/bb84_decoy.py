@@ -8,7 +8,7 @@ from photonstrust.channels.coexistence import compute_raman_counts_cps
 from photonstrust.channels.fiber import apply_fiber_loss, dispersion_ps
 from photonstrust.channels.free_space import total_free_space_efficiency
 from photonstrust.qkd_protocols.common import apply_dead_time, per_pulse_prob_from_rate
-from photonstrust.qkd_protocols.finite_key import apply_composable_finite_key
+from photonstrust.qkd_protocols.finite_key import apply_finite_key_dispatch
 from photonstrust.qkd_types import QKDResult
 from photonstrust.utils import binary_entropy, clamp
 
@@ -106,10 +106,15 @@ def compute_point_bb84_decoy(
     e1_u = _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)
     privacy_term_asymptotic = max(0.0, 1.0 - binary_entropy(e1_u))
 
-    fk = apply_composable_finite_key(
+    fk = apply_finite_key_dispatch(
         finite_key_cfg=scenario.get("finite_key"),
         sifting=sifting,
         privacy_term_asymptotic=privacy_term_asymptotic,
+        protocol_name="bb84_decoy",
+        single_photon_yield_lb=y1_l,
+        single_photon_error_ub=e1_u,
+        qber=float(e_mu),
+        f_ec=f_ec,
     )
 
     r_pulse = q1_l * fk.privacy_term_effective - q_mu * f_ec * binary_entropy(e_mu)

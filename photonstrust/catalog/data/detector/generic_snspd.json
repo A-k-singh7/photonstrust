@@ -1,0 +1,17 @@
+{
+  "component_id": "generic_snspd",
+  "category": "detector",
+  "subcategory": "snspd",
+  "vendor": null,
+  "model": null,
+  "version": "1.0",
+  "params": {
+    "pde": 0.30,
+    "dark_counts_cps": 100,
+    "jitter_ps_fwhm": 30,
+    "dead_time_ns": 100,
+    "afterpulsing_prob": 0.001
+  },
+  "tags": ["snspd", "superconducting", "single_photon"],
+  "notes": "Generic SNSPD baseline matching original presets.py values."
+}
