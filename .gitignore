@@ -25,6 +25,11 @@ tmp_*.pdf
 *.log
 web_dev.log
 local/
+_plan_output.txt
+
+# Environment / secrets
+.env
+.env.*
 
 # OS/editor noise
 .DS_Store

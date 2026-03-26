@@ -7,7 +7,7 @@ name = "photonstrust"
 version = "0.1.0"
 description = "Physics-calibrated quantum link reliability toolkit"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 license = { text = "AGPL-3.0-only" }
 authors = [
   { name = "PhotonTrust Contributors" }
