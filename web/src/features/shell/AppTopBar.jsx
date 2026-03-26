@@ -31,6 +31,9 @@ export default function AppTopBar({
   apiHealthVersion,
   apiHealthError,
   showGraphProfileControls,
+  simOverlayVisible,
+  onToggleSimOverlay,
+  showSimOverlayToggle,
 }) {
   const demoActionLock = demoModeOpen;
 
@@ -77,6 +80,17 @@ export default function AppTopBar({
           <button className="ptBtn ptBtnGhost" onClick={onToggleLanding} disabled={demoActionLock}>
             {showLanding ? "Hide Start" : "Start Here"}
           </button>
+
+          {showSimOverlayToggle ? (
+            <button
+              className={`ptBtn ptBtnGhost${simOverlayVisible ? " ptBtnActive" : ""}`}
+              onClick={onToggleSimOverlay}
+              disabled={demoActionLock}
+              title="Toggle simulation result badges on canvas nodes"
+            >
+              {simOverlayVisible ? "Hide Results" : "Show Results"}
+            </button>
+          ) : null}
         </div>
 
         <details className="ptTopbarDetails">

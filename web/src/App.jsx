@@ -35,7 +35,7 @@ import {
 import { loadRecentActivity, loadViewPresets, saveRecentActivity, saveViewPreset } from "./state/workspaceState";
 
 import { BAND_OPTIONS, KIND_DEFS, kindDef, portDomainFor } from "./photontrust/kinds";
-import { templatePicChain, templatePicMzi, templatePicSpiceImportHarness, templateQkdLink } from "./photontrust/templates";
+import { templatePicChain, templatePicMzi, templatePicSpiceImportHarness, templateQkdLink, templatePicBalancedReceiver, templatePicAwgDemux, templatePicRingFilter, templatePicCoherentRx, templatePicModulatorTx, templatePicSwitch2x2 } from "./photontrust/templates";
 import { buildGraphPayload } from "./photontrust/graph";
 import PtNode from "./photontrust/PtNode";
 import {
@@ -688,12 +688,15 @@ export default function App() {
   const [compileResult, setCompileResult] = useState(null);
   const [orbitValidateResult, setOrbitValidateResult] = useState(null);
   const [runResult, setRunResult] = useState(null);
+  const [simOverlayVisible, setSimOverlayVisible] = useState(true);
   const [busy, setBusy] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [paletteScope, setPaletteScope] = useState("all");
   const [statusText, setStatusText] = useState("Ready.");
   const statusTimer = useRef(null);
+  const [connectionWarning, setConnectionWarning] = useState("");
+  const connWarnTimer = useRef(null);
 
   const reactFlowInstance = useReactFlow();
 
@@ -1514,6 +1517,12 @@ export default function App() {
     setActiveRightTab("inspect");
   }, [experienceMode, mode, profile, activeRightTab]);
 
+  const _showConnWarning = useCallback((msg) => {
+    setConnectionWarning(String(msg || ""));
+    if (connWarnTimer.current) clearTimeout(connWarnTimer.current);
+    connWarnTimer.current = setTimeout(() => setConnectionWarning(""), 2000);
+  }, []);
+
   const onConnect = useCallback(
     (params) => {
       const sourceId = String(params?.source || "").trim();
@@ -1528,22 +1537,23 @@ export default function App() {
       const fromPort = String(params?.sourceHandle || "out");
       const toPort = String(params?.targetHandle || "in");
       const edgeKind = "optical";
-      if (profile === "pic_circuit") {
-        const fromDomain = _nodePortDomain(sourceNode, "out", fromPort);
-        const toDomain = _nodePortDomain(targetNode, "in", toPort);
 
-        if (fromDomain !== toDomain) {
-          _setStatus(
-            `Blocked connection: ${sourceId}.${fromPort} (${fromDomain}) -> ${targetId}.${toPort} (${toDomain}).`,
-          );
-          return;
-        }
-        if (fromDomain !== edgeKind) {
-          _setStatus(
-            `Blocked connection: edge kind ${edgeKind} incompatible with ${fromDomain} ports.`,
-          );
-          return;
-        }
+      const fromDomain = _nodePortDomain(sourceNode, "out", fromPort);
+      const toDomain = _nodePortDomain(targetNode, "in", toPort);
+
+      if (fromDomain !== toDomain) {
+        const msg = `Cannot connect ${fromDomain} output to ${toDomain} input.`;
+        _setStatus(
+          `Blocked connection: ${sourceId}.${fromPort} (${fromDomain}) -> ${targetId}.${toPort} (${toDomain}).`,
+        );
+        _showConnWarning(msg);
+        return;
+      }
+      if (profile === "pic_circuit" && fromDomain !== edgeKind) {
+        const msg = `Blocked: edge kind ${edgeKind} incompatible with ${fromDomain} ports.`;
+        _setStatus(msg);
+        _showConnWarning(msg);
+        return;
       }
 
       setEdges((eds) =>
@@ -1558,7 +1568,7 @@ export default function App() {
         ),
       );
     },
-    [setEdges, profile, nodes, _setStatus],
+    [setEdges, profile, nodes, _setStatus, _showConnWarning],
   );
 
   const loadTemplate = useCallback(
@@ -1622,6 +1632,66 @@ export default function App() {
         setNodes(t.nodes);
         setEdges(t.edges);
         _setStatus("Loaded template: PIC SPICE import harness (Touchstone path required for CLI runs).");
+        return;
+      }
+      if (templateId === "pic_balanced_receiver") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicBalancedReceiver();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Balanced Receiver.");
+        return;
+      }
+      if (templateId === "pic_awg_demux") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicAwgDemux();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: AWG Demux.");
+        return;
+      }
+      if (templateId === "pic_ring_filter") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicRingFilter();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Ring Filter.");
+        return;
+      }
+      if (templateId === "pic_coherent_rx") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicCoherentRx();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Coherent Receiver.");
+        return;
+      }
+      if (templateId === "pic_modulator_tx") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicModulatorTx();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Modulator TX.");
+        return;
+      }
+      if (templateId === "pic_switch_2x2") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicSwitch2x2();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: 2×2 Switch.");
       }
     },
     [setNodes, setEdges, _setStatus, setCompileResult, setRunResult, setActiveRightTab],
@@ -2293,6 +2363,43 @@ export default function App() {
     emitUiEvent("ui_run_failed", { outcome: "failure" });
   }, [emitUiEvent]);
 
+  /** Attach per-node simulation metrics from the PIC simulate response. */
+  const applySimResultsToNodes = useCallback(
+    (simResponse) => {
+      if (!simResponse || typeof simResponse !== "object") return;
+      // The API may return component_results keyed by node id, or a flat results map.
+      const compResults =
+        simResponse.component_results ||
+        simResponse.components ||
+        simResponse.results ||
+        null;
+      if (!compResults || typeof compResults !== "object") return;
+
+      setNodes((prev) =>
+        prev.map((n) => {
+          const entry = compResults[String(n.id)];
+          if (!entry || typeof entry !== "object") return n;
+          return {
+            ...n,
+            data: { ...n.data, simResult: entry },
+          };
+        }),
+      );
+    },
+    [setNodes],
+  );
+
+  /** Remove simResult data from all nodes (hide overlay). */
+  const clearSimResultsFromNodes = useCallback(() => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (!n.data?.simResult) return n;
+        const { simResult: _, ...rest } = n.data;
+        return { ...n, data: rest };
+      }),
+    );
+  }, [setNodes]);
+
   const runGraph = useCallback(async () => {
     emitUiEvent("ui_run_started", { outcome: "success" });
     setBusy(true);
@@ -2334,6 +2441,9 @@ export default function App() {
         setRunResult(payload);
         setActiveRightTab("run");
         markRunSucceeded(payload);
+        if (simOverlayVisible) {
+          applySimResultsToNodes(payload);
+        }
         if (payload?.run_id) {
           await refreshRuns(selectedProjectId || null);
           await loadRunManifest(payload.run_id);
@@ -2370,6 +2480,8 @@ export default function App() {
     recordActivity,
     refreshRuns,
     _setStatus,
+    simOverlayVisible,
+    applySimResultsToNodes,
   ]);
 
   const runGuidedFlowNow = useCallback(async () => {
@@ -2930,6 +3042,19 @@ export default function App() {
         apiHealthVersion={apiHealth.version}
         apiHealthError={apiHealth.error}
         showGraphProfileControls={mode === "graph"}
+        simOverlayVisible={simOverlayVisible}
+        onToggleSimOverlay={() => {
+          setSimOverlayVisible((prev) => {
+            const next = !prev;
+            if (!next) {
+              clearSimResultsFromNodes();
+            } else if (runResult && !runResult.error) {
+              applySimResultsToNodes(runResult);
+            }
+            return next;
+          });
+        }}
+        showSimOverlayToggle={mode === "graph" && profile === "pic_circuit"}
       />
 
       <nav className="ptStageNav" aria-label="Product stage navigation">
@@ -3367,6 +3492,7 @@ export default function App() {
                   onCopied: () => _setStatus("Copied graph payload JSON to clipboard."),
                   onCopyFailed: (err) => _setStatus(`Copy failed: ${String(err?.message || err)}`),
                 }}
+                nodes={nodes}
               />
             </Suspense>
           ) : null}
@@ -3529,6 +3655,10 @@ export default function App() {
           edgeCount={edges.length}
           hashText={compileResult?.graph_hash || runResult?.graph_hash || runResult?.config_hash || "n/a"}
         />
+      ) : null}
+
+      {connectionWarning ? (
+        <div className="ptConnectionWarning" role="alert">{connectionWarning}</div>
       ) : null}
 
       <GraphJsonModals
