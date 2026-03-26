@@ -1,0 +1,9 @@
+# BBM92 Campus Entanglement Link
+name: bbm92_campus
+runner: simulate_qkd_link
+config:
+  protocol: bbm92
+  distance_km: 5
+  band: c_1550
+  detector: snspd
+  include_uncertainty: false

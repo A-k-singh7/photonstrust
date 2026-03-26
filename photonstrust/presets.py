@@ -1,5 +1,7 @@
 """Preset tables for bands and detectors."""
 
+from photonstrust.errors import ConfigError
+
 BAND_PRESETS = {
     "nir_795": {
         "wavelength_nm": 795,
@@ -57,13 +59,21 @@ DETECTOR_ADJUSTMENTS = {
 
 def get_band_preset(band):
     if band not in BAND_PRESETS:
-        raise ValueError(f"Unknown band '{band}'")
+        available = ", ".join(sorted(BAND_PRESETS.keys()))
+        raise ConfigError(
+            f"Unknown band '{band}'",
+            suggestion=f"Available bands: {available}.",
+        )
     return dict(BAND_PRESETS[band])
 
 
 def get_detector_preset(detector_class, band=None):
     if detector_class not in DETECTOR_PRESETS:
-        raise ValueError(f"Unknown detector class '{detector_class}'")
+        available = ", ".join(sorted(DETECTOR_PRESETS.keys()))
+        raise ConfigError(
+            f"Unknown detector class '{detector_class}'",
+            suggestion=f"Available detectors: {available}.",
+        )
     preset = dict(DETECTOR_PRESETS[detector_class])
     if band:
         band_adjustments = DETECTOR_ADJUSTMENTS.get(band, {})

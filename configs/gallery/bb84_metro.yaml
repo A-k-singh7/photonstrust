@@ -1,0 +1,9 @@
+# BB84 Metropolitan QKD Link
+name: bb84_metro
+runner: simulate_qkd_link
+config:
+  protocol: bb84
+  distance_km: 20
+  band: c_1550
+  detector: snspd
+  include_uncertainty: false

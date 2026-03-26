@@ -12,6 +12,7 @@ import jax
 
 jax.config.update("jax_enable_x64", True)
 
+from photonstrust.errors import ConfigError
 from photonstrust.presets import BAND_PRESETS, get_band_preset, get_detector_preset
 
 
@@ -121,11 +122,20 @@ def _expand_distance(distance):
     stop = float(distance["stop"])
     step = float(distance["step"])
     if not math.isfinite(step) or step <= 0.0:
-        raise ValueError(f"distance_km step must be > 0, got {step!r}")
+        raise ConfigError(
+            f"distance_km step must be > 0, got {step!r}",
+            suggestion="Use a positive step value, e.g. distance_km: {start: 0, stop: 100, step: 10}.",
+        )
     if not math.isfinite(start) or not math.isfinite(stop):
-        raise ValueError(f"distance_km start/stop must be finite, got start={start!r} stop={stop!r}")
+        raise ConfigError(
+            f"distance_km start/stop must be finite, got start={start!r} stop={stop!r}",
+            suggestion="Use finite numeric values for distance_km start and stop.",
+        )
     if stop < start:
-        raise ValueError(f"distance_km stop must be >= start, got start={start!r} stop={stop!r}")
+        raise ConfigError(
+            f"distance_km stop must be >= start, got start={start!r} stop={stop!r}",
+            suggestion="Ensure stop >= start in distance_km range specification.",
+        )
 
     # Use round() to avoid cumulative floating-point drift and ensure stop is included.
     count = int(round((stop - start) / step)) + 1

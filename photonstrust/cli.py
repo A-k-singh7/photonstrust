@@ -289,6 +289,29 @@ def main() -> None:
     )
     sweep_parser.add_argument("--output", default="results/corner_sweep", help="Output directory")
 
+    # -- Phase D ease-of-use subcommands --------------------------------------
+
+    list_parser = subparsers.add_parser("list", help="List available resources")
+    list_parser.add_argument(
+        "resource",
+        choices=["protocols", "detectors", "bands", "pdks", "scenarios", "channels"],
+        help="Resource type to list",
+    )
+
+    info_parser = subparsers.add_parser("info", help="Show details about a protocol, detector, or band")
+    info_parser.add_argument("entity", help="Name of protocol, detector, or band")
+
+    demo_parser = subparsers.add_parser("demo", help="Run a pre-built scenario")
+    demo_parser.add_argument("scenario", nargs="?", default=None, help="Scenario name (omit to list all)")
+
+    quickstart_parser = subparsers.add_parser("quickstart", help="Interactive QKD simulation wizard")
+    quickstart_parser.add_argument(
+        "--non-interactive", action="store_true", help="Use defaults without prompting",
+    )
+    quickstart_parser.add_argument("--save", default=None, help="Save config to YAML file")
+
+    # -- end Phase D subcommands ------------------------------------------------
+
     args = parser.parse_args()
 
     if args.command == "fmt":
@@ -715,6 +738,220 @@ def main() -> None:
             raise SystemExit(1)
         return
 
+    # -- Phase D ease-of-use handlers -----------------------------------------
+
+    if args.command == "list":
+        from photonstrust.cli_helpers import print_table
+
+        resource = args.resource
+
+        if resource == "protocols":
+            from photonstrust.qkd_protocols.registry import _PROTOCOLS
+
+            headers = ["Name", "Aliases", "Type", "Gate Policy"]
+            rows = []
+            for pid, mod in sorted(_PROTOCOLS.items()):
+                aliases = ", ".join(mod.aliases) if mod.aliases else ""
+                gp = mod.gate_policy or {}
+                gate = str(gp.get("plob_repeaterless_bound", ""))
+                rows.append([pid, aliases, "QKD", gate])
+            print_table(headers, rows, title="Available Protocols")
+            return
+
+        if resource == "detectors":
+            from photonstrust.presets import DETECTOR_PRESETS
+
+            headers = ["Name", "PDE", "Dark Counts (cps)", "Jitter (ps)", "Dead Time (ns)"]
+            rows = []
+            for name, det in sorted(DETECTOR_PRESETS.items()):
+                rows.append([
+                    name,
+                    str(det["pde"]),
+                    str(det["dark_counts_cps"]),
+                    str(det["jitter_ps_fwhm"]),
+                    str(det["dead_time_ns"]),
+                ])
+            print_table(headers, rows, title="Detector Presets")
+            return
+
+        if resource == "bands":
+            from photonstrust.presets import BAND_PRESETS
+
+            headers = ["Name", "Wavelength (nm)", "Fiber Loss (dB/km)", "Dispersion (ps/km)"]
+            rows = []
+            for name, band in sorted(BAND_PRESETS.items()):
+                rows.append([
+                    name,
+                    str(band["wavelength_nm"]),
+                    str(band["fiber_loss_db_per_km"]),
+                    str(band["dispersion_ps_per_km"]),
+                ])
+            print_table(headers, rows, title="Band Presets")
+            return
+
+        if resource == "pdks":
+            pdk_dir = Path(__file__).resolve().parent.parent / "configs" / "pdks"
+            headers = ["Name", "File"]
+            rows = []
+            if pdk_dir.is_dir():
+                for f in sorted(pdk_dir.glob("*.pdk.json")):
+                    pdk_name = f.name.replace(".pdk.json", "")
+                    rows.append([pdk_name, f.name])
+            print_table(headers, rows, title="Available PDKs")
+            return
+
+        if resource == "scenarios":
+            from photonstrust.gallery import list_scenarios
+
+            scenarios = list_scenarios()
+            headers = ["Name", "Category", "Difficulty", "Title"]
+            rows = []
+            for s in scenarios:
+                rows.append([s.name, s.category, s.difficulty, s.title])
+            print_table(headers, rows, title="Available Scenarios")
+            return
+
+        if resource == "channels":
+            headers = ["Channel"]
+            rows = [["fiber"], ["free_space"], ["satellite"], ["underwater"]]
+            print_table(headers, rows, title="Available Channels")
+            return
+
+    if args.command == "info":
+        entity = str(args.entity).strip()
+
+        # Try protocols first
+        from photonstrust.qkd_protocols.common import normalize_protocol_name
+        from photonstrust.qkd_protocols.registry import _PROTOCOLS
+
+        normalized = normalize_protocol_name(entity)
+        if normalized in _PROTOCOLS:
+            mod = _PROTOCOLS[normalized]
+            gp = mod.gate_policy or {}
+            lines = [
+                f"Protocol: {mod.protocol_id}",
+                f"Aliases:  {', '.join(mod.aliases) if mod.aliases else '(none)'}",
+                f"Gate Policy:",
+                f"  PLOB bound: {gp.get('plob_repeaterless_bound', 'N/A')}",
+                f"  Rationale:  {gp.get('rationale', 'N/A')}",
+            ]
+            print("\n".join(lines))
+            return
+
+        # Try detectors
+        from photonstrust.presets import DETECTOR_PRESETS
+
+        if entity.lower() in DETECTOR_PRESETS:
+            det = DETECTOR_PRESETS[entity.lower()]
+            lines = [
+                f"Detector: {entity.lower()}",
+                f"  PDE:              {det['pde']}",
+                f"  Dark counts (cps): {det['dark_counts_cps']}",
+                f"  Jitter (ps FWHM): {det['jitter_ps_fwhm']}",
+                f"  Dead time (ns):   {det['dead_time_ns']}",
+                f"  Afterpulsing:     {det.get('afterpulsing_prob', 'N/A')}",
+            ]
+            print("\n".join(lines))
+            return
+
+        # Try bands
+        from photonstrust.presets import BAND_PRESETS
+
+        if entity.lower() in BAND_PRESETS:
+            band = BAND_PRESETS[entity.lower()]
+            lines = [
+                f"Band: {entity.lower()}",
+                f"  Wavelength (nm):      {band['wavelength_nm']}",
+                f"  Fiber loss (dB/km):   {band['fiber_loss_db_per_km']}",
+                f"  Dispersion (ps/km):   {band['dispersion_ps_per_km']}",
+            ]
+            print("\n".join(lines))
+            return
+
+        print(f"Unknown entity: {entity!r}", file=sys.stderr)
+        print("Try: photonstrust list protocols | photonstrust list detectors | photonstrust list bands",
+              file=sys.stderr)
+        raise SystemExit(1)
+
+    if args.command == "demo":
+        if args.scenario is None:
+            # List available scenarios (same as list scenarios)
+            from photonstrust.gallery import list_scenarios
+            from photonstrust.cli_helpers import print_table
+
+            scenarios = list_scenarios()
+            headers = ["Name", "Category", "Difficulty", "Title"]
+            rows = [[s.name, s.category, s.difficulty, s.title] for s in scenarios]
+            print_table(headers, rows, title="Available Scenarios")
+            return
+
+        from photonstrust.gallery import run_scenario
+        from photonstrust.cli_helpers import print_result_summary
+
+        result = run_scenario(args.scenario)
+        print_result_summary(result)
+        return
+
+    if args.command == "quickstart":
+        interactive = not bool(args.non_interactive) and sys.stdin.isatty()
+
+        if interactive:
+            from photonstrust.cli_helpers import prompt_choice, prompt_float
+            from photonstrust.qkd_protocols.registry import available_protocols
+            from photonstrust.presets import BAND_PRESETS, DETECTOR_PRESETS
+
+            protocol = prompt_choice(
+                "Select a QKD protocol:",
+                list(available_protocols()),
+                default="bb84_decoy",
+            )
+            distance = prompt_float("Distance (km)", default=50.0)
+            band = prompt_choice(
+                "Select a wavelength band:",
+                sorted(BAND_PRESETS.keys()),
+                default="c_1550",
+            )
+            detector = prompt_choice(
+                "Select a detector:",
+                sorted(DETECTOR_PRESETS.keys()),
+                default="snspd",
+            )
+        else:
+            protocol = "bb84_decoy"
+            distance = 50.0
+            band = "c_1550"
+            detector = "snspd"
+
+        from photonstrust.easy import simulate_qkd_link
+        from photonstrust.cli_helpers import print_result_summary
+
+        result = simulate_qkd_link(
+            protocol=protocol,
+            distance_km=distance,
+            band=band,
+            detector=detector,
+            include_uncertainty=False,
+        )
+        print_result_summary(result)
+
+        if args.save:
+            import yaml
+
+            config = {
+                "protocol": protocol,
+                "distance_km": distance,
+                "band": band,
+                "detector": detector,
+            }
+            save_path = Path(args.save)
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.write_text(yaml.dump(config, default_flow_style=False), encoding="utf-8")
+            print(f"\nConfig saved to {save_path}")
+
+        return
+
+    # -- end Phase D handlers --------------------------------------------------
+
     if args.command != "run":
         parser.print_help()
         return
@@ -1070,5 +1307,13 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as exc:
+        if hasattr(exc, "suggestion"):
+            print(f"Error: {exc}", file=sys.stderr)
+            raise SystemExit(1)
+        raise
 

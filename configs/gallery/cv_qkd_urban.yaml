@@ -1,0 +1,12 @@
+# CV-QKD Urban Link
+name: cv_qkd_urban
+runner: simulate_qkd_link
+config:
+  protocol: cv_qkd
+  distance_km:
+    start: 0
+    stop: 30
+    step: 2
+  band: c_1550
+  detector: snspd
+  include_uncertainty: false

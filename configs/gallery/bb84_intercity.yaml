@@ -1,0 +1,9 @@
+# BB84 Intercity QKD Link
+name: bb84_intercity
+runner: simulate_qkd_link
+config:
+  protocol: bb84
+  distance_km: 100
+  band: c_1550
+  detector: snspd
+  include_uncertainty: false
