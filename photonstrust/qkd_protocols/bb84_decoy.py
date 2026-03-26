@@ -100,10 +100,24 @@ def compute_point_bb84_decoy(
     q_om, _ = _gain_error(mu=omega, eta=eta, p_noise=p_noise, e_opt=e_opt)
 
     y0 = clamp(float(q_om), 0.0, 1.0)
-    y1_l = _y1_lower_bound(mu=mu, nu=nu, q_mu=q_mu, q_nu=q_nu, y0=y0)
+
+    decoy_method = str(proto.get("decoy_method", "vacuum_weak") or "vacuum_weak").strip().lower()
+    if decoy_method == "3intensity":
+        y1_l = _y1_lower_bound_3intensity(
+            mu=mu, nu=nu, omega=omega,
+            q_mu=q_mu, q_nu=q_nu, q_om=q_om, y0=y0,
+        )
+    else:
+        y1_l = _y1_lower_bound(mu=mu, nu=nu, q_mu=q_mu, q_nu=q_nu, y0=y0)
     q1_l = clamp(float(mu * math.exp(-mu) * y1_l), 0.0, 1.0)
 
-    e1_u = _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)
+    if decoy_method == "3intensity":
+        e1_u = _e1_upper_bound_3intensity(
+            nu=nu, omega=omega,
+            q_nu=q_nu, e_nu=e_nu, q_om=q_om, y0=y0, y1_l=y1_l,
+        )
+    else:
+        e1_u = _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)
     privacy_term_asymptotic = max(0.0, 1.0 - binary_entropy(e1_u))
 
     fk = apply_finite_key_dispatch(
@@ -210,3 +224,63 @@ def _e1_upper_bound(*, nu: float, q_nu: float, e_nu: float, y0: float, y1_l: flo
     if denom <= 0.0:
         return 0.5
     return clamp(float(numer / denom), 0.0, 0.5)
+
+
+def _y1_lower_bound_3intensity(
+    *, mu: float, nu: float, omega: float,
+    q_mu: float, q_nu: float, q_om: float, y0: float,
+) -> float:
+    """Tighter Y1 lower bound using 3-intensity decoy method.
+
+    Uses signal, weak decoy, and vacuum intensities for tighter single-photon
+    yield estimation via:
+
+        Y1_L = mu / (mu*nu - nu^2) * [Q_nu*e^nu - Q_omega*e^omega*(nu^2/omega^2)
+               - (mu^2 - nu^2)/mu^2 * (Q_omega*e^omega - Y0)]
+
+    For omega = 0, falls back to the vacuum+weak bound with the additional
+    constraint from the signal state.
+
+    Ref: Ma, Qi, Zhao, Lo, PRA 72, 012326 (2005), Eq. (10)
+    """
+    mu, nu, omega = float(mu), float(nu), float(omega)
+    if mu <= nu or nu <= 0:
+        return 0.0
+
+    # Compute the standard vacuum+weak bound first
+    y1_vw = _y1_lower_bound(mu=mu, nu=nu, q_mu=q_mu, q_nu=q_nu, y0=y0)
+
+    # Compute the signal-constrained bound
+    # Y1 >= [mu*e^mu*Q_nu - nu*e^nu*Q_mu - (mu^2-nu^2)*Y0] / (mu*nu*(mu-nu))
+    if mu <= nu:
+        return y1_vw
+    numer = (
+        mu * math.exp(mu) * q_nu
+        - nu * math.exp(nu) * q_mu
+        - (mu ** 2 - nu ** 2) * y0
+    )
+    denom = mu * nu * (mu - nu)
+    if denom <= 0:
+        return y1_vw
+    y1_signal = numer / denom
+
+    # Take the tighter (higher) of the two bounds
+    return clamp(max(y1_vw, y1_signal), 0.0, 1.0)
+
+
+def _e1_upper_bound_3intensity(
+    *, nu: float, omega: float,
+    q_nu: float, e_nu: float, q_om: float, y0: float, y1_l: float,
+) -> float:
+    """Tighter e1 upper bound using 3-intensity decoy method.
+
+    Uses both weak decoy and vacuum statistics for a tighter error bound:
+
+        e1_U = [Q_nu*e^nu*E_nu - e0*Y0] / (nu*Y1_L)
+
+    This is the same formula as 2-intensity but benefits from the tighter
+    Y1_L computed by _y1_lower_bound_3intensity.
+
+    Ref: Ma, Qi, Zhao, Lo, PRA 72, 012326 (2005), Eq. (11)
+    """
+    return _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)

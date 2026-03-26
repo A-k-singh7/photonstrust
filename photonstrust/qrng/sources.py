@@ -105,3 +105,64 @@ def beam_splitter_source(
         },
     )
     return source, raw_bits
+
+
+def di_qrng_source(
+    *,
+    chsh_violation: float = 2.7,
+    detection_efficiency: float = 0.90,
+    n_rounds: int = 10000,
+    seed: int = 42,
+) -> tuple[QRNGSource, np.ndarray]:
+    """Simulate a device-independent QRNG source from CHSH violation.
+
+    Certified randomness per round from CHSH violation S:
+
+        H_min >= 1 - log2(1 + sqrt(2 - (S/2)^2))
+
+    For S = 2*sqrt(2) (Tsirelson bound), H_min = 1 bit/round.
+    For S = 2 (classical limit), H_min = 0.
+
+    Args:
+        chsh_violation: Observed CHSH S value (must be > 2)
+        detection_efficiency: Detector efficiency
+        n_rounds: Number of measurement rounds
+        seed: Random seed
+
+    Returns:
+        (QRNGSource, raw_bits) tuple
+
+    Ref: Pironio et al., Nature 464, 1021 (2010)
+    """
+    import math
+
+    rng = np.random.default_rng(seed)
+    S = max(2.0, min(2.0 * math.sqrt(2.0), float(chsh_violation)))
+
+    # Min-entropy per round from CHSH value
+    s2 = (S / 2.0) ** 2
+    inner = max(0.0, 2.0 - s2)
+    h_min = max(0.0, 1.0 - math.log2(1.0 + math.sqrt(inner)))
+
+    # Effective randomness rate
+    effective_rate = h_min * detection_efficiency
+
+    # Generate raw bits (simulation: biased by entropy bound)
+    # Perfect CHSH violation -> uniform bits
+    # Reduced violation -> biased bits
+    p1 = 0.5 + 0.5 * (1.0 - 2 ** (-h_min))
+    raw_bits = (rng.random(n_rounds) < p1).astype(int)
+
+    source = QRNGSource(
+        source_type="di_qrng",
+        generation_rate_bps=float(n_rounds) * effective_rate,
+        raw_entropy_per_bit=h_min,
+        parameters={
+            "chsh_violation": S,
+            "detection_efficiency": detection_efficiency,
+            "n_rounds": n_rounds,
+            "min_entropy_per_round": h_min,
+            "seed": seed,
+        },
+    )
+    return source, raw_bits

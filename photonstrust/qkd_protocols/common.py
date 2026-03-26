@@ -21,6 +21,12 @@ def normalize_protocol_name(name: str | None) -> str:
         return "pm_qkd"
     if raw in {"tf", "tf_qkd", "twin_field", "twinfield"}:
         return "tf_qkd"
+    if raw in {"cv", "cv_qkd", "gg02", "gaussian", "continuous_variable"}:
+        return "cv_qkd"
+    if raw in {"sns", "sns_tf", "sns_tf_qkd", "sending_or_not_sending"}:
+        return "sns_tf_qkd"
+    if raw in {"di", "di_qkd", "device_independent", "chsh_qkd"}:
+        return "di_qkd"
 
     return raw
 

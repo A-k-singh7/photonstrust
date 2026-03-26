@@ -316,3 +316,73 @@ def apply_composable_finite_key_v2(
         proof_applicable=proof_applicable,
         warnings=warnings,
     )
+
+
+# ---------------------------------------------------------------------------
+# de Finetti coherent attack correction
+# ---------------------------------------------------------------------------
+
+def de_finetti_coherent_correction(
+    *,
+    n_signals: int,
+    epsilon_collective: float,
+) -> float:
+    """Compute coherent-attack security epsilon from collective-attack epsilon.
+
+    Using the postselection technique (Christandl, König, Renner 2009):
+
+        eps_coherent = (n + 1)^3 * eps_collective
+
+    This bounds the security against general (coherent) attacks using
+    a proof valid against collective attacks plus a polynomial overhead.
+
+    Args:
+        n_signals: Total number of signals in the protocol
+        epsilon_collective: Security epsilon against collective attacks
+
+    Returns:
+        Security epsilon against coherent attacks
+
+    Ref: Christandl, König, Renner, PRL 102, 020504 (2009)
+    """
+    n = max(1, int(n_signals))
+    eps_coll = max(1e-30, float(epsilon_collective))
+
+    # Dimension factor for qubit systems: (n+1)^(d^2-1) where d=2
+    # -> (n+1)^3 for qubits
+    return (n + 1) ** 3 * eps_coll
+
+
+def source_imperfection_penalty(
+    *,
+    key_rate_ideal: float,
+    source_flaw_parameter: float,
+    n_signals: int,
+) -> float:
+    """Key rate penalty from source imperfections (loss-tolerant protocol).
+
+    In the loss-tolerant protocol (Tamaki et al. 2014), source flaws
+    are bounded by a state-preparation flaw parameter delta:
+
+        r_real >= r_ideal - 2 * delta * n_signals^(-1/2)
+
+    For large n, the penalty vanishes. For small n, source flaws
+    can significantly reduce the key rate.
+
+    Args:
+        key_rate_ideal: Ideal key rate (bits per signal)
+        source_flaw_parameter: delta — upper bound on state preparation error
+        n_signals: Number of signals
+
+    Returns:
+        Adjusted key rate
+
+    Ref: Tamaki et al., PRA 90, 052314 (2014)
+    """
+    r = max(0.0, float(key_rate_ideal))
+    delta = max(0.0, float(source_flaw_parameter))
+    n = max(1, int(n_signals))
+
+    # Penalty from source flaws
+    penalty = 2.0 * delta / math.sqrt(n)
+    return max(0.0, r - penalty)
