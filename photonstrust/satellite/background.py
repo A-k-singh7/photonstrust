@@ -5,9 +5,12 @@ import math
 from photonstrust.satellite.types import BackgroundEstimate
 
 # Spectral radiance lookup table (W/m^2/sr/nm).
+# References: Er-long et al. (2005) NJP 7, 215; Liao et al. (2017) Nature 549.
 RADIANCE_TABLE: dict[str, dict[float, float]] = {
     "night": {785.0: 1e-8, 810.0: 1e-8, 850.0: 1e-8, 1310.0: 5e-9, 1550.0: 3e-9},
+    "twilight": {785.0: 1e-4, 810.0: 8e-5, 850.0: 5e-5, 1310.0: 1e-5, 1550.0: 5e-6},
     "day": {785.0: 1e-2, 810.0: 8e-3, 850.0: 5e-3, 1310.0: 1e-3, 1550.0: 5e-4},
+    "full_moon": {785.0: 1e-6, 810.0: 1e-6, 850.0: 8e-7, 1310.0: 5e-7, 1550.0: 3e-7},
 }
 
 _SORTED_WAVELENGTHS: dict[str, list[float]] = {
@@ -65,7 +68,9 @@ def estimate_background_counts_cps(
     """
     dn = day_night.lower().strip()
     if dn not in RADIANCE_TABLE:
-        raise ValueError(f"day_night must be 'day' or 'night', got {day_night!r}")
+        raise ValueError(
+            f"day_night must be one of {sorted(RADIANCE_TABLE.keys())}, got {day_night!r}"
+        )
 
     h_lambda = _interpolate_radiance(dn, wavelength_nm)
     omega_fov = math.pi * (fov_urad * 1e-6) ** 2

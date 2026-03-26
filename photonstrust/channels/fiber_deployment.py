@@ -96,6 +96,8 @@ class FiberDeploymentDiagnostics:
     timing_budget: EnhancedTimingBudget
     visibility_floor: float
     effective_visibility: float
+    connector_splice: ConnectorSpliceChain | None = None
+    raman_budget: CombinedRamanBudget | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -109,12 +111,147 @@ class FiberDeploymentDiagnostics:
             "timing_budget": self.timing_budget.as_dict(),
             "visibility_floor": self.visibility_floor,
             "effective_visibility": self.effective_visibility,
+            "connector_splice": (
+                self.connector_splice.as_dict()
+                if self.connector_splice is not None
+                else None
+            ),
+            "raman_budget": (
+                self.raman_budget.as_dict()
+                if self.raman_budget is not None
+                else None
+            ),
+        }
+
+
+@dataclass(frozen=True)
+class ConnectorSpliceChain:
+    """Loss budget for connectors and splices along a fiber deployment."""
+
+    n_connectors: int
+    n_splices: int
+    connector_loss_db: float
+    splice_loss_db: float
+    total_connector_loss_db: float
+    total_splice_loss_db: float
+    total_loss_db: float
+
+    def as_dict(self) -> dict:
+        return {
+            "n_connectors": self.n_connectors,
+            "n_splices": self.n_splices,
+            "connector_loss_db": self.connector_loss_db,
+            "splice_loss_db": self.splice_loss_db,
+            "total_connector_loss_db": self.total_connector_loss_db,
+            "total_splice_loss_db": self.total_splice_loss_db,
+            "total_loss_db": self.total_loss_db,
+        }
+
+
+@dataclass(frozen=True)
+class CombinedRamanBudget:
+    """Forward + backward Raman noise budget for WDM coexistence."""
+
+    forward_counts_cps: float
+    backward_counts_cps: float
+    total_raman_counts_cps: float
+    fwm_counts_cps: float
+    total_noise_counts_cps: float
+
+    def as_dict(self) -> dict:
+        return {
+            "forward_counts_cps": self.forward_counts_cps,
+            "backward_counts_cps": self.backward_counts_cps,
+            "total_raman_counts_cps": self.total_raman_counts_cps,
+            "fwm_counts_cps": self.fwm_counts_cps,
+            "total_noise_counts_cps": self.total_noise_counts_cps,
         }
 
 
 # ---------------------------------------------------------------------------
 # Functions
 # ---------------------------------------------------------------------------
+
+def connector_splice_chain(
+    *,
+    distance_km: float,
+    connector_loss_db: float = 0.5,
+    splice_loss_db: float = 0.1,
+    connector_spacing_km: float = 2.0,
+    splice_spacing_km: float = 4.0,
+    n_connectors: int | None = None,
+    n_splices: int | None = None,
+) -> ConnectorSpliceChain:
+    """Compute total connector/splice loss for a fiber deployment.
+
+    If n_connectors/n_splices are not given, they are estimated from
+    the distance and spacing parameters.  Typical values:
+        - Metro: connector every 2 km, splice every 4 km
+        - Long-haul: connector every 40-80 km (at amplifier sites),
+          splice every 4 km
+    """
+    d = max(0.0, float(distance_km))
+    conn_loss = max(0.0, float(connector_loss_db))
+    spl_loss = max(0.0, float(splice_loss_db))
+
+    if n_connectors is None:
+        nc = max(2, int(d / max(0.1, float(connector_spacing_km))) + 1)
+    else:
+        nc = max(0, int(n_connectors))
+
+    if n_splices is None:
+        ns = max(0, int(d / max(0.1, float(splice_spacing_km))))
+    else:
+        ns = max(0, int(n_splices))
+
+    total_conn = nc * conn_loss
+    total_spl = ns * spl_loss
+
+    return ConnectorSpliceChain(
+        n_connectors=nc,
+        n_splices=ns,
+        connector_loss_db=conn_loss,
+        splice_loss_db=spl_loss,
+        total_connector_loss_db=total_conn,
+        total_splice_loss_db=total_spl,
+        total_loss_db=total_conn + total_spl,
+    )
+
+
+def combined_raman_budget(
+    *,
+    distance_km: float,
+    coexistence: dict,
+    fiber_loss_db_per_km: float = 0.2,
+) -> CombinedRamanBudget:
+    """Compute combined forward + backward Raman noise budget.
+
+    For bidirectional WDM deployments, both co-propagating (forward)
+    and counter-propagating (backward) Raman noise contribute.  This
+    function computes both and returns the total.
+    """
+    from photonstrust.channels.coexistence import compute_raman_counts_cps
+
+    d = max(0.0, float(distance_km))
+    fwd_coex = dict(coexistence)
+    fwd_coex["direction"] = "co"
+    bwd_coex = dict(coexistence)
+    bwd_coex["direction"] = "counter"
+
+    fwd_raman = compute_raman_counts_cps(d, fwd_coex, fiber_loss_db_per_km=fiber_loss_db_per_km)
+    bwd_raman = compute_raman_counts_cps(d, bwd_coex, fiber_loss_db_per_km=fiber_loss_db_per_km)
+    total_raman = fwd_raman + bwd_raman
+
+    fwm = compute_fwm_counts_cps(d, coexistence, fiber_loss_db_per_km=fiber_loss_db_per_km)
+
+    return CombinedRamanBudget(
+        forward_counts_cps=fwd_raman,
+        backward_counts_cps=bwd_raman,
+        total_raman_counts_cps=total_raman,
+        fwm_counts_cps=fwm,
+        total_noise_counts_cps=total_raman + fwm,
+    )
+
 
 def pmd_dgd_ps(
     distance_km: float,
@@ -399,6 +536,36 @@ def compute_fiber_deployment_diagnostics(
     v_measured = float(channel_cfg.get("optical_visibility", 0.98) or 0.98)
     v_eff = apply_visibility_floor(v_measured, v_floor)
 
+    # --- Connector/splice chain ---
+    cs_chain: ConnectorSpliceChain | None = None
+    conn_loss = float(channel_cfg.get("connector_loss_db", 0.0) or 0.0)
+    splice_loss = float(channel_cfg.get("splice_loss_db", 0.0) or 0.0)
+    if conn_loss > 0 or splice_loss > 0:
+        cs_chain = connector_splice_chain(
+            distance_km=distance_km,
+            connector_loss_db=conn_loss if conn_loss > 0 else 0.5,
+            splice_loss_db=splice_loss if splice_loss > 0 else 0.1,
+            connector_spacing_km=float(
+                channel_cfg.get("connector_spacing_km", 2.0) or 2.0
+            ),
+            splice_spacing_km=float(
+                channel_cfg.get("splice_spacing_km", 4.0) or 4.0
+            ),
+            n_connectors=channel_cfg.get("n_connectors"),
+            n_splices=channel_cfg.get("n_splices"),
+        )
+
+    # --- Combined Raman budget ---
+    raman_bdg: CombinedRamanBudget | None = None
+    if coexistence and coexistence.get("enabled", False):
+        raman_bdg = combined_raman_budget(
+            distance_km=distance_km,
+            coexistence=coexistence,
+            fiber_loss_db_per_km=float(
+                channel_cfg.get("fiber_loss_db_per_km", 0.2) or 0.2
+            ),
+        )
+
     return FiberDeploymentDiagnostics(
         pmd=pmd_contrib,
         temperature_drift=temp_contrib,
@@ -406,4 +573,6 @@ def compute_fiber_deployment_diagnostics(
         timing_budget=tb,
         visibility_floor=v_floor,
         effective_visibility=v_eff,
+        connector_splice=cs_chain,
+        raman_budget=raman_bdg,
     )
