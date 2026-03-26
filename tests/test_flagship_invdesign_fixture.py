@@ -21,7 +21,7 @@ def _fixture_graph() -> dict:
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
 
-def test_phase58_w36_flagship_fixture_replay_and_signoff(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_flagship_fixture_replay_and_signoff(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
 
     import photonstrust.layout.pic.klayout_runner as klr

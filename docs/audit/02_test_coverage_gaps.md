@@ -306,7 +306,7 @@ def test_all_band_detector_combinations_produce_positive_rate(band, detector_cla
 | 1 | Add `conftest.py` with shared fixtures | tests/conftest.py | 0 (enables others) |
 | 2 | Add `test_utils.py` | tests/test_utils.py | ~10 |
 | 3 | Add `test_presets.py` | tests/test_presets.py | ~8 |
-| 4 | Add edge case tests to `test_qkd_basic.py` | tests/test_qkd_basic.py | ~6 |
+| 4 | Add edge case tests to `test_qkd_smoke.py` | tests/test_qkd_smoke.py | ~6 |
 | 5 | [DONE] Add PLOB bound test (PLOB sanity gate) | tests/test_qkd_plob_bound.py | Implemented (5 param cases) |
 | 6 | Add integration pipeline test | tests/test_integration_pipeline.py | ~2 |
 | 7 | Add parametrized band/detector matrix | tests/test_band_detector_matrix.py | ~6 |

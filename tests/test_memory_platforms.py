@@ -98,7 +98,7 @@ def test_afc_retrieval_positive():
 
 # ---- Platform presets tests ------------------------------------------------
 
-def test_presets_exist():
+def test_memory_standard_presets_are_registered():
     assert "nv_diamond" in PLATFORM_PRESETS
     assert "trapped_ion_171yb" in PLATFORM_PRESETS
     assert "rare_earth_151eu_yso" in PLATFORM_PRESETS

@@ -29,7 +29,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `scripts/run_ga_replay_matrix.py`
    - `scripts/check_milestone_archive.py`
 3. Add test coverage for post-GA hardening contracts:
-   - `tests/test_phase63_post_ga_hardening.py`
+   - `tests/test_post_ga_hardening.py`
 4. Add/update Phase 63 planning and rollout docs:
    - `docs/operations/365_day_plan/phase_63_w53_w56_post_ga_hardening_and_attestation.md`
    - `docs/operations/phased_rollout/phase_63_w53_w56_post_ga_hardening_and_attestation/*`

@@ -27,7 +27,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `.github/ISSUE_TEMPLATE/bug_report.yml`
    - `.github/ISSUE_TEMPLATE/feature_request.yml`
    - `scripts/measure_quickstart_timing.py`
-   - `tests/test_phase61_packaging_readiness.py`
+   - `tests/test_packaging_readiness.py`
 2. Add open benchmark index refresh/check path:
    - `photonstrust/benchmarks/open_index.py`
    - `scripts/refresh_open_benchmark_index.py`

@@ -34,7 +34,7 @@
   - `photonstrust/qkd.py`
 - Tests:
   - `tests/test_qkd_free_space.py`
-  - `tests/test_qkd_basic.py`
+  - `tests/test_qkd_smoke.py`
 
 ### Step 3
 - Objective: Support config/schema/report compatibility.

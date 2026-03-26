@@ -20,7 +20,7 @@
 - Unit tests status: pass
   - `tests/test_emitter_model.py`
 - Integration tests status: pass
-  - `tests/test_qkd_basic.py`
+  - `tests/test_qkd_smoke.py`
   - `tests/test_completion_quality.py`
 - Regression/golden status: pass
   - full `pytest` suite (`41 passed`)

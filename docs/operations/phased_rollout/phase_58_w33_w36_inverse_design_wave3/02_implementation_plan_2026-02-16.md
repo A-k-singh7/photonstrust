@@ -34,8 +34,8 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `schemas/photonstrust.pic_invdesign_report.v0.schema.json`
 5. Add Phase 58 regression tests and flagship fixture:
    - `tests/test_invdesign_robustness_metrics.py`
-   - `tests/api/test_api_phase58_invdesign_wave3.py`
-   - `tests/test_phase58_w36_flagship_invdesign_fixture.py`
+   - `tests/api/test_api_invdesign.py`
+   - `tests/test_flagship_invdesign_fixture.py`
    - `tests/fixtures/phase58_w36_flagship_invdesign_component_graph.json`
 6. Complete strict rollout docs and weekly operations notes:
    - `docs/operations/week33/phase58_w33_invdesign_evidence_gates_notes_2026-02-16.md`

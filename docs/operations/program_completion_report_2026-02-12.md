@@ -14,7 +14,7 @@ This report consolidates evidence for Weeks 1-24 execution status against
 | 6 | completed | `photonstrust/qkd.py` (channel realism integration), `docs/research/03_physics_models.md` |
 | 7 | completed | `photonstrust/protocols/compiler.py`, `tests/test_protocol_compiler.py` |
 | 8 | completed | `photonstrust/scenarios/teleportation.py`, `tests/test_completion_quality.py` |
-| 9-10 | completed | `tests/test_qkd_basic.py`, `tests/test_completion_quality.py`, `tests/test_regression_baselines.py` |
+| 9-10 | completed | `tests/test_qkd_smoke.py`, `tests/test_completion_quality.py`, `tests/test_regression_baselines.py` |
 | 11 | completed | `photonstrust/repeater.py`, `photonstrust/optimize/optimizer.py`, `tests/test_completion_quality.py` |
 | 12 | completed | this report + Week 1-11 evidence references |
 | 13 | completed | `photonstrust/scenarios/teleportation.py`, `tests/test_completion_quality.py` |

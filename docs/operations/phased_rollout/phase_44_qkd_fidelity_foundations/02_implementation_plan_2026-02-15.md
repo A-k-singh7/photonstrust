@@ -61,7 +61,7 @@ Implement three foundational fixes:
   - `photonstrust/tests/test_completion_quality.py`
 
 - Add Phase 44 semantics unit tests:
-  - `photonstrust/tests/test_qkd_phase44_semantics.py`
+  - `photonstrust/tests/test_qkd_semantics.py`
 
 - Canonical baselines:
   - Regenerate fixture via `py scripts/generate_phase41_canonical_baselines.py`.

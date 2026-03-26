@@ -23,7 +23,7 @@ This table freezes owner accountability for public interfaces during M1
 | Physics | `get_emitter_stats(source)` | PHY | QA | emitter trend tests (`g2_0`) |
 | Physics | `simulate_memory(memory_cfg, wait_time_ns)` | PHY | QA | `tests/test_physics_memory.py` |
 | Physics | `simulate_detector(detector_cfg, arrival_times_ps)` | PHY | QA | `tests/test_detector_model.py` |
-| QKD engine | `compute_point(scenario, distance_km)` | PHY | SIM | `tests/test_qkd_basic.py` |
+| QKD engine | `compute_point(scenario, distance_km)` | PHY | SIM | `tests/test_qkd_smoke.py` |
 | QKD engine | `compute_sweep(scenario, include_uncertainty=True)` | PHY | CAL | QKD + uncertainty path tests |
 | Events | `EventKernel.schedule(event)` | SIM | QA | `tests/test_event_kernel.py` |
 | Events | `EventKernel.run(until_ns=None)` | SIM | QA | `tests/test_event_kernel.py` |

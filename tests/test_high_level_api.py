@@ -74,7 +74,7 @@ class TestSimulateQKDLink:
         assert isinstance(s, str)
         assert len(s) > 0
 
-    def test_as_dict(self):
+    def test_qkd_result_as_dict_has_expected_keys(self):
         """as_dict() returns a dict with results and config keys."""
         result = simulate_qkd_link(distance_km=[10], include_uncertainty=False)
         d = result.as_dict()
@@ -156,7 +156,7 @@ class TestCompareProtocols:
 class TestDesignPIC:
     """Tests for the design_pic power function."""
 
-    def test_basic_pic(self):
+    def test_pic_design_returns_result(self):
         """Basic PIC with two MMIs and one connection."""
         result = design_pic(
             components=["mmi_2x2", "mmi_2x2"],
@@ -166,14 +166,14 @@ class TestDesignPIC:
         assert len(result.netlist["nodes"]) == 2
         assert len(result.netlist["edges"]) == 1
 
-    def test_summary(self):
+    def test_pic_design_summary_is_non_empty(self):
         """PICDesignResult.summary() returns a non-empty string."""
         result = design_pic(components=["mmi_2x2"], connections=[])
         s = result.summary()
         assert isinstance(s, str)
         assert "PIC netlist" in s
 
-    def test_as_dict(self):
+    def test_pic_design_as_dict_has_netlist(self):
         """as_dict() returns a dict."""
         result = design_pic(components=["mmi_2x2"], connections=[])
         d = result.as_dict()
@@ -203,7 +203,7 @@ class TestPlanNetwork:
         assert len(result.topology["links"]) == 2
         assert len(result.paths) >= 1
 
-    def test_summary(self):
+    def test_network_plan_summary_is_non_empty(self):
         """NetworkPlan.summary() returns a non-empty string."""
         result = plan_network(
             nodes=["X", "Y"],
@@ -213,7 +213,7 @@ class TestPlanNetwork:
         assert isinstance(s, str)
         assert "Network" in s
 
-    def test_as_dict(self):
+    def test_network_plan_as_dict_has_paths(self):
         """as_dict() returns a dict."""
         result = plan_network(
             nodes=["X", "Y"],
@@ -245,14 +245,14 @@ class TestPlanSatellite:
         assert isinstance(result, SatellitePlan)
         assert result.constellation["altitude_km"] == 600
 
-    def test_summary(self):
+    def test_satellite_plan_summary_is_non_empty(self):
         """SatellitePlan.summary() returns a non-empty string."""
         result = plan_satellite()
         s = result.summary()
         assert isinstance(s, str)
         assert "Constellation" in s or "Scheduled" in s
 
-    def test_as_dict(self):
+    def test_satellite_plan_as_dict_has_schedule(self):
         """as_dict() returns a dict."""
         result = plan_satellite()
         d = result.as_dict()

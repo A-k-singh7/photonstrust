@@ -116,7 +116,7 @@ def test_dcr_increases_with_temperature():
 
 # ---- Material presets tests -----------------------------------------------
 
-def test_presets_exist():
+def test_snspd_standard_presets_are_registered():
     assert "NbN" in SNSPD_MATERIAL_PRESETS
     assert "WSi" in SNSPD_MATERIAL_PRESETS
     assert "MoSi" in SNSPD_MATERIAL_PRESETS

@@ -111,7 +111,7 @@ class TestPlotRateDistance:
 
 
 class TestPlotProtocolComparison:
-    def test_returns_figure(self):
+    def test_protocol_comparison_returns_figure(self):
         comparison = {"A": _make_results(protocol="A"), "B": _make_results(protocol="B")}
         fig = plot_protocol_comparison(comparison)
         assert isinstance(fig, matplotlib.figure.Figure)
@@ -119,7 +119,7 @@ class TestPlotProtocolComparison:
 
 
 class TestPlotPicSpectrum:
-    def test_returns_figure(self):
+    def test_pic_spectrum_returns_figure(self):
         sweep = {
             "wavelengths_nm": np.linspace(1540, 1560, 50).tolist(),
             "transmission_db": (-10 * np.random.rand(50)).tolist(),
@@ -130,7 +130,7 @@ class TestPlotPicSpectrum:
 
 
 class TestPlotNetworkTopology:
-    def test_returns_figure(self):
+    def test_network_topology_returns_figure(self):
         net = {
             "nodes": [
                 {"node_id": "A", "location": [0, 0]},
@@ -157,7 +157,7 @@ class TestPlotNetworkTopology:
 
 
 class TestPlotConstellation:
-    def test_returns_figure(self):
+    def test_constellation_returns_figure(self):
         passes = [
             {"start_time_s": 0, "end_time_s": 300, "max_elevation_deg": 60, "ground_station_id": "GS1"},
             {"start_time_s": 500, "end_time_s": 800, "max_elevation_deg": 45, "ground_station_id": "GS2"},
@@ -184,7 +184,7 @@ class TestPlotDetectorComparison:
 
 
 class TestPlotYieldHistogram:
-    def test_returns_figure(self):
+    def test_yield_histogram_returns_figure(self):
         yr = {
             "metric_samples": np.random.normal(50, 5, 200).tolist(),
             "spec_min": 40,
@@ -210,7 +210,7 @@ class TestPlotHeatmap:
 
 
 class TestPlotEyeDiagram:
-    def test_returns_figure(self):
+    def test_eye_diagram_returns_figure(self):
         t = np.linspace(0, 1000, 500)
         v = np.sin(2 * np.pi * t / 100) + 0.1 * np.random.randn(500)
         td = {"time_ps": t.tolist(), "voltage_v": v.tolist()}
@@ -220,7 +220,7 @@ class TestPlotEyeDiagram:
 
 
 class TestPlotPassband:
-    def test_returns_figure(self):
+    def test_passband_returns_figure(self):
         wl = np.linspace(1540, 1560, 100)
         channels = [
             {"transmission_db": (-30 * np.abs(wl - c) / 10).tolist(), "label": f"Ch{i}"}
@@ -246,7 +246,7 @@ class TestPlotQberBudget:
 
 
 class TestPlotLossBudget:
-    def test_returns_figure(self):
+    def test_loss_budget_returns_figure(self):
         fig = plot_loss_budget(_MockQKDResult(distance_km=50, loss_db=12.0))
         assert isinstance(fig, matplotlib.figure.Figure)
         plt.close(fig)

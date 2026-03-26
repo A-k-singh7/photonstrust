@@ -17,5 +17,5 @@ Result:
 ## Evidence
 
 - Canonical baseline drift test:
-  - `tests/test_phase41_canonical_baselines.py` passes against `tests/fixtures/canonical_phase41_baselines.json`.
+  - `tests/test_canonical_baselines.py` passes against `tests/fixtures/canonical_phase41_baselines.json`.
 - Canonical configs validate via `validate_scenarios_or_raise`.

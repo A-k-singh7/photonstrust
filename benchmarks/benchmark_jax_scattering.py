@@ -33,7 +33,7 @@ def run_benchmark():
     }
 
     n_runs = 500
-    
+
     # Warmup
     simulate_pic_netlist(base_netlist)
 
@@ -43,7 +43,7 @@ def run_benchmark():
         base_netlist["nodes"][2]["params"]["phase_rad"] = float(i) / n_runs * jnp.pi
         simulate_pic_netlist(base_netlist)
     end_t = time.time()
-    
+
     elapsed = end_t - start_t
     print(f"Total time for {n_runs} simulations: {elapsed:.4f} seconds")
     print(f"Time per eval: {(elapsed / n_runs) * 1000:.4f} ms")

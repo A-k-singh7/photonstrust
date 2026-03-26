@@ -151,7 +151,7 @@ def test_gated_max_rate_holdoff():
 
 # ---- Presets tests --------------------------------------------------------
 
-def test_presets_exist():
+def test_ingaas_standard_presets_are_registered():
     assert "id230" in INGAAS_APD_PRESETS
     assert "id210" in INGAAS_APD_PRESETS
     assert "high_rate_spad" in INGAAS_APD_PRESETS

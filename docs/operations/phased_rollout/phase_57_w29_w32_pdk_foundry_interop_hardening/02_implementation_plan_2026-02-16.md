@@ -34,7 +34,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
    - `schemas/photonstrust.pic_foundry_drc_sealed_summary.v0.schema.json`
 4. Add deterministic golden chain fixture and tests:
    - `tests/fixtures/phase57_w32_canonical_pic_chain_graph.json`
-   - `tests/test_phase57_golden_chain_fixture.py`
+   - `tests/test_golden_chain_fixture.py`
 5. Complete strict rollout docs and weekly operations notes:
    - `docs/operations/week29/phase57_w29_pdk_adapter_contract_notes_2026-02-16.md`
    - `docs/operations/week30/phase57_w30_pdk_manifest_enforcement_notes_2026-02-16.md`

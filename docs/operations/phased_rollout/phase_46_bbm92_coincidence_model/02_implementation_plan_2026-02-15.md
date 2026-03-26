@@ -42,7 +42,7 @@ Date: 2026-02-15
 ### Tests / fixtures
 
 - Update semantics tests:
-  - `photonstrust/tests/test_qkd_phase44_semantics.py` (noise-only coincidences are squared)
+  - `photonstrust/tests/test_qkd_semantics.py` (noise-only coincidences are squared)
 - Update misalignment mapping test to isolate visibility from accidentals:
   - `photonstrust/tests/test_qkd_misalignment_floor.py`
 - Regenerate canonical baseline fixture:

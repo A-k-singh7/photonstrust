@@ -321,7 +321,7 @@ Regression baselines + canonical validation harness:
 ```bash
 python scripts/generate_baselines.py
 python scripts/generate_phase41_canonical_baselines.py
-pytest tests/test_regression_baselines.py tests/test_phase41_canonical_baselines.py tests/test_validation_harness.py
+pytest tests/test_regression_baselines.py tests/test_canonical_baselines.py tests/test_validation_harness.py
 python scripts/validation/check_benchmark_drift.py
 python scripts/validation/run_validation_harness.py --output-root results/validation
 ```

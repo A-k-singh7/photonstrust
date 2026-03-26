@@ -79,6 +79,10 @@ Use this index as the primary navigation map for execution.
     - Satellite/free-space realism pack: atmosphere path length, background, pointing/turbulence distributions, finite-key, and evidence fields.
 33. `33_foundry_pdk_specifications_research.md`
     - Comprehensive research report: published specs, design rules, layer stacks, and component parameters for six major photonics foundry PDKs (SiEPIC, AIM, IMEC, GF 45CLO, Ligentec AN800, LioniX TriPleX). Includes cross-platform comparisons and PDK manifest mapping guidance.
+34. `34_gdsfactory_compact_models_tapeout_simulation_research.md`
+    - Research report: gdsfactory interop, compact models, tapeout flows, and simulation enhancements for PIC design and verification.
+35. `35_pic_component_physics_models_research.md`
+    - PIC component physics models: physics equations, published parameters, and implementation specifications for photonic integrated circuit component models on 220 nm SOI platforms at C-band (1550 nm).
 
 ## Execution sequence recommendation
 - Wave 1: 01, 02, 03 (scientific integrity)

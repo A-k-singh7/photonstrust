@@ -96,10 +96,10 @@ Foundry and inverse-design API baseline:
 
 ```bash
 python -m pytest -q \
-  tests/api/test_api_phase57_pdk_manifest_and_foundry.py \
-  tests/api/test_api_phase58_invdesign_wave3.py \
-  tests/test_phase57_golden_chain_fixture.py \
-  tests/test_phase58_w36_flagship_invdesign_fixture.py
+  tests/api/test_api_pdk_manifest.py \
+  tests/api/test_api_invdesign.py \
+  tests/test_golden_chain_fixture.py \
+  tests/test_flagship_invdesign_fixture.py
 ```
 
 Web baseline:

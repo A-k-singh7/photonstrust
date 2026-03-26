@@ -4,7 +4,7 @@ Date: 2026-02-16
 
 ## Validation commands executed
 
-1. `py -3 -m pytest tests/test_phase63_post_ga_hardening.py`
+1. `py -3 -m pytest tests/test_post_ga_hardening.py`
 2. `py -3 scripts/release/release_gate_check.py`
 3. `py -3 scripts/release/build_release_gate_packet.py`
 4. `py -3 scripts/release/verify_release_gate_packet.py`

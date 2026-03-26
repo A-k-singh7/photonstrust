@@ -47,7 +47,7 @@ There are at least these naming patterns in `tests/`:
 
 - stable domain tests: `test_detector_model.py`, `test_graph_compiler.py`
 - script tests: `test_build_pic_gate_e_packet_script.py`
-- program-phase tests: `test_phase61_packaging_readiness.py`
+- program-phase tests: `test_packaging_readiness.py`
 - dated milestone style tests: `test_day10_tapeout_rehearsal.py`
 - milestone shorthand tests: `test_m3_checkpoint.py`
 - UI helper tests mixed into Python tree: `test_ui_data_helpers.py`, `test_ui_newcomer_flow_parity.py`
@@ -283,9 +283,9 @@ If old `demoN_*` names must remain, maintain a compatibility layer and index.
 
 These are technically fine but should be grouped/documented better:
 
-- `test_phase61_packaging_readiness.py`
-- `test_phase62_ga_release_cycle.py`
-- `test_phase63_post_ga_hardening.py`
+- `test_packaging_readiness.py`
+- `test_ga_release_cycle.py`
+- `test_post_ga_hardening.py`
 - `test_day10_tapeout_rehearsal.py`
 - `test_m3_checkpoint.py`
 

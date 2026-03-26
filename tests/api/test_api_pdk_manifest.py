@@ -144,7 +144,7 @@ def _write_manual_layout_source_run(
     return run_dir
 
 
-def test_phase57_layout_signoff_runs_emit_pdk_manifest_preview(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_layout_signoff_runs_emit_pdk_manifest_preview(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
 
     import photonstrust.layout.pic.klayout_runner as klr
@@ -213,7 +213,7 @@ def test_phase57_layout_signoff_runs_emit_pdk_manifest_preview(tmp_path: Path, m
     assert perf_payload.get("artifact_relpaths", {}).get("pdk_manifest_json") == "pdk_manifest.json"
 
 
-def test_phase57_lvs_certification_requires_pdk_manifest_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_lvs_certification_requires_pdk_manifest_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
     graph = _pic_chain_graph()
@@ -234,7 +234,7 @@ def test_phase57_lvs_certification_requires_pdk_manifest_context(tmp_path: Path,
     assert "pdk_manifest" in detail or "certification" in detail
 
 
-def test_phase57_klayout_certification_requires_pdk_manifest_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_klayout_certification_requires_pdk_manifest_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
 
     import photonstrust.layout.pic.klayout_runner as klr
@@ -258,7 +258,7 @@ def test_phase57_klayout_certification_requires_pdk_manifest_context(tmp_path: P
     assert "pdk_manifest" in detail or "certification" in detail
 
 
-def test_phase57_performance_drc_certification_requires_explicit_pdk_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_performance_drc_certification_requires_explicit_pdk_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -277,7 +277,7 @@ def test_phase57_performance_drc_certification_requires_explicit_pdk_context(tmp
     assert "pdk" in detail and "certification" in detail
 
 
-def test_phase57_foundry_drc_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_drc_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -317,7 +317,7 @@ def test_phase57_foundry_drc_sealed_run_writes_outputs(tmp_path: Path, monkeypat
     assert manifest.get("artifacts", {}).get("pdk_manifest_json") == "pdk_manifest.json"
 
 
-def test_phase57_foundry_drc_certification_requires_pdk_manifest_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_drc_certification_requires_pdk_manifest_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -338,7 +338,7 @@ def test_phase57_foundry_drc_certification_requires_pdk_manifest_context(tmp_pat
     assert "pdk_manifest" in detail or "certification" in detail
 
 
-def test_phase57_foundry_drc_rejects_invalid_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_drc_rejects_invalid_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -358,7 +358,7 @@ def test_phase57_foundry_drc_rejects_invalid_backend(tmp_path: Path, monkeypatch
     assert "backend must be one of" in detail
 
 
-def test_phase57_foundry_drc_rejects_invalid_run_id_format(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_drc_rejects_invalid_run_id_format(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -379,7 +379,7 @@ def test_phase57_foundry_drc_rejects_invalid_run_id_format(tmp_path: Path, monke
     assert "run_id must match" in detail
 
 
-def test_phase57_foundry_drc_certification_rejects_mock_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_drc_certification_rejects_mock_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -400,7 +400,7 @@ def test_phase57_foundry_drc_certification_rejects_mock_backend(tmp_path: Path, 
     assert "non-mock" in detail and "foundry drc" in detail
 
 
-def test_phase57_foundry_lvs_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_lvs_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -430,7 +430,7 @@ def test_phase57_foundry_lvs_sealed_run_writes_outputs(tmp_path: Path, monkeypat
     assert (Path(payload["output_dir"]) / "pdk_manifest.json").exists()
 
 
-def test_phase57_foundry_pex_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_pex_sealed_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -460,7 +460,7 @@ def test_phase57_foundry_pex_sealed_run_writes_outputs(tmp_path: Path, monkeypat
     assert (Path(payload["output_dir"]) / "pdk_manifest.json").exists()
 
 
-def test_phase57_foundry_pex_local_backend_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_foundry_pex_local_backend_run_writes_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -530,7 +530,7 @@ def test_phase57_foundry_pex_local_backend_run_writes_outputs(tmp_path: Path, mo
         ("/v0/pic/layout/foundry_pex/run", "foundry pex"),
     ],
 )
-def test_phase57_foundry_lvs_pex_certification_rejects_mock_backend(
+def test_foundry_lvs_pex_certification_rejects_mock_backend(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     endpoint: str,
@@ -563,7 +563,7 @@ def test_phase57_foundry_lvs_pex_certification_rejects_mock_backend(
         "/v0/pic/layout/foundry_pex/run",
     ],
 )
-def test_phase57_foundry_lvs_pex_reject_invalid_run_id(
+def test_foundry_lvs_pex_reject_invalid_run_id(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     endpoint: str,
@@ -595,7 +595,7 @@ def test_phase57_foundry_lvs_pex_reject_invalid_run_id(
         ("/v0/pic/layout/foundry_pex/run", "local_lvs"),
     ],
 )
-def test_phase57_foundry_lvs_pex_reject_invalid_backend(
+def test_foundry_lvs_pex_reject_invalid_backend(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     endpoint: str,

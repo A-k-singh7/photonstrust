@@ -4,7 +4,7 @@ Date: 2026-02-16
 
 ## Validation commands executed
 
-1. `py -3 -m pytest tests/test_phase62_ga_release_cycle.py`
+1. `py -3 -m pytest tests/test_ga_release_cycle.py`
 2. `py -3 scripts/lock_rc_baseline.py --regenerate`
 3. `py -3 scripts/check_external_reviewer_findings.py`
 4. `py -3 scripts/release/release_gate_check.py`

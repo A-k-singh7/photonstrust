@@ -10,7 +10,7 @@ from photonstrust.qkd import compute_sweep
 from photonstrust.validation import validate_scenarios_or_raise
 
 
-def test_phase41_canonical_configs_validate() -> None:
+def test_canonical_configs_validate() -> None:
     root = Path(__file__).resolve().parents[1]
     canonical_dir = root / "configs" / "canonical"
     paths = sorted(canonical_dir.glob("phase41_*.yml"))
@@ -22,7 +22,7 @@ def test_phase41_canonical_configs_validate() -> None:
         validate_scenarios_or_raise(scenarios)
 
 
-def test_phase41_canonical_baselines_match_fixture() -> None:
+def test_canonical_baselines_match_fixture() -> None:
     root = Path(__file__).resolve().parents[1]
     fixture = root / "tests" / "fixtures" / "canonical_phase41_baselines.json"
     assert fixture.exists(), "Missing baseline fixture. Run scripts/generate_phase41_canonical_baselines.py"

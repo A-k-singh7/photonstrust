@@ -70,7 +70,7 @@ def _robustness_cases() -> list[dict]:
     ]
 
 
-def test_phase58_invdesign_certification_rejects_missing_robustness_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_invdesign_certification_rejects_missing_robustness_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -90,7 +90,7 @@ def test_phase58_invdesign_certification_rejects_missing_robustness_evidence(tmp
     assert "robustness_required" in detail or "robustness_cases" in detail or "evidence" in detail
 
 
-def test_phase58_workflow_certification_rejects_incomplete_invdesign_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_workflow_certification_rejects_incomplete_invdesign_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
 
     import photonstrust.layout.pic.klayout_runner as klr
@@ -119,7 +119,7 @@ def test_phase58_workflow_certification_rejects_incomplete_invdesign_evidence(tm
     assert "robustness_required" in detail or "robustness_cases" in detail or "evidence" in detail
 
 
-def test_phase58_invdesign_certification_emits_worst_case_and_thresholds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_invdesign_certification_emits_worst_case_and_thresholds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -158,7 +158,7 @@ def test_phase58_invdesign_certification_emits_worst_case_and_thresholds(tmp_pat
     assert manifest.get("input", {}).get("execution_mode") == "certification"
 
 
-def test_phase58_plugin_boundary_preserves_core_parity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_plugin_boundary_preserves_core_parity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -202,7 +202,7 @@ def test_phase58_plugin_boundary_preserves_core_parity(tmp_path: Path, monkeypat
     assert solver.get("license_class") == "copyleft"
 
 
-def test_phase58_api_lvs_lite_accepts_signoff_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_api_lvs_lite_accepts_signoff_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
     client = TestClient(app)
 

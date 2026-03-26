@@ -28,7 +28,7 @@ def run_benchmark():
     import sys
     if "photonstrust_rs" in sys.modules:
         rs_mod = sys.modules.pop("photonstrust_rs")
-    
+
     start_t = time.time()
     for _ in range(10):
         clicks, false, processed = _process_events_heap_legacy(
@@ -62,7 +62,7 @@ def run_benchmark():
         end_t = time.time()
         rs_time = (end_t - start_t) / 10.0
         print(f"Rust time per eval:   {rs_time * 1000:.2f} ms")
-        
+
         speedup = py_time / rs_time
         print(f"Speedup: {speedup:.2f}x")
 

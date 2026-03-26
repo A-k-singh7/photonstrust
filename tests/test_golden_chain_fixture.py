@@ -205,7 +205,7 @@ def _run_chain_and_capture(client: TestClient, graph: dict[str, Any], runs_root:
     }
 
 
-def test_phase57_w32_canonical_chain_is_deterministic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_canonical_chain_is_deterministic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(tmp_path))
 
     import photonstrust.layout.pic.klayout_runner as klr

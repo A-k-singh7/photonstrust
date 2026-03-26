@@ -23,7 +23,7 @@ Owner roles follow `docs/research/deep_dive/13_raci_matrix.md`.
 
 1. Add RC baseline lock script and tests:
    - `scripts/lock_rc_baseline.py`
-   - `tests/test_phase62_ga_release_cycle.py`
+   - `tests/test_ga_release_cycle.py`
 2. Add reviewer findings gate and artifacts:
    - `scripts/check_external_reviewer_findings.py`
    - `reports/specs/milestones/external_reviewer_dry_run_2026-02-16.md`

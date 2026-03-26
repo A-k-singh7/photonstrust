@@ -39,7 +39,7 @@ Logs:
    - Error: `AttributeError: module 'photonstrust.qkd' has no attribute 'get_emitter_stats'`
    - Failure point: monkeypatch target `photonstrust.qkd.get_emitter_stats`
 
-3. `tests/test_phase41_canonical_baselines.py::test_phase41_canonical_baselines_match_fixture`
+3. `tests/test_canonical_baselines.py::test_canonical_baselines_match_fixture`
    - Error sample: `assert 2.2318210259262616 == 2.2317200448066696 ± 2.2e-06`
 
 4. `tests/test_regression_baselines.py::test_regression_baselines`

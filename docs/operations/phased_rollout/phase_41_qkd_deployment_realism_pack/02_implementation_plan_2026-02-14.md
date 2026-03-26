@@ -31,7 +31,7 @@ Acceptance:
 Add:
 - `scripts/generate_phase41_canonical_baselines.py`
 - `tests/fixtures/canonical_phase41_baselines.json`
-- `tests/test_phase41_canonical_baselines.py`
+- `tests/test_canonical_baselines.py`
 
 Acceptance:
 - test compares current outputs to baselines with tight tolerances
