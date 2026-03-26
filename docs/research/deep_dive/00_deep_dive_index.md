@@ -77,6 +77,8 @@ Use this index as the primary navigation map for execution.
     - Investor-grade demo plan and moat story (performance DRC, KLayout chain, satellite reliability cards).
 32. `32_satellite_qkd_realism_pack.md`
     - Satellite/free-space realism pack: atmosphere path length, background, pointing/turbulence distributions, finite-key, and evidence fields.
+33. `33_foundry_pdk_specifications_research.md`
+    - Comprehensive research report: published specs, design rules, layer stacks, and component parameters for six major photonics foundry PDKs (SiEPIC, AIM, IMEC, GF 45CLO, Ligentec AN800, LioniX TriPleX). Includes cross-platform comparisons and PDK manifest mapping guidance.
 
 ## Execution sequence recommendation
 - Wave 1: 01, 02, 03 (scientific integrity)
