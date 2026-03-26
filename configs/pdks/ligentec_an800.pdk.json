@@ -1,0 +1,30 @@
+{
+  "name": "ligentec_an800",
+  "version": "0.1",
+  "description": "Ligentec AN800 800nm thick Si3N4 platform (published specs)",
+  "design_rules": {
+    "min_waveguide_width_um": 0.80,
+    "min_waveguide_gap_um": 0.50,
+    "min_bend_radius_um": 50.0
+  },
+  "capabilities": {
+    "supports_layout": true,
+    "supports_performance_drc": true,
+    "supports_lvs_lite_signoff": false,
+    "supports_spice_export": false
+  },
+  "layer_stack": [
+    {"name": "sin_core", "gds_layer": 1, "gds_datatype": 0, "material": "Si3N4", "thickness_um": 0.80},
+    {"name": "box", "gds_layer": 2, "gds_datatype": 0, "material": "SiO2", "thickness_um": 4.0},
+    {"name": "cladding", "gds_layer": 3, "gds_datatype": 0, "material": "SiO2", "thickness_um": 3.0},
+    {"name": "heater", "gds_layer": 10, "gds_datatype": 0, "material": "Pt", "thickness_um": 0.15}
+  ],
+  "component_cells": [
+    {"name": "waveguide", "library": "ligentec_an800", "cell": "WG_SIN", "ports": ["in", "out"], "maps_to_internal_kind": "pic.waveguide", "default_params": {"loss_db_per_cm": 0.05}},
+    {"name": "ring_resonator", "library": "ligentec_an800", "cell": "RING_SIN", "ports": ["in", "out"], "maps_to_internal_kind": "pic.ring", "default_params": {"insertion_loss_db": 0.1}},
+    {"name": "mmi_1x2", "library": "ligentec_an800", "cell": "MMI_1X2", "ports": ["in", "out1", "out2"], "maps_to_internal_kind": "pic.mmi", "default_params": {"insertion_loss_db": 0.2, "n_ports_in": 1, "n_ports_out": 2}},
+    {"name": "edge_coupler", "library": "ligentec_an800", "cell": "EC_SSC", "ports": ["in", "out"], "maps_to_internal_kind": "pic.ssc", "default_params": {"coupling_loss_db": 1.5}},
+    {"name": "thermal_tuner", "library": "ligentec_an800", "cell": "HEATER", "ports": ["in", "out"], "maps_to_internal_kind": "pic.heater", "default_params": {"length_um": 500.0, "material": "SiN"}}
+  ],
+  "interop": null
+}

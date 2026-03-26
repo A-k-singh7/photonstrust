@@ -26,6 +26,13 @@ QKD_REQUIRED_KINDS = [
     "qkd.protocol",
 ]
 
+# Optional extension node kinds for Phase A
+QKD_OPTIONAL_KINDS = [
+    "qkd.satellite_pass",     # Orbit envelope parameters
+    "qkd.coexistence",        # WDM coexistence configuration
+    "qkd.free_space_channel",  # Free-space link overrides
+]
+
 
 @dataclass(frozen=True)
 class CompiledGraph:
@@ -162,6 +169,17 @@ def _compile_qkd_link(graph: dict) -> CompiledGraph:
         "uncertainty": graph.get("uncertainty", {}) or {},
         "finite_key": graph.get("finite_key", {}) or {},
     }
+
+    # Phase A extension: optional satellite, coexistence, free-space nodes
+    for opt_kind in QKD_OPTIONAL_KINDS:
+        if opt_kind in by_kind:
+            entries = by_kind[opt_kind]
+            if len(entries) > 1:
+                warnings.append(
+                    f"Multiple {opt_kind} nodes found; using the first one."
+                )
+            key = opt_kind.split(".")[-1]  # e.g. "satellite_pass"
+            config[key] = params(opt_kind)
 
     if config["uncertainty"] is None:
         config["uncertainty"] = {}

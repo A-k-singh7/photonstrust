@@ -25,6 +25,10 @@ from photonstrust.components.pic.touchstone import (
     load_touchstone_nport,
 )
 
+# Phase C component imports are deferred to _register_phase_c_components()
+# to avoid circular imports (the component modules import ComponentPorts from
+# this module).
+
 
 @dataclass(frozen=True)
 class ComponentPorts:
@@ -33,10 +37,12 @@ class ComponentPorts:
 
 
 def supported_component_kinds() -> set[str]:
+    _register_phase_c_components()
     return set(_LIB.keys())
 
 
 def component_ports(kind: str, params: dict | None = None) -> ComponentPorts:
+    _register_phase_c_components()
     kind = _normalize_kind(kind)
     if kind not in _LIB:
         raise KeyError(f"Unsupported PIC component kind: {kind}")
@@ -45,6 +51,21 @@ def component_ports(kind: str, params: dict | None = None) -> ComponentPorts:
         if params is None:
             params = {}
         return _touchstone_nport_ports(params)
+
+    if kind == "pic.mmi":
+        if params is None:
+            params = {}
+        from photonstrust.components.pic.mmi import mmi_ports
+        return mmi_ports(params)
+
+    if kind == "pic.awg":
+        if params is None:
+            params = {}
+        n_ch = int(params.get("n_channels", 8))
+        return ComponentPorts(
+            in_ports=("in",),
+            out_ports=tuple(f"out{i+1}" for i in range(n_ch)),
+        )
 
     return _LIB[kind]["ports"]  # type: ignore[return-value]
 
@@ -55,6 +76,7 @@ def component_forward_matrix(kind: str, params: dict, wavelength_nm: float | Non
     Shape: (n_out, n_in), complex dtype.
     """
 
+    _register_phase_c_components()
     kind = _normalize_kind(kind)
     if kind not in _LIB:
         raise KeyError(f"Unsupported PIC component kind: {kind}")
@@ -82,6 +104,7 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
     - For Touchstone-imported components we use the full 2x2 S matrix at the evaluated wavelength.
     """
 
+    _register_phase_c_components()
     kind = _normalize_kind(kind)
     ports = component_ports(kind, params=params)
     all_ports = component_all_ports(kind, params=params)
@@ -171,6 +194,13 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
         # b_in = M^T @ a_out (reciprocal reverse coupling)
         s[0:2, 2:4] = fwd.T
         return s
+
+    # Phase C multiport components with dedicated scattering models.
+    if kind in {"pic.mmi", "pic.y_branch", "pic.crossing", "pic.awg"}:
+        scat_fn = _LIB[kind].get("scattering_fn")
+        if scat_fn is not None:
+            return scat_fn(params, wavelength_nm)
+        raise ValueError(f"No scattering function registered for {kind!r}")
 
     if kind == "pic.touchstone_2port":
         # Use the full S-parameter matrix at the requested wavelength.
@@ -581,3 +611,90 @@ _LIB: dict[str, dict] = {
         "matrix_fn": _matrix_touchstone_nport,
     },
 }
+
+
+_PHASE_C_REGISTERED = False
+
+
+def _register_phase_c_components() -> None:
+    """Lazily register Phase C components to avoid circular imports."""
+    global _PHASE_C_REGISTERED  # noqa: PLW0603
+    if _PHASE_C_REGISTERED:
+        return
+    _PHASE_C_REGISTERED = True
+
+    from photonstrust.components.pic.mmi import (
+        mmi_forward_matrix,
+        mmi_scattering_matrix,
+    )
+    from photonstrust.components.pic.y_branch import (
+        y_branch_forward_matrix,
+        y_branch_scattering_matrix,
+    )
+    from photonstrust.components.pic.crossing import (
+        crossing_forward_matrix,
+        crossing_scattering_matrix,
+    )
+    from photonstrust.components.pic.mzm import (
+        mzm_forward_matrix,
+        mzm_scattering_matrix,
+    )
+    from photonstrust.components.pic.photodetector import (
+        photodetector_forward_matrix,
+        photodetector_scattering_matrix,
+    )
+    from photonstrust.components.pic.awg import (
+        awg_forward_matrix,
+        awg_scattering_matrix,
+    )
+    from photonstrust.components.pic.heater import (
+        heater_forward_matrix,
+        heater_scattering_matrix,
+    )
+    from photonstrust.components.pic.ssc import (
+        ssc_forward_matrix,
+        ssc_scattering_matrix,
+    )
+
+    _LIB.update({
+        "pic.mmi": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out1", "out2")),
+            "matrix_fn": mmi_forward_matrix,
+            "scattering_fn": mmi_scattering_matrix,
+        },
+        "pic.y_branch": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out1", "out2")),
+            "matrix_fn": y_branch_forward_matrix,
+            "scattering_fn": y_branch_scattering_matrix,
+        },
+        "pic.crossing": {
+            "ports": ComponentPorts(in_ports=("in1", "in2"), out_ports=("out1", "out2")),
+            "matrix_fn": crossing_forward_matrix,
+            "scattering_fn": crossing_scattering_matrix,
+        },
+        "pic.mzm": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": mzm_forward_matrix,
+            "scattering_fn": mzm_scattering_matrix,
+        },
+        "pic.photodetector": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": photodetector_forward_matrix,
+            "scattering_fn": photodetector_scattering_matrix,
+        },
+        "pic.awg": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out1", "out2", "out3", "out4", "out5", "out6", "out7", "out8")),
+            "matrix_fn": awg_forward_matrix,
+            "scattering_fn": awg_scattering_matrix,
+        },
+        "pic.heater": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": heater_forward_matrix,
+            "scattering_fn": heater_scattering_matrix,
+        },
+        "pic.ssc": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": ssc_forward_matrix,
+            "scattering_fn": ssc_scattering_matrix,
+        },
+    })

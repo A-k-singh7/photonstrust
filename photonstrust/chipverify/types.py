@@ -30,6 +30,9 @@ class ChipVerifyMetrics:
     crosstalk_isolation_db: float | None
     component_count: int
     edge_count: int
+    phase_error_sensitivity_rad_per_nm: float | None = None
+    group_delay_variation_ps: float | None = None
+    process_yield_estimate_pct: float | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -38,6 +41,9 @@ class ChipVerifyMetrics:
             "crosstalk_isolation_db": self.crosstalk_isolation_db,
             "component_count": self.component_count,
             "edge_count": self.edge_count,
+            "phase_error_sensitivity_rad_per_nm": self.phase_error_sensitivity_rad_per_nm,
+            "group_delay_variation_ps": self.group_delay_variation_ps,
+            "process_yield_estimate_pct": self.process_yield_estimate_pct,
         }
 
 
