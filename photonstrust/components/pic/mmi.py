@@ -233,3 +233,49 @@ def mmi_scattering_matrix(params: dict, wavelength_nm: float | None = None) -> n
     if len(ports.in_ports) == 1:
         return mmi_1x2_scattering_matrix(params, wavelength_nm)
     return mmi_2x2_scattering_matrix(params, wavelength_nm)
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class MMIParams(BaseModel):
+    n_ports_in: int = Field(1, ge=1, le=2)
+    n_ports_out: int = Field(2, ge=2, le=2)
+    insertion_loss_db: float = Field(0.3, ge=0.0, description="Excess insertion loss in dB")
+    imbalance_db: float = Field(0.0, description="Output power imbalance in dB")
+    return_loss_db: float | None = Field(None, ge=0.0, description="Return loss in dB")
+
+
+class MMIComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.mmi", title="MMI Coupler",
+            description="Multimode interference coupler using self-imaging",
+            in_ports=("in1", "in2"), out_ports=("out1", "out2"),
+            port_domains={"in1": "optical", "in2": "optical", "out1": "optical", "out2": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return MMIParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return mmi_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return mmi_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        if params:
+            p = mmi_ports(cls._as_dict(params))
+            return p.in_ports, p.out_ports
+        return cls.meta().in_ports, cls.meta().out_ports

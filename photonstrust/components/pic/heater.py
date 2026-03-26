@@ -183,3 +183,47 @@ def heater_scattering_matrix(
     s[1, 0] = t  # S21 (forward)
     s[0, 1] = t  # S12 (reciprocal)
     return s
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class HeaterParams(BaseModel):
+    power_mW: float = Field(0.0, ge=0.0, description="Electrical drive power in mW")
+    length_um: float = Field(100.0, gt=0.0, description="Heater length in um")
+    material: str = Field("Si", description="Waveguide platform material (Si, SiN, SiO2)")
+    insertion_loss_db: float = Field(0.1, ge=0.0, description="Excess insertion loss in dB")
+    thermal_resistance_K_per_mW: float = Field(0.5, gt=0.0, description="Thermal resistance in K/mW")
+    delta_T_K: float | None = Field(None, ge=0.0, description="Direct temperature rise in K (alternative to power_mW)")
+
+
+class HeaterComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.heater", title="Thermo-Optic Phase Shifter",
+            description="Resistive heater for thermo-optic phase tuning",
+            in_ports=("in",), out_ports=("out",),
+            port_domains={"in": "optical", "out": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return HeaterParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return heater_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return heater_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        return cls.meta().in_ports, cls.meta().out_ports

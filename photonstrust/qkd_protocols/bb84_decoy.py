@@ -284,3 +284,67 @@ def _e1_upper_bound_3intensity(
     Ref: Ma, Qi, Zhao, Lo, PRA 72, 012326 (2005), Eq. (11)
     """
     return _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class BB84DecoyParams(BaseModel):
+    """Protocol-specific parameters for BB84 Decoy-State QKD."""
+
+    mu: float = Field(0.5, gt=0.0, description="Signal-state mean photon number")
+    nu: float = Field(0.1, ge=0.0, description="Weak decoy intensity")
+    omega: float = Field(0.0, ge=0.0, description="Vacuum/second decoy intensity")
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    sifting_factor: float = Field(
+        0.5, gt=0.0, le=1.0, description="Basis sifting fraction"
+    )
+    decoy_method: str = Field(
+        "vacuum_weak",
+        description="Decoy analysis method ('vacuum_weak' or '3intensity')",
+    )
+
+
+class BB84DecoyProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the BB84 Decoy-State protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="bb84_decoy",
+            title="BB84 Decoy-State",
+            aliases=("bb84", "decoy_bb84", "bb84_wcp", "decoy"),
+            description=(
+                "BB84 weak-coherent-pulse protocol with vacuum + weak decoy "
+                "state analysis for single-photon yield/error estimation."
+            ),
+            channel_models=("fiber", "free_space"),
+            gate_policy={"plob_repeaterless_bound": "apply"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return BB84DecoyParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_bb84_decoy(scenario, distance_km, runtime_overrides)

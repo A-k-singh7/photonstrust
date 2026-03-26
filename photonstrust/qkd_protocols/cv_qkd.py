@@ -392,6 +392,73 @@ def _finite_size_penalty(n: float, epsilon: float, detection_type: str) -> float
 
 
 # ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class CVQKDParams(BaseModel):
+    """Protocol-specific parameters for CV-QKD (GG02)."""
+
+    V_A: float = Field(
+        4.0, gt=0.0, description="Modulation variance in shot-noise units (SNU)"
+    )
+    xi: float = Field(
+        0.005, ge=0.0, description="Excess noise referred to channel input (SNU)"
+    )
+    beta: float = Field(
+        0.95, gt=0.0, le=1.0, description="Reconciliation efficiency"
+    )
+    detection: str = Field(
+        "homodyne",
+        description="Detection scheme: 'homodyne' or 'heterodyne'",
+    )
+    eta_det: float = Field(
+        0.6, gt=0.0, le=1.0, description="Detector quantum efficiency"
+    )
+    v_el: float = Field(
+        0.01, ge=0.0, description="Electronic noise variance (SNU)"
+    )
+
+
+class CVQKDProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the CV-QKD (GG02) protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="cv_qkd",
+            title="CV-QKD (GG02)",
+            aliases=("cv", "gg02", "gaussian", "continuous_variable"),
+            description=(
+                "Gaussian-modulated coherent-state CV-QKD with homodyne or "
+                "heterodyne detection and reverse reconciliation."
+            ),
+            channel_models=("fiber",),
+            gate_policy={"plob_repeaterless_bound": "apply"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return CVQKDParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_cv_qkd(scenario, distance_km, runtime_overrides)
+
+
+# ---------------------------------------------------------------------------
 # Empty result helper
 # ---------------------------------------------------------------------------
 

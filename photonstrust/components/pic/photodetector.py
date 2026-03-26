@@ -352,3 +352,49 @@ def photodetector_scattering_matrix(params: dict, wavelength_nm: float | None = 
     s[1, 0] = t  # S21
     s[0, 1] = t  # S12 (reciprocal)
     return s
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class PhotodetectorParams(BaseModel):
+    wavelength_nm: float = Field(1550.0, gt=0.0, description="Operating wavelength in nm")
+    length_um: float = Field(20.0, gt=0.0, description="Absorber length in um")
+    eta_coupling: float = Field(0.9, ge=0.0, le=1.0, description="Waveguide-to-absorber coupling efficiency")
+    alpha_per_cm: float = Field(5000.0, ge=0.0, description="Ge absorption coefficient in cm^-1")
+    confinement_factor: float = Field(0.8, ge=0.0, le=1.0, description="Optical confinement factor in Ge")
+    eta_collection: float = Field(0.95, ge=0.0, le=1.0, description="Carrier collection efficiency")
+    width_um: float = Field(5.0, gt=0.0, description="Detector width in um")
+    J_dark_mA_per_cm2: float = Field(10.0, ge=0.0, description="Dark-current density in mA/cm^2")
+
+
+class PhotodetectorComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.photodetector", title="Ge-on-Si Photodetector",
+            description="Germanium waveguide photodetector for integrated receivers",
+            in_ports=("in",), out_ports=("out",),
+            port_domains={"in": "optical", "out": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return PhotodetectorParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return photodetector_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return photodetector_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        return cls.meta().in_ports, cls.meta().out_ports

@@ -322,3 +322,46 @@ def mzm_scattering_matrix(params: dict, wavelength_nm: float | None = None) -> n
     s[1, 0] = t  # S21 (forward)
     s[0, 1] = t  # S12 (reciprocal)
     return s
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class MZMParams(BaseModel):
+    phase_shifter_length_mm: float = Field(3.0, gt=0.0, description="Active phase-shifter length in mm")
+    V_pi_L_pi_Vcm: float = Field(2.0, gt=0.0, description="V_pi * L_pi product in V*cm")
+    voltage_V: float = Field(0.0, description="Applied drive voltage in V")
+    splitting_ratio: float = Field(0.5, ge=0.0, le=1.0, description="Input coupler splitting ratio")
+    insertion_loss_db: float = Field(4.0, ge=0.0, description="Total excess insertion loss in dB")
+
+
+class MZMComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.mzm", title="Mach-Zehnder Modulator",
+            description="Silicon photonic MZM with carrier-depletion phase shifter",
+            in_ports=("in",), out_ports=("out",),
+            port_domains={"in": "optical", "out": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return MZMParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return mzm_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return mzm_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        return cls.meta().in_ports, cls.meta().out_ports

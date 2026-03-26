@@ -171,3 +171,51 @@ def protocol_gate_policy(name: str | None) -> dict[str, Any]:
         "protocol_name": protocol.protocol_id,
         **dict(gate_policy),
     }
+
+
+# ---------------------------------------------------------------------------
+# Class-based protocol registry (auto-discovered from QKDProtocolBase)
+# ---------------------------------------------------------------------------
+
+_PROTOCOL_CLASSES: dict[str, type] = {}
+_PROTO_CLASSES_DISCOVERED = False
+
+
+def _discover_protocol_classes() -> None:
+    """Auto-discover all QKDProtocolBase subclasses from protocol modules."""
+    global _PROTO_CLASSES_DISCOVERED  # noqa: PLW0603
+    if _PROTO_CLASSES_DISCOVERED:
+        return
+    _PROTO_CLASSES_DISCOVERED = True
+
+    from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase  # noqa: E402
+
+    # Force imports so subclasses are registered.
+    from photonstrust.qkd_protocols import (  # noqa: F401
+        bb84_decoy,
+        bbm92,
+        cv_qkd,
+        mdi_qkd,
+        amdi_qkd,
+        pm_qkd,
+        sns_tf_qkd,
+        di_qkd,
+    )
+
+    for cls in QKDProtocolBase.__subclasses__():
+        meta = cls.meta()
+        _PROTOCOL_CLASSES[meta.protocol_id] = cls
+
+
+def protocol_class(name: str) -> type | None:
+    """Return the QKDProtocolBase subclass for *name*, or ``None``."""
+    if not _PROTO_CLASSES_DISCOVERED:
+        _discover_protocol_classes()
+    return _PROTOCOL_CLASSES.get(name)
+
+
+def all_protocol_classes() -> dict[str, type]:
+    """Return a dict mapping protocol IDs to QKDProtocolBase subclasses."""
+    if not _PROTO_CLASSES_DISCOVERED:
+        _discover_protocol_classes()
+    return dict(_PROTOCOL_CLASSES)

@@ -232,3 +232,46 @@ def ssc_response(
         mfd_fiber_um=fiber_mfd,
         alignment_tolerance_1dB_um=tol,
     )
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class SSCParams(BaseModel):
+    tip_width_nm: float = Field(200.0, gt=0.0, le=500.0, description="Inverse taper tip width in nm")
+    fiber_mfd_um: float = Field(10.4, gt=0.0, description="Fibre mode-field diameter in um")
+    core_thickness_nm: float = Field(220.0, gt=0.0, description="Waveguide core thickness in nm")
+    insertion_loss_db: float = Field(0.0, ge=0.0, description="Additional insertion loss in dB")
+    coupling_loss_db: float | None = Field(None, ge=0.0, description="Direct coupling loss override in dB")
+
+
+class SSCComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.ssc", title="Spot-Size Converter",
+            description="Inverse-taper edge coupler for fibre-to-chip coupling",
+            in_ports=("in",), out_ports=("out",),
+            port_domains={"in": "optical", "out": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return SSCParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return ssc_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return ssc_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        return cls.meta().in_ports, cls.meta().out_ports

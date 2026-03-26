@@ -289,3 +289,66 @@ def compute_point_di_qkd(
             "visibility": visibility,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class DIQKDParams(BaseModel):
+    """Protocol-specific parameters for DI-QKD."""
+
+    S_CHSH: float = Field(
+        2.828, gt=2.0, le=2.8284271247461903,
+        description="Observed CHSH S value (must violate classical bound S > 2)",
+    )
+    gamma: float = Field(
+        0.01, ge=0.0, le=1.0, description="Noise tolerance parameter"
+    )
+    n_rounds: int = Field(
+        100_000_000, ge=1, description="Number of measurement rounds"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    visibility: float = Field(
+        0.99, gt=0.0, le=1.0, description="Bell state visibility"
+    )
+
+
+class DIQKDProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the DI-QKD protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="di_qkd",
+            title="DI-QKD (Device-Independent)",
+            aliases=("di", "device_independent", "chsh_qkd"),
+            description=(
+                "Device-independent QKD whose security relies on observed "
+                "CHSH Bell inequality violation, requiring no assumptions "
+                "about the internal workings of Alice's and Bob's devices."
+            ),
+            channel_models=("fiber", "free_space"),
+            gate_policy={"plob_repeaterless_bound": "apply"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return DIQKDParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_di_qkd(scenario, distance_km, runtime_overrides)

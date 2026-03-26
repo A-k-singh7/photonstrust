@@ -373,3 +373,76 @@ def _empty_result(distance_km: float, loss_db: float) -> QKDResult:
         loss_db=loss_db,
         protocol_name="sns_tf_qkd",
     )
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class SNSTFQKDParams(BaseModel):
+    """Protocol-specific parameters for SNS-TF-QKD."""
+
+    mu_z: float = Field(0.3, gt=0.0, description="Signal intensity for Z windows")
+    mu_1: float = Field(0.1, gt=0.0, description="Decoy intensity 1 for X windows")
+    mu_2: float = Field(0.02, gt=0.0, description="Decoy intensity 2 for X windows")
+    epsilon_s: float = Field(
+        0.5, gt=0.0, lt=1.0, description="Sending probability (p_z)"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+
+
+class SNSTFQKDProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the SNS-TF-QKD protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="sns_tf_qkd",
+            title="SNS-TF-QKD",
+            aliases=("sns", "sns_tf", "sending_or_not_sending"),
+            description=(
+                "Sending-or-Not-Sending Twin-Field QKD achieving O(sqrt(eta)) "
+                "key-rate scaling without global phase locking."
+            ),
+            channel_models=("fiber",),
+            gate_policy={"plob_repeaterless_bound": "skip"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return SNSTFQKDParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_sns_tf_qkd(scenario, distance_km, runtime_overrides)
+
+    @classmethod
+    def applicability(cls, scenario: dict[str, Any]) -> ProtocolApplicability:
+        channel = (scenario or {}).get("channel", {}) or {}
+        model = str(channel.get("model", "fiber")).lower()
+        if model != "fiber":
+            return ProtocolApplicability(
+                status="fail",
+                reasons=(
+                    f"SNS-TF-QKD currently supports fiber channel only, got model={model!r}",
+                ),
+            )
+        return ProtocolApplicability(status="pass", reasons=())

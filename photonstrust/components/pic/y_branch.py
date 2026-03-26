@@ -97,3 +97,44 @@ def y_branch_scattering_matrix(params: dict, wavelength_nm: float | None = None)
     s[0, 1] = fwd[0, 0]
     s[0, 2] = fwd[1, 0]
     return s
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class YBranchParams(BaseModel):
+    insertion_loss_db: float = Field(0.2, ge=0.0, description="Excess insertion loss in dB")
+    splitting_ratio: float = Field(0.5, ge=0.0, le=1.0, description="Power fraction to out1")
+    return_loss_db: float | None = Field(None, ge=0.0, description="Return loss in dB")
+
+
+class YBranchComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.y_branch", title="Y-Branch Splitter",
+            description="Passive 1x2 Y-junction waveguide splitter",
+            in_ports=("in",), out_ports=("out1", "out2"),
+            port_domains={"in": "optical", "out1": "optical", "out2": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return YBranchParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return y_branch_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return y_branch_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        return cls.meta().in_ports, cls.meta().out_ports

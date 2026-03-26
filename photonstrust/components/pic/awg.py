@@ -380,3 +380,56 @@ def awg_scattering_matrix(params: dict, wavelength_nm: float | None = None) -> n
         s[0, k + 1] = fwd[k, 0]  # reciprocal
 
     return s
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class AWGParams(BaseModel):
+    n_channels: int = Field(8, ge=1, le=128, description="Number of output channels")
+    center_wavelength_nm: float = Field(1550.0, gt=0.0, description="Center wavelength in nm")
+    channel_spacing_nm: float = Field(1.6, gt=0.0, description="Channel spacing in nm")
+    insertion_loss_db: float = Field(2.5, ge=0.0, description="Total insertion loss in dB")
+    n_eff: float = Field(2.44, gt=0.0, description="Effective index of arrayed waveguides")
+    group_index: float = Field(4.2, gt=0.0, description="Group index of arrayed waveguides")
+    n_arrayed_wgs: int = Field(40, ge=1, description="Number of arrayed waveguides")
+    passband_3dB_nm: float = Field(0.5, gt=0.0, description="3-dB passband width in nm")
+    delta_L_um: float | None = Field(None, gt=0.0, description="Path-length increment in um")
+    phase_error_rms_rad: float = Field(0.05, ge=0.0, description="RMS phase error per waveguide in rad")
+
+
+class AWGComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.awg", title="AWG Demultiplexer",
+            description="Arrayed waveguide grating N-channel demultiplexer",
+            in_ports=("in",), out_ports=tuple(f"out{i+1}" for i in range(8)),
+            port_domains={"in": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return AWGParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return awg_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return awg_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        if params:
+            p = cls._as_dict(params)
+            n_ch = int(p.get("n_channels", 8))
+            out = tuple(f"out{i+1}" for i in range(n_ch))
+            return ("in",), out
+        return cls.meta().in_ports, cls.meta().out_ports

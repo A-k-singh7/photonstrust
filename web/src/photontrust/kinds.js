@@ -250,3 +250,53 @@ export function portDomainFor(kind, direction, portName) {
   if (domain == null || domain === "") return _defaultDomain(kind);
   return String(domain);
 }
+
+/**
+ * Extract default values from a JSON Schema ``properties`` block.
+ */
+function _extractDefaults(schema) {
+  if (!schema?.properties) return null;
+  const defaults = {};
+  let hasAny = false;
+  for (const [key, prop] of Object.entries(schema.properties)) {
+    if (prop.default !== undefined) {
+      defaults[key] = prop.default;
+      hasAny = true;
+    }
+  }
+  return hasAny ? defaults : null;
+}
+
+/**
+ * Merge backend component registry into KIND_DEFS.
+ *
+ * Backend is authoritative for ports, params schema, and description.
+ * Frontend retains SVG symbol mapping and any client-only overrides.
+ * Call this once after fetching ``/v0/registry/components``.
+ */
+export function mergeBackendComponents(backendComponents) {
+  for (const [kind, def] of Object.entries(backendComponents)) {
+    const existing = KIND_DEFS[kind] || {};
+    const portDomains = {};
+    if (def.port_domains) {
+      const inDomains = {};
+      const outDomains = {};
+      for (const [port, domain] of Object.entries(def.port_domains)) {
+        if ((def.ports?.in || []).includes(port)) inDomains[port] = domain;
+        else outDomains[port] = domain;
+      }
+      portDomains.in = { ...existing?.portDomains?.in, ...inDomains };
+      portDomains.out = { ...existing?.portDomains?.out, ...outDomains };
+    }
+    KIND_DEFS[kind] = {
+      ...existing,
+      title: def.title || existing.title,
+      category: def.category || existing.category || "custom",
+      description: def.description || existing.description,
+      ports: def.ports || existing.ports,
+      ...(Object.keys(portDomains).length ? { portDomains } : {}),
+      paramsSchema: def.params_schema || null,
+      defaultParams: _extractDefaults(def.params_schema) || existing.defaultParams,
+    };
+  }
+}

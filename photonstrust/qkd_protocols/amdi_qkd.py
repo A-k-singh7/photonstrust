@@ -119,3 +119,86 @@ def compute_point_amdi_qkd(
         finite_key_epsilon=float(base.finite_key_epsilon),
         protocol_diagnostics=protocol_diagnostics,
     )
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class AMDIQKDParams(BaseModel):
+    """Protocol-specific parameters for Asynchronous MDI-QKD."""
+
+    pairing_gain: float = Field(
+        1.0, ge=1.0, description="Effective pairing gain from async matching"
+    )
+    pairing_penalty_error_rate: float = Field(
+        0.0, ge=0.0, le=0.5,
+        description="Additional error probability from random pairing",
+    )
+    pairing_window_bins: int = Field(
+        2048, ge=1, description="Async matching window length in bins"
+    )
+    pairing_efficiency: float = Field(
+        0.6, ge=0.0, le=1.0, description="Usable-pair fraction"
+    )
+    mu_s: float = Field(0.5, gt=0.0, description="Signal intensity (inherited from MDI)")
+    mu_1: float = Field(0.1, gt=0.0, description="Weak decoy intensity")
+    mu_2: float = Field(0.0, ge=0.0, description="Vacuum/second decoy intensity")
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+
+
+class AMDIQKDProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the AMDI-QKD (Asynchronous MDI) protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="amdi_qkd",
+            title="AMDI-QKD (Asynchronous MDI)",
+            aliases=("amdi", "async_mdi", "mp_qkd", "mode_pairing"),
+            description=(
+                "Asynchronous/mode-pairing MDI-QKD that applies a post-processing "
+                "pairing gain on top of the canonical MDI-QKD physical model."
+            ),
+            channel_models=("fiber",),
+            gate_policy={"plob_repeaterless_bound": "skip"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return AMDIQKDParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_amdi_qkd(scenario, distance_km, runtime_overrides)
+
+    @classmethod
+    def applicability(cls, scenario: dict[str, Any]) -> ProtocolApplicability:
+        channel = (scenario or {}).get("channel", {}) or {}
+        model = str(channel.get("model", "fiber")).lower()
+        if model != "fiber":
+            return ProtocolApplicability(
+                status="fail",
+                reasons=(
+                    f"AMDI-QKD currently supports fiber channel only, got model={model!r}",
+                ),
+            )
+        return ProtocolApplicability(status="pass", reasons=())

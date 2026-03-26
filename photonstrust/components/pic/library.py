@@ -698,3 +698,44 @@ def _register_phase_c_components() -> None:
             "scattering_fn": ssc_scattering_matrix,
         },
     })
+
+
+# ---------------------------------------------------------------------------
+# Class-based component registry (auto-discovered from PICComponentBase)
+# ---------------------------------------------------------------------------
+
+_COMPONENT_CLASSES: dict[str, type] = {}
+_CLASSES_DISCOVERED = False
+
+
+def _discover_component_classes() -> None:
+    """Auto-discover all PICComponentBase subclasses from component modules."""
+    global _CLASSES_DISCOVERED  # noqa: PLW0603
+    if _CLASSES_DISCOVERED:
+        return
+    _CLASSES_DISCOVERED = True
+
+    _register_phase_c_components()
+
+    from photonstrust.components.pic.base import PICComponentBase  # noqa: E402
+
+    # Force import of inline wrappers so their subclasses are visible.
+    import photonstrust.components.pic.inline_components  # noqa: F401
+
+    for cls in PICComponentBase.__subclasses__():
+        meta = cls.meta()
+        _COMPONENT_CLASSES[meta.kind] = cls
+
+
+def component_class(kind: str) -> type | None:
+    """Return the PICComponentBase subclass for *kind*, or ``None``."""
+    if not _CLASSES_DISCOVERED:
+        _discover_component_classes()
+    return _COMPONENT_CLASSES.get(_normalize_kind(kind))
+
+
+def all_component_classes() -> dict[str, type]:
+    """Return a dict mapping kind strings to PICComponentBase subclasses."""
+    if not _CLASSES_DISCOVERED:
+        _discover_component_classes()
+    return dict(_COMPONENT_CLASSES)

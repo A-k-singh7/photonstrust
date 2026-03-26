@@ -360,6 +360,67 @@ def _q_true_given_n_asym(*, eta_a: float, eta_b: float, n_pairs: int) -> float:
     return float(n * eta_a * eta_b * ((1.0 - eta_a) ** (n - 1)) * ((1.0 - eta_b) ** (n - 1)))
 
 
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class BBM92Params(BaseModel):
+    """Protocol-specific parameters for BBM92 / E91 entanglement-based QKD."""
+
+    mu: float = Field(0.01, ge=0.0, description="Mean photon-pair number per pulse")
+    coincidence_window_ns: float = Field(
+        1.0, gt=0.0, description="Coincidence window width in nanoseconds"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    sifting_factor: float = Field(
+        0.5, gt=0.0, le=1.0, description="Basis sifting fraction"
+    )
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+
+
+class BBM92Protocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the BBM92 / E91 protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="bbm92",
+            title="BBM92/E91",
+            aliases=("e91",),
+            description=(
+                "Entanglement-based QKD using coincidence counting with SPDC "
+                "or emitter photon-pair sources."
+            ),
+            channel_models=("fiber", "free_space"),
+            gate_policy={"plob_repeaterless_bound": "apply"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return BBM92Params
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_bbm92(scenario, distance_km, runtime_overrides)
+
+
 def _spdc_total_coincidence(*, mu: float, eta: float, b: float) -> tuple[float, float]:
     """Return (Q_total, Q_total_no_noise) for SPDC."""
 

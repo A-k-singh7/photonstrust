@@ -122,3 +122,45 @@ def cumulative_crossing_loss_db(n_crossings: int, loss_per_crossing_db: float) -
         Cumulative loss in dB.
     """
     return float(n_crossings) * float(loss_per_crossing_db)
+
+
+# ---------------------------------------------------------------------------
+# PICComponentBase wrapper
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel, Field
+from photonstrust.components.pic.base import PICComponentBase, PICComponentMeta
+
+
+class CrossingParams(BaseModel):
+    insertion_loss_db: float = Field(0.02, ge=0.0, description="Through-path insertion loss in dB")
+    crosstalk_db: float = Field(-40.0, le=0.0, description="Crosstalk coupling in dB (negative)")
+    phase_rad: float = Field(0.0, description="Through-path phase in radians")
+    phase_xt_rad: float = Field(0.0, description="Crosstalk path phase in radians")
+
+
+class CrossingComponent(PICComponentBase):
+    @classmethod
+    def meta(cls):
+        return PICComponentMeta(
+            kind="pic.crossing", title="Waveguide Crossing",
+            description="Low-loss waveguide intersection with crosstalk isolation",
+            in_ports=("in1", "in2"), out_ports=("out1", "out2"),
+            port_domains={"in1": "optical", "in2": "optical", "out1": "optical", "out2": "optical"},
+        )
+
+    @classmethod
+    def params_schema(cls):
+        return CrossingParams
+
+    @classmethod
+    def forward_matrix(cls, params, wavelength_nm=None):
+        return crossing_forward_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def scattering_matrix(cls, params, wavelength_nm=None):
+        return crossing_scattering_matrix(cls._as_dict(params), wavelength_nm)
+
+    @classmethod
+    def ports(cls, params=None):
+        return cls.meta().in_ports, cls.meta().out_ports
