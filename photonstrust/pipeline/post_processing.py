@@ -67,21 +67,35 @@ def run_post_processing_pipeline(
 ) -> PostProcessingResult:
     """Run the full QKD post-processing pipeline.
 
-    Args:
-        alice_raw: Alice's raw measurement outcomes (n,)
-        bob_raw: Bob's raw measurement outcomes (n,)
-        basis_alice: Alice's basis choices (n,) — 0 or 1
-        basis_bob: Bob's basis choices (n,) — 0 or 1
-        pe_fraction: Fraction of sifted bits for parameter estimation
-        ec_method: Error correction method ("cascade" or "ldpc")
-        epsilon_pa: Privacy amplification security parameter
-        epsilon_ec: Error correction security parameter
-        qber_threshold: Abort threshold for QBER
-        verification_hash_bits: Number of hash bits for key verification
-        seed: Random seed
+    Parameters
+    ----------
+    alice_raw : np.ndarray
+        Alice's raw measurement outcomes (n,).
+    bob_raw : np.ndarray
+        Bob's raw measurement outcomes (n,).
+    basis_alice : np.ndarray
+        Alice's basis choices (n,) -- 0 or 1.
+    basis_bob : np.ndarray
+        Bob's basis choices (n,) -- 0 or 1.
+    pe_fraction : float
+        Fraction of sifted bits for parameter estimation.
+    ec_method : str
+        Error correction method ("cascade" or "ldpc").
+    epsilon_pa : float
+        Privacy amplification security parameter.
+    epsilon_ec : float
+        Error correction security parameter.
+    qber_threshold : float
+        Abort threshold for QBER.
+    verification_hash_bits : int
+        Number of hash bits for key verification.
+    seed : int
+        Random seed.
 
-    Returns:
-        PostProcessingResult with full pipeline diagnostics
+    Returns
+    -------
+    PostProcessingResult
+        Full pipeline diagnostics including final key and abort reason.
     """
     rng = np.random.default_rng(seed)
 

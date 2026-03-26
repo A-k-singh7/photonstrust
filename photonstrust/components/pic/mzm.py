@@ -232,7 +232,7 @@ def mzm_transfer_function(
     # For a single-drive MZM, alpha_chirp ~ -1/tan(delta_phi/2), but
     # we use the small-signal approximation: alpha ~ (1-2r)/(1-2r) simplification.
     # Standard push-pull: alpha = 0; single-arm: |alpha| ~ 1
-    # Here we model single-arm drive with alpha dependent on bias point.
+    # Models single-arm drive with alpha dependent on bias point.
     if abs(math.sin(delta_phi)) > 1e-12:
         chirp_alpha = -math.cos(delta_phi) / math.sin(delta_phi) * (1.0 - 2.0 * r) / 1.0
     else:

@@ -54,3 +54,6 @@ photonstrust_rs/error_log.txt
 
 # Accidental shell redirection artifacts at repo root (e.g., "=1.24")
 /=*
+
+# Moved bloat documentation
+research docs/

@@ -24,6 +24,7 @@ from photonstrust.validation import ConfigValidationError, validate_scenarios_or
 
 
 def main() -> None:
+    """Entry point for the photonstrust CLI. Parses arguments and dispatches to subcommands."""
     parser = argparse.ArgumentParser(description="PhotonTrust CLI")
     subparsers = parser.add_subparsers(dest="command")
 

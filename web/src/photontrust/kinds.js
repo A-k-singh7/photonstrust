@@ -12,6 +12,17 @@ export const PROFILE_OPTIONS = [
   { id: "pic_circuit", label: "PIC Circuit" },
 ];
 
+/**
+ * Component catalog. Each entry defines:
+ *   title        — display name
+ *   category     — "pic" | "qkd" | "custom"
+ *   ports        — { in: string[], out: string[] }
+ *   portDomains  — { in: {portName: domain}, out: {portName: domain} }
+ *                  where domain is "optical" | "electrical" | "control"
+ *   defaultParams — default simulation parameters
+ *   description  — (optional) component physics description
+ *   availability — (optional) { api_enabled, cli_enabled }
+ */
 export const KIND_DEFS = {
   "qkd.source": {
     title: "Source",

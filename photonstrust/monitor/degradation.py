@@ -67,7 +67,7 @@ def detect_degradation(
     if abs(slope) > significance_threshold and r_squared > 0.3:
         # For "good" metrics (key_rate), negative slope = degrading
         # For "bad" metrics (qber), positive slope = degrading
-        # We use a simple heuristic: negative slope → degrading
+        # Simple heuristic: negative slope → degrading
         trend = "degrading" if slope < 0 else "improving"
     else:
         trend = "stable"

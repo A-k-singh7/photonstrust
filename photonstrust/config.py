@@ -168,20 +168,23 @@ def _apply_channel_defaults(channel, band):
     channel["model"] = model
 
     if model in {"free_space", "satellite"}:
+        # Geometric / pointing parameters
         channel.setdefault("connector_loss_db", 1.0)
         channel.setdefault("dispersion_ps_per_km", 0.0)
         channel.setdefault("elevation_deg", 45.0)
         channel.setdefault("tx_aperture_m", 0.12)
         channel.setdefault("rx_aperture_m", 0.30)
         channel.setdefault("beam_divergence_urad", None)
-        channel.setdefault("atmosphere_path_model", "effective_thickness")
-        channel.setdefault("atmosphere_effective_thickness_km", 20.0)
         channel.setdefault("pointing_jitter_urad", 1.5)
         channel.setdefault("pointing_model", "deterministic")
         channel.setdefault("pointing_bias_urad", 0.0)
         channel.setdefault("pointing_sample_count", 256)
         channel.setdefault("pointing_seed", None)
         channel.setdefault("pointing_outage_threshold_eta", 0.1)
+
+        # Atmospheric parameters
+        channel.setdefault("atmosphere_path_model", "effective_thickness")
+        channel.setdefault("atmosphere_effective_thickness_km", 20.0)
         channel.setdefault("atmospheric_extinction_db_per_km", 0.02)
         channel.setdefault("turbulence_scintillation_index", 0.15)
         channel.setdefault("turbulence_model", "deterministic")
@@ -189,6 +192,8 @@ def _apply_channel_defaults(channel, band):
         channel.setdefault("turbulence_seed", None)
         channel.setdefault("turbulence_outage_threshold_eta", 0.1)
         channel.setdefault("outage_eta_threshold", 1.0e-6)
+
+        # Background noise parameters
         channel.setdefault("background_counts_cps", 0.0)
         channel.setdefault("background_model", "fixed")
         channel.setdefault("background_day_night", "night")
@@ -200,6 +205,8 @@ def _apply_channel_defaults(channel, band):
         channel.setdefault("background_day_factor", 9.0)
         channel.setdefault("background_uncertainty_rel", 0.05)
         channel.setdefault("background_counts_cps_scale", 1.0)
+
+        # Fiber-equivalent loss (zero for free-space)
         channel.setdefault("fiber_loss_db_per_km", 0.0)
         if model == "satellite":
             channel.setdefault("satellite_uplink_fraction", 0.5)

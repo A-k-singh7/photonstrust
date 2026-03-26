@@ -1,3 +1,11 @@
+/**
+ * App — Main application shell component.
+ *
+ * Manages graph state (nodes/edges), simulation execution, and workspace routing.
+ * Key state: nodes, edges, profile, runResult, simOverlayVisible.
+ * Subcomponents: AppTopBar, CenterWorkspacePane, GraphLeftSidebarPanel,
+ *                GraphRightSidebarContent.
+ */
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge,

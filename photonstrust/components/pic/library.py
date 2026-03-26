@@ -345,7 +345,7 @@ def _matrix_insertion_loss_2port(params: dict, wavelength_nm: float | None) -> n
 
 def _matrix_phase_shifter(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
     # Explicit phase control is the core; loss is optional.
-    # We use jnp functions to enable Autodiff through phase_rad.
+    # Uses jnp functions to enable Autodiff through phase_rad.
     phi = params.get("phase_rad", 0.0)
     phi = phi if phi is not None else 0.0
     
