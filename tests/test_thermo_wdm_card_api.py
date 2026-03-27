@@ -155,6 +155,12 @@ class TestReliabilityCard:
         assert "Test Card" in html
         assert "PhotonTrust" in html
 
+    def test_html_escapes_title_markup(self):
+        from photonstrust.reports.reliability_card import generate_reliability_card_html
+        html = generate_reliability_card_html(title='<script>alert("x")</script>')
+        assert "<script>alert" not in html
+        assert "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;" in html
+
     def test_html_contains_drc_section(self):
         from photonstrust.reports.reliability_card import generate_reliability_card_html
         html = generate_reliability_card_html(netlist=self._netlist())

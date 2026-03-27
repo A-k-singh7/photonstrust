@@ -194,6 +194,31 @@ def _has_relative_parent_reference(path_text: str) -> bool:
     return (not path.is_absolute()) and any(part == ".." for part in path.parts)
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_runner_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.fspath(_repo_root())),
+        os.path.realpath(os.getcwd()),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _is_within_allowed_roots(path_text: str) -> bool:
+    return any(_is_within_root(path_text, root_text) for root_text in _allowed_runner_roots())
+
+
 def _validate_path_map(path_map: dict[str, str]) -> bool:
     for value in path_map.values():
         path_text = str(value).strip()
@@ -222,9 +247,12 @@ def _resolve_cwd(cwd_value: str | None) -> tuple[str | None, str | None]:
     except OSError:
         return None, "invalid_cwd"
 
+    resolved_text = os.path.realpath(os.fspath(cwd_path))
+    if not _is_within_allowed_roots(resolved_text):
+        return None, "invalid_cwd"
     if not cwd_path.exists() or not cwd_path.is_dir():
         return None, "invalid_cwd"
-    return str(cwd_path), None
+    return resolved_text, None
 
 
 def _resolve_path(path_text: str, *, cwd: str | None) -> tuple[Path | None, str | None]:
@@ -244,7 +272,10 @@ def _resolve_path(path_text: str, *, cwd: str | None) -> tuple[Path | None, str 
     except OSError:
         return None, "invalid_path"
 
-    return path, None
+    resolved_text = os.path.realpath(os.fspath(path))
+    if not _is_within_allowed_roots(resolved_text):
+        return None, "invalid_path"
+    return Path(resolved_text), None
 
 
 def _build_run_env(

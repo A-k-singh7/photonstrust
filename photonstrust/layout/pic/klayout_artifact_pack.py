@@ -14,8 +14,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import sys
+import tempfile
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -28,6 +30,31 @@ from photonstrust.layout.pic.klayout_runner import ExternalToolNotFoundError, ru
 def _repo_root() -> Path:
     # .../photonstrust/layout/pic/klayout_artifact_pack.py -> parents[3] is repo root.
     return Path(__file__).resolve().parents[3]
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_pack_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.fspath(_repo_root())),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_allowed_path(path_value: str | Path, *, label: str) -> Path:
+    raw = os.path.expanduser(os.fspath(path_value))
+    candidate = raw if os.path.isabs(raw) else os.path.join(os.getcwd(), raw)
+    resolved = os.path.realpath(candidate)
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError(f"{label} must stay within the repository, home, or temp directories")
+    return Path(resolved)
 
 
 def default_klayout_macro_template_path() -> Path:
@@ -103,11 +130,11 @@ def build_klayout_run_artifact_pack(
     pack with `status="skipped"` and a clear `execution.error` message.
     """
 
-    input_gds = Path(input_gds_path)
+    input_gds = _resolve_allowed_path(input_gds_path, label="input_gds_path")
     if not input_gds.exists() or not input_gds.is_file():
         raise FileNotFoundError(str(input_gds))
 
-    out_dir = Path(output_dir)
+    out_dir = _resolve_allowed_path(output_dir, label="output_dir")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     s = dict(settings or {})
@@ -125,7 +152,10 @@ def build_klayout_run_artifact_pack(
     endpoint_snap_tol_um = float(s.get("endpoint_snap_tol_um", 2.0) or 2.0)
     top_cell = str(s.get("top_cell", "") or "").strip() or None
 
-    macro = Path(macro_path) if macro_path is not None else default_klayout_macro_template_path()
+    macro = _resolve_allowed_path(
+        macro_path if macro_path is not None else default_klayout_macro_template_path(),
+        label="macro_path",
+    )
     if not macro.exists() or not macro.is_file():
         raise FileNotFoundError(str(macro))
 
@@ -252,4 +282,3 @@ def build_klayout_run_artifact_pack(
 
     _write_json(paths.pack_json, pack)
     return pack
-

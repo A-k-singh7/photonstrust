@@ -12,7 +12,9 @@ It is designed for deterministic, unit-tested ingestion in ChipVerify workflows.
 from __future__ import annotations
 
 import math
+import os
 import re
+import tempfile
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -37,6 +39,31 @@ _FREQ_UNIT = {
 }
 
 _SNP_RE = re.compile(r"\.s(\d+)p$", flags=re.IGNORECASE)
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_touchstone_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.getcwd()),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_touchstone_file(path_value: str) -> Path:
+    raw = os.path.expanduser(str(path_value or "").strip())
+    candidate = raw if os.path.isabs(raw) else os.path.join(os.getcwd(), raw)
+    resolved = os.path.realpath(candidate)
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_touchstone_roots()):
+        raise ValueError("Touchstone path must stay within the workspace, home, or temp directories")
+    return Path(resolved)
 
 
 def infer_touchstone_n_ports(path: str) -> int | None:
@@ -185,7 +212,7 @@ def parse_touchstone_2port(text: str) -> TouchstoneNetwork:
 
 @lru_cache(maxsize=32)
 def load_touchstone_nport(path: str, *, n_ports: int) -> TouchstoneNetwork:
-    p = Path(path)
+    p = _resolve_touchstone_file(path)
     text = p.read_text(encoding="utf-8", errors="replace")
     return parse_touchstone_nport(text, n_ports=n_ports)
 

@@ -4,14 +4,40 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
 
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_results_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.getcwd()),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_results_root(path_value: Path) -> Path:
+    resolved = os.path.realpath(os.fspath(Path(path_value)))
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_results_roots()):
+        raise ValueError("results_root must stay within the workspace, home, or temp directories")
+    return Path(resolved)
+
+
 def list_runs(results_root: Path) -> list[Path]:
+    results_root = _resolve_results_root(results_root)
     if not results_root.exists():
         return []
     registry = results_root / "run_registry.json"
@@ -29,6 +55,7 @@ def load_card(path: Path) -> dict:
 
 
 def list_dataset_entries(results_root: Path) -> list[Path]:
+    results_root = _resolve_results_root(results_root)
     if not results_root.exists():
         return []
     return sorted(results_root.glob("**/dataset_entry.json"))
@@ -126,7 +153,7 @@ def append_ui_metric_event(
     event_name: str,
     payload: dict[str, Any] | None = None,
 ) -> Path:
-    root = Path(results_root)
+    root = _resolve_results_root(results_root)
     out_dir = root / "ui_metrics"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "events.jsonl"
@@ -156,7 +183,7 @@ def save_ui_run_profile(
     profile: dict[str, Any],
     profile_name: str | None = None,
 ) -> Path:
-    root = Path(results_root)
+    root = _resolve_results_root(results_root)
     out_dir = root / "ui_profiles"
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -195,7 +222,7 @@ def save_ui_pic_run_bundle(
     request_payload: dict[str, Any],
     response_payload: dict[str, Any],
 ) -> dict[str, Path]:
-    root = Path(results_root)
+    root = _resolve_results_root(results_root)
     out_root = root / "ui_pic_runs"
     out_root.mkdir(parents=True, exist_ok=True)
 
@@ -372,7 +399,7 @@ def _parse_status_code_from_message(text: str) -> int | None:
 
 
 def _ui_product_state_path(results_root: Path) -> Path:
-    root = Path(results_root)
+    root = _resolve_results_root(results_root)
     out_dir = root / "ui_product_state"
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir / "state.json"

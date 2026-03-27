@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,37 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_runs_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.fspath(_repo_root())),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_runs_root_candidate(path_value: Path | str) -> Path:
+    resolved = os.path.realpath(os.fspath(Path(path_value)))
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_runs_roots()):
+        raise ValueError("runs root must stay within the repository, home, or temp directories")
+    return Path(resolved)
+
+
+def _resolve_run_dir_candidate(path_value: Path | str) -> Path:
+    candidate = os.path.realpath(os.fspath(Path(path_value)))
+    root_text = os.path.realpath(os.fspath(runs_root()))
+    if not _is_within_root(candidate, root_text):
+        raise ValueError("run directory must stay within runs root")
+    return Path(candidate)
+
+
 def runs_root() -> Path:
     """Root directory containing API-run directories (`run_<id>`).
 
@@ -35,8 +67,8 @@ def runs_root() -> Path:
         p = Path(raw)
         if not p.is_absolute():
             p = _repo_root() / p
-        return p.resolve()
-    return (_repo_root() / "results" / "api_runs").resolve()
+        return _resolve_runs_root_candidate(p)
+    return _resolve_runs_root_candidate(_repo_root() / "results" / "api_runs")
 
 
 def validate_run_id(run_id: str) -> str:
@@ -48,15 +80,20 @@ def validate_run_id(run_id: str) -> str:
 
 def run_dir_for_id(run_id: str) -> Path:
     rid = validate_run_id(run_id)
-    return runs_root() / f"run_{rid}"
+    root = runs_root()
+    candidate = os.path.realpath(os.path.join(os.fspath(root), f"run_{rid}"))
+    root_text = os.path.realpath(os.fspath(root))
+    if not _is_within_root(candidate, root_text):
+        raise ValueError("run_id resolves outside runs root")
+    return Path(candidate)
 
 
 def manifest_path(run_dir: Path) -> Path:
-    return Path(run_dir) / RUN_MANIFEST_BASENAME
+    return _resolve_run_dir_candidate(run_dir) / RUN_MANIFEST_BASENAME
 
 
 def write_run_manifest(run_dir: Path, manifest: dict[str, Any]) -> Path:
-    run_dir = Path(run_dir)
+    run_dir = _resolve_run_dir_candidate(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     out_path = manifest_path(run_dir)
     out_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -160,7 +197,7 @@ def resolve_artifact_path(run_dir: Path, rel_path: str) -> Path:
     - Enforce canonical containment under `run_dir` after resolution.
     """
 
-    run_dir = Path(run_dir)
+    run_dir = _resolve_run_dir_candidate(run_dir)
     raw = str(rel_path or "").strip()
     if not raw:
         raise ValueError("path is required")
@@ -175,12 +212,11 @@ def resolve_artifact_path(run_dir: Path, rel_path: str) -> Path:
     if any(part in ("..", "") for part in p.parts):
         raise ValueError("path must not contain '..'")
 
-    base = run_dir.resolve()
-    candidate = (run_dir / p).resolve()
-    try:
-        candidate.relative_to(base)
-    except Exception as exc:
-        raise ValueError("path escapes run directory") from exc
+    base_text = os.path.realpath(os.fspath(run_dir))
+    candidate_text = os.path.realpath(os.path.join(base_text, os.fspath(p)))
+    if not _is_within_root(candidate_text, base_text):
+        raise ValueError("path escapes run directory")
+    candidate = Path(candidate_text)
 
     if not candidate.exists():
         raise FileNotFoundError("artifact not found")

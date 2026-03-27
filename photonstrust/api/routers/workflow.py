@@ -324,9 +324,12 @@ def pic_workflow_invdesign_chain_replay(request: Request, payload: dict[str, Any
     if not isinstance(src_manifest, dict) or str(src_manifest.get("run_type", "")).strip() != "pic_workflow_invdesign_chain":
         raise HTTPException(status_code=400, detail="run_id is not a pic_workflow_invdesign_chain workflow run")
 
-    req_path = src_dir / "workflow_request.json"
-    if not req_path.exists() or not req_path.is_file():
+    try:
+        req_path = run_store.resolve_artifact_path(src_dir, "workflow_request.json")
+    except FileNotFoundError:
         raise HTTPException(status_code=400, detail="workflow run does not contain workflow_request.json (cannot replay)")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Failed to resolve workflow_request.json: {exc}") from exc
     try:
         request_payload = json.loads(req_path.read_text(encoding="utf-8"))
     except Exception as exc:

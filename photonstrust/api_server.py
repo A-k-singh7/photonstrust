@@ -32,6 +32,7 @@ Usage
 
 from __future__ import annotations
 
+import html
 import json
 import tempfile
 from pathlib import Path
@@ -309,7 +310,7 @@ def create_app() -> Any:
                 netlist=req.netlist,
                 drc_params=req.drc_params,
                 yield_metrics=req.yield_metrics,
-                title=req.title,
+                title=html.escape(req.title, quote=True),
             )
         except Exception as exc:
             raise HTTPException(status_code=422, detail=str(exc))

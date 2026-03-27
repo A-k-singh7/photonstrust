@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import time
 from pathlib import Path
 import zipfile
@@ -138,12 +139,26 @@ def _wait_for_job_terminal(client: TestClient, job_id: str, timeout_s: float = 1
     return last_payload
 
 
+def _disallowed_runs_root() -> Path:
+    if os.name == "nt":
+        return Path(os.environ.get("SystemRoot", "C:\\Windows")) / "System32" / "photonstrust_api_runs"
+    return Path("/var/opt/photonstrust_api_runs")
+
+
 def test_api_healthz() -> None:
     client = TestClient(app)
     res = client.get("/healthz")
     assert res.status_code == 200
     payload = res.json()
     assert payload["status"] == "ok"
+
+
+def test_api_runs_root_rejects_disallowed_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    from photonstrust.api import runs as run_store
+
+    monkeypatch.setenv("PHOTONTRUST_API_RUNS_ROOT", str(_disallowed_runs_root()))
+    with pytest.raises(ValueError, match="runs root"):
+        run_store.runs_root()
 
 
 def test_api_ui_telemetry_cors_preflight_allows_credentials() -> None:

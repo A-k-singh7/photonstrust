@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -121,6 +122,10 @@ def safe_read_json_object(path: Path) -> dict[str, Any] | None:
 
 def run_artifact_relpath(run_dir: Path, artifact_path: str | Path) -> str | None:
     try:
-        return str(Path(str(artifact_path)).resolve().relative_to(run_dir.resolve())).replace("\\", "/")
+        base = os.path.realpath(os.fspath(run_dir))
+        candidate = os.path.realpath(os.fspath(Path(str(artifact_path))))
+        if os.path.commonpath([candidate, base]) != base:
+            return None
+        return str(Path(candidate).relative_to(Path(base))).replace("\\", "/")
     except Exception:
         return None
