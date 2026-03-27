@@ -18,15 +18,41 @@ export const PRODUCT_STAGE_ROUTES = {
 
 export const PRODUCT_COPY = {
   valueProposition:
-    "PhotonTrust helps teams simulate, compare, certify, and export trusted quantum outcomes with reviewable evidence.",
+    "PhotonTrust turns a photonic run into a reviewable decision: simulate it, compare it, certify it, and export the evidence packet.",
   startHere:
-    "Choose the job you want to complete first. Guided paths hide complexity; power mode exposes the full engineering surface when you need it.",
+    "Pick the shortest path to the artifact you need today. Guided mode keeps the path opinionated; power mode exposes the deeper engineering surface when you need it.",
   quickActions: {
-    guidedQkd: "Guided QKD quickstart",
-    guidedPic: "Guided PIC quickstart",
-    compareRuns: "Open compare lab",
-    investorDemo: "Mark investor demo checkpoint",
+    guidedQkd: "Start guided QKD run",
+    guidedPic: "Open PIC layout path",
+    compareRuns: "Review existing runs",
+    investorDemo: "Open trust-story demo",
   },
+  startingPaths: [
+    {
+      id: "qkd",
+      title: "Run a trusted QKD scenario",
+      description: "Start with the shortest guided path and produce a fresh run manifest plus reliability evidence.",
+      artifact: "Ends with a manifest and reliability card",
+      duration: "About 5 min",
+      action: "guidedQkd",
+    },
+    {
+      id: "compare",
+      title: "Review a candidate against baseline",
+      description: "Jump directly to the run registry, load two runs, and explain the delta that matters for promotion.",
+      artifact: "Ends with a decision delta",
+      duration: "About 2 min",
+      action: "compareRuns",
+    },
+    {
+      id: "pic",
+      title: "Start the PIC build and layout flow",
+      description: "Switch into the PIC workflow when the goal is layout, optimization, or fabrication-ready evidence.",
+      artifact: "Ends with layout and verification artifacts",
+      duration: "Advanced path",
+      action: "guidedPic",
+    },
+  ],
   capabilityCards: [
     {
       id: "qkd",

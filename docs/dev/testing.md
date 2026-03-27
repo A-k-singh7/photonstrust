@@ -8,6 +8,7 @@ first, then expand to broader gates when needed.
 ### Python checks
 
 ```bash
+pytest -q tests/test_docs_experience.py
 python scripts/validation/ci_checks.py
 python -m pytest -q tests/api tests/scripts tests/ui
 ```
@@ -28,6 +29,14 @@ npm run build
 npm run test:ui
 ```
 
+### Docs and proof-surface checks
+
+```bash
+pytest -q tests/test_docs_experience.py
+cd web
+node tests/helpers/capture-doc-assets.mjs
+```
+
 ## Test Groups
 
 - `tests/api/`
@@ -45,4 +54,6 @@ npm run test:ui
 - API changes: `tests/api/` + relevant contract/schema tests
 - script changes: relevant `tests/scripts/` tests
 - UI changes: `npm run build` + targeted Playwright specs
+- docs or onboarding changes: `tests/test_docs_experience.py` + affected CLI or
+  UI smoke commands
 - model or benchmark changes: validation harness + research benchmark scripts

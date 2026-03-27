@@ -1,202 +1,120 @@
-# Getting Started with PhotonsTrust
+# Getting Started with PhotonTrust
 
-PhotonsTrust is a simulation and design platform for quantum key distribution
-(QKD) links, photonic integrated circuits, multi-node QKD networks, and
-satellite-based quantum communication. This guide walks you through
-installation, your first simulation, and the main features of the toolkit.
+This guide is the exact first-run path for PhotonTrust's current wedge:
+generate a QKD reliability card, inspect the report outputs, and compile a
+graph into a runnable config.
 
----
+## 1. Requirements
 
-## Installation
+- Python `3.12+`
+- Node.js only if you want the React product UI
 
-Install from PyPI:
+The base QKD quickstart does not require QuTiP, Qiskit, or JAX.
 
-```bash
-pip install photonstrust
-```
-
-Or install from source for development:
+## 2. Install from Source
 
 ```bash
 git clone https://github.com/photonstrust/photonstrust.git
 cd photonstrust
-pip install -e ".[dev]"
+pip install -e .
 ```
 
-### Optional extras
-
-| Extra   | What it adds                                    |
-|---------|-------------------------------------------------|
-| `dev`   | All development and test dependencies           |
-| `cli`   | Rich tables and terminal formatting              |
-| `qutip` | QuTiP backend for cavity quantum-optics models  |
-
-Example:
+If you want the local product UI as well:
 
 ```bash
-pip install photonstrust[cli]
+pip install -e .[api]
+cd web
+npm ci
+cd ..
 ```
 
-> **Note:** JAX is a required dependency and must be installed. If you see
-> `"JAX not found"` errors, run `pip install jax`.
+## 3. First Working QKD Run
 
----
-
-## Your First Simulation (3 lines)
-
-```python
-from photonstrust.easy import simulate_qkd_link
-
-result = simulate_qkd_link(protocol="bb84", distance_km=50)
-print(result.summary())
-```
-
-This simulates a BB84 decoy-state QKD link over a 0-50 km fiber sweep using
-C-band (1550 nm) photons and SNSPD detectors. The `result` object is a
-`QKDLinkResult` with convenience methods:
-
-- `result.summary()` -- human-readable text summary
-- `result.max_distance_km()` -- farthest distance with positive key rate
-- `result.key_rate_at(30)` -- key rate at a specific distance (nearest match)
-- `result.plot()` -- rate-vs-distance plot (requires matplotlib)
-- `result.as_dict()` -- serializable dictionary
-
----
-
-## Comparing Protocols (5 lines)
-
-```python
-from photonstrust.easy import compare_protocols
-
-comp = compare_protocols(protocols=["bb84", "tf_qkd", "cv_qkd"])
-print(comp.summary())
-print(f"Best at 50 km: {comp.winner_at(50)}")
-```
-
-`compare_protocols` runs each protocol over the same distance sweep and returns
-a `ProtocolComparison` object. Key methods:
-
-- `comp.summary()` -- tabular comparison of peak rates and max distances
-- `comp.winner_at(distance_km)` -- protocol name with the highest rate at that distance
-- `comp.plot()` -- overlay chart of all protocols
-- `comp.as_dict()` -- serializable dictionary
-
-You can pass `distances` as a dict to control the sweep:
-
-```python
-comp = compare_protocols(
-    protocols=["bb84", "tf_qkd"],
-    distances={"start": 0, "stop": 300, "step": 10},
-)
-```
-
----
-
-## Using the CLI
-
-PhotonsTrust ships a command-line interface for quick exploration.
-
-### List available resources
+Inspect the available protocol surface:
 
 ```bash
 photonstrust list protocols
-photonstrust list bands
-photonstrust list detectors
-photonstrust list scenarios
 ```
 
-### Get detailed info
+Run the curated quick smoke config:
 
 ```bash
-photonstrust info bb84
-photonstrust info snspd
-photonstrust info c_1550
+photonstrust run configs/quickstart/qkd_quick_smoke.yml --output results/smoke_quick
 ```
 
-### Run a pre-built demo scenario
+This produces a run registry plus a scenario/band output folder. The main files
+to inspect are:
+
+- `results/smoke_quick/run_registry.json`
+- `results/smoke_quick/demo1_quick_smoke/nir_850/reliability_card.json`
+- `results/smoke_quick/demo1_quick_smoke/nir_850/report.html`
+- `results/smoke_quick/demo1_quick_smoke/nir_850/report.pdf`
+- `results/smoke_quick/demo1_quick_smoke/nir_850/results.json`
+
+Validate the generated reliability card:
 
 ```bash
-photonstrust demo bb84_metro
-photonstrust demo tf_long_haul
+photonstrust card validate results/smoke_quick/demo1_quick_smoke/nir_850/reliability_card.json
 ```
 
-### Interactive quickstart wizard
+## 4. Compile a Graph into a Runnable Config
+
+Compile the shipped QKD graph example:
 
 ```bash
-photonstrust quickstart
+photonstrust graph compile graphs/demo8_qkd_link_graph.json --output results/graphs_demo
 ```
 
-### Run a YAML configuration file
+The compiler writes:
+
+- `results/graphs_demo/demo8_qkd_link/compiled_config.yml`
+- `results/graphs_demo/demo8_qkd_link/assumptions.md`
+- `results/graphs_demo/demo8_qkd_link/compile_provenance.json`
+- `results/graphs_demo/demo8_qkd_link/graph.json`
+
+This is the quickest way to see how PhotonTrust turns graph-level authoring into
+a concrete engine config.
+
+## 5. Optional Product UI Path
+
+Launch the current React-first product surface:
 
 ```bash
-photonstrust run my_config.yaml --output results/
+py scripts/dev/start_product_local.py
 ```
 
----
+Open:
 
-## Generating Reports
+- UI: `http://127.0.0.1:5173`
+- API health: `http://127.0.0.1:8000/healthz`
 
-Generate a self-contained HTML report from any simulation result:
+Use `../user/product-ui.md` for the maintained UI walkthrough.
 
-```python
-from photonstrust.easy import simulate_qkd_link
-from photonstrust.reporting.html_report import generate_html_report
+## 6. Optional Extras
 
-result = simulate_qkd_link(protocol="bb84", distance_km=50)
-html = generate_html_report(result, title="BB84 Link Analysis")
+Install extras only when you need them:
 
-with open("report.html", "w") as f:
-    f.write(html)
-```
+- `pip install -e .[api]`
+  - FastAPI plus the local product workflow
+- `pip install -e .[qutip]`
+  - QuTiP-backed emitter or physics paths
+- `pip install -e .[qiskit]`
+  - Qiskit-dependent flows
+- `pip install -e .[dev]`
+  - contributor tooling and tests
 
-The report includes rate-vs-distance charts, parameter tables, and protocol
-metadata -- all embedded in a single HTML file with no external dependencies.
+JAX is not a base dependency. Install it only for the paths that explicitly
+require it.
 
----
+## 7. Next Docs
 
-## Pre-built Scenarios
-
-The scenario gallery provides 15 ready-to-run configurations spanning QKD
-links, PIC design, network planning, and satellite scheduling.
-
-```python
-from photonstrust.gallery import list_scenarios, run_scenario
-
-# Browse beginner QKD scenarios
-for s in list_scenarios(category="qkd", difficulty="beginner"):
-    print(f"{s.name}: {s.title}")
-
-# Run one
-result = run_scenario("bb84_metro")
-print(result.summary())
-```
-
-You can override any scenario parameter:
-
-```python
-result = run_scenario("bb84_metro", distance_km=40, detector="ingaas")
-```
-
-### Example scenarios
-
-| Name              | Category  | Difficulty   | Description                          |
-|-------------------|-----------|--------------|--------------------------------------|
-| `bb84_metro`      | qkd       | beginner     | BB84 over 20 km metro fiber          |
-| `bbm92_campus`    | qkd       | beginner     | BBM92 entanglement on 5 km campus    |
-| `tf_long_haul`    | qkd       | intermediate | TF-QKD sweep 0-400 km               |
-| `cv_qkd_urban`    | qkd       | intermediate | CV-QKD urban link 0-30 km            |
-| `satellite_leo`   | satellite | intermediate | LEO satellite constellation plan     |
-| `pic_mzi_switch`  | pic       | beginner     | MZI optical switch design            |
-| `network_3node`   | network   | beginner     | 3-node linear QKD network            |
-| `repeater_chain`  | qkd       | advanced     | Multi-protocol repeater comparison   |
-
----
-
-## Next Steps
-
-- **[config-reference.md](config-reference.md)** -- Complete parameter reference for all source, channel, detector, protocol, and band settings.
-- **[protocol-guide.md](protocol-guide.md)** -- Comparison table and decision flowchart for choosing the right QKD protocol.
-- **[glossary.md](glossary.md)** -- Definitions of 50+ QKD and photonics terms.
-- **[troubleshooting.md](troubleshooting.md)** -- Common errors, fixes, and performance tips.
-- **[architecture.md](architecture.md)** -- Module map and simulation pipeline overview.
-- Explore the `notebooks/cookbook/` directory for Jupyter notebook tutorials.
+- `use-cases.md`
+  - choose the right path for your role
+- `reliability-card.md`
+  - understand the central artifact
+- `limitations.md`
+  - understand assumptions and trust boundaries
+- `../reference/cli.md`
+  - concise command reference
+- `../reference/config.md`
+  - where configs live and what outputs they generate

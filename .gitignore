@@ -9,6 +9,7 @@ __pycache__/
 
 # Coverage and test artifacts
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
 
@@ -30,6 +31,7 @@ _plan_output.txt
 # Environment / secrets
 .env
 .env.*
+.envrc
 
 # OS/editor noise
 .DS_Store
@@ -37,16 +39,26 @@ Thumbs.db
 .idea/
 .vscode/
 .ipynb_checkpoints/
+*.orig
+*.rej
+*.tmp
+*.bak
 
 # Frontend artifacts
 node_modules/
 web/node_modules/
 web/dist/
+web/.vite/
 web/playwright-report/
 web/test-results/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Misc build/cache artifacts
 .benchmarks/
+.cache/
 photonstrust_rs/target/
 photonstrust_rs/build*.log
 photonstrust_rs/build*.txt

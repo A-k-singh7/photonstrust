@@ -156,21 +156,19 @@ def _label_curves(band_results: dict) -> dict:
 
 
 def _write_registry(cards: list[dict], output_path: Path) -> None:
-    lines = ["["]
-    for idx, card in enumerate(cards):
-        comma = "," if idx < len(cards) - 1 else ""
-        lines.append(
-            "  {"
-            f"\"scenario_id\": \"{card['scenario_id']}\", "
-            f"\"band\": \"{card['band']}\", "
-            f"\"key_rate_bps\": {card['outputs']['key_rate_bps']:.6g}, "
-            f"\"qber\": {card['derived']['qber_total']:.6g}, "
-            f"\"safe_use\": \"{card['safe_use_label']['label']}\", "
-            f"\"card_path\": \"{card['artifacts'].get('card_path', '')}\""
-            "}" + comma
+    rows = []
+    for card in cards:
+        rows.append(
+            {
+                "scenario_id": card["scenario_id"],
+                "band": card["band"],
+                "key_rate_bps": round(float(card["outputs"]["key_rate_bps"]), 6),
+                "qber": round(float(card["derived"]["qber_total"]), 6),
+                "safe_use": card["safe_use_label"]["label"],
+                "card_path": card["artifacts"].get("card_path", ""),
+            }
         )
-    lines.append("]")
-    output_path.write_text("\n".join(lines), encoding="utf-8")
+    output_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
 
 
 def _build_multifidelity_report(*, scenarios: list[dict], cards: list[dict], run_id: str) -> dict:

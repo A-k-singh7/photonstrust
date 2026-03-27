@@ -1,6 +1,6 @@
 # Protocol Guide
 
-PhotonsTrust supports 9 QKD protocols spanning discrete-variable,
+PhotonTrust supports 9 QKD protocols spanning discrete-variable,
 continuous-variable, measurement-device-independent, twin-field, and
 device-independent families. This guide helps you choose the right protocol
 for your use case.

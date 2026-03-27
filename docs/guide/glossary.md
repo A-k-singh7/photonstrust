@@ -1,6 +1,6 @@
 # Glossary
 
-Definitions of key terms used in PhotonsTrust and the broader field of quantum
+Definitions of key terms used in PhotonTrust and the broader field of quantum
 key distribution and photonic engineering.
 
 ---
@@ -15,7 +15,7 @@ key distribution and photonic engineering.
 
 - **BB84** -- The first QKD protocol, proposed by Bennett and Brassard in 1984.
   Uses four quantum states in two conjugate bases (rectilinear and diagonal) to
-  establish a shared secret key. PhotonsTrust implements the decoy-state variant.
+  establish a shared secret key. PhotonTrust implements the decoy-state variant.
 
 - **BBM92** -- An entanglement-based QKD protocol proposed by Bennett, Brassard,
   and Mermin in 1992. Both parties measure halves of entangled photon pairs. Also
@@ -127,7 +127,7 @@ key distribution and photonic engineering.
 
 - **PDK** -- Process Design Kit. A collection of design rules, component models,
   and layout cells provided by a photonics foundry for a specific fabrication
-  process. PhotonsTrust supports generic and foundry-specific PDKs.
+  process. PhotonTrust supports generic and foundry-specific PDKs.
 
 - **PDE** -- Photon Detection Efficiency. The probability that a photon arriving
   at a detector produces a registered detection event. A critical parameter for
@@ -203,11 +203,11 @@ key distribution and photonic engineering.
 
 - **TRL** -- Technology Readiness Level. A scale from 1 (basic concept) to 9
   (operational system) indicating the maturity of a technology. Used in
-  PhotonsTrust to characterize the readiness of QKD components and systems.
+  PhotonTrust to characterize the readiness of QKD components and systems.
 
 - **Walker Constellation** -- A satellite constellation design pattern that
   distributes satellites evenly across multiple orbital planes with specified
-  phase offsets. Used by PhotonsTrust to model satellite QKD networks.
+  phase offsets. Used by PhotonTrust to model satellite QKD networks.
 
 - **WDM** -- Wavelength Division Multiplexing. A technique that combines
   multiple optical signals at different wavelengths onto a single fiber.

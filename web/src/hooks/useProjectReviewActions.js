@@ -8,8 +8,8 @@ import {
   apiVerifyPublishedBundle,
 } from "../photontrust/api";
 
-function packetRunId(selectedRunManifest, workflowResult, runResult) {
-  return String(selectedRunManifest?.run_id || workflowResult?.run_id || runResult?.run_id || "").trim();
+function packetRunId(selectedRunManifest, selectedRunId, workflowResult, runResult) {
+  return String(selectedRunManifest?.run_id || selectedRunId || workflowResult?.run_id || runResult?.run_id || "").trim();
 }
 
 export function useProjectReviewActions({
@@ -24,6 +24,8 @@ export function useProjectReviewActions({
   emitUiEvent,
   recordActivity,
   runResult,
+  selectedProjectId,
+  selectedRunId,
   selectedRunManifest,
   setApprovalResult,
   setBusy,
@@ -35,9 +37,9 @@ export function useProjectReviewActions({
   workflowResult,
 }) {
   const approveSelectedRun = useCallback(async () => {
-    const rid = String(selectedRunManifest?.run_id || "").trim();
+    const rid = String(selectedRunManifest?.run_id || selectedRunId || "").trim();
     if (!rid) return;
-    const pid = String(selectedRunManifest?.input?.project_id || "default").trim() || "default";
+    const pid = String(selectedRunManifest?.input?.project_id || selectedProjectId || "default").trim() || "default";
     setBusy(true);
     setApprovalResult(null);
     try {
@@ -73,6 +75,8 @@ export function useProjectReviewActions({
     approvalActor,
     approvalNote,
     recordActivity,
+    selectedProjectId,
+    selectedRunId,
     selectedRunManifest,
     setApprovalResult,
     setBusy,
@@ -128,7 +132,7 @@ export function useProjectReviewActions({
   ]);
 
   const exportDecisionPacket = useCallback(() => {
-    const rid = packetRunId(selectedRunManifest, workflowResult, runResult);
+    const rid = packetRunId(selectedRunManifest, selectedRunId, workflowResult, runResult);
     if (!rid) {
       emitUiEvent("ui_packet_exported", { outcome: "abandoned" });
       recordActivity("packet_export", "Packet export abandoned (no run selected).", {});
@@ -147,10 +151,10 @@ export function useProjectReviewActions({
       recordActivity("packet_export", "Packet export failed.", { run_id: rid });
       setStatus(`Packet export failed: ${String(err?.message || err)}`);
     }
-  }, [apiBase, buildRunBundleUrl, emitUiEvent, recordActivity, runResult, selectedRunManifest, setStatus, workflowResult]);
+  }, [apiBase, buildRunBundleUrl, emitUiEvent, recordActivity, runResult, selectedRunId, selectedRunManifest, setStatus, workflowResult]);
 
   const publishDecisionPacket = useCallback(async () => {
-    const rid = packetRunId(selectedRunManifest, workflowResult, runResult);
+    const rid = packetRunId(selectedRunManifest, selectedRunId, workflowResult, runResult);
     if (!rid) {
       setStatus("No run selected for published packet export.");
       return { ok: false, error: "No run selected." };
@@ -175,7 +179,7 @@ export function useProjectReviewActions({
     } finally {
       setBusy(false);
     }
-  }, [apiBase, recordActivity, runResult, selectedRunManifest, setBundlePublishResult, setBundleVerifyResult, setBusy, setStatus, workflowResult]);
+  }, [apiBase, recordActivity, runResult, selectedRunId, selectedRunManifest, setBundlePublishResult, setBundleVerifyResult, setBusy, setStatus, workflowResult]);
 
   const verifyPublishedDecisionPacket = useCallback(async () => {
     const digest = String(bundlePublishResult?.bundle_sha256 || "").trim();

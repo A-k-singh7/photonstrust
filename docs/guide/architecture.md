@@ -1,6 +1,6 @@
 # Architecture
 
-An overview of the PhotonsTrust module organization, simulation pipeline, and
+An overview of the PhotonTrust module organization, simulation pipeline, and
 extension points.
 
 ---

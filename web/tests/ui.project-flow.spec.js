@@ -111,6 +111,43 @@ test("certification workspace publishes and verifies a packet", async ({ page })
   await expect(publishedLink).toHaveAttribute("href", "http://127.0.0.1:8000/v0/evidence/bundle/by-digest/deadbeefcafebabe1234");
 });
 
+test("run decision handoff preserves selected run into certify workspace", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem("pt_show_landing", "0");
+    localStorage.setItem("pt_project_id", "pilot_demo");
+  });
+  const mock = await installMockApi(page);
+
+  await page.goto("/");
+
+  const topbarRunButton = page.locator("header.ptTopbar").getByRole("button", {
+    name: "Run",
+    exact: true,
+  });
+  await topbarRunButton.click();
+
+  await expect.poll(() => mock.requests.runCalls.length).toBe(1);
+
+  const proceedButton = page.getByRole("button", { name: "Proceed to certify", exact: true });
+  await expect(proceedButton).toBeEnabled();
+  await proceedButton.click();
+
+  const certWorkspace = page.locator('section[aria-label="Certification workspace"]');
+  await expect(certWorkspace).toBeVisible();
+  await expect(certWorkspace).not.toContainText("run_id=not selected");
+  await expect(certWorkspace).not.toContainText("No selected run manifest.");
+  await expect(certWorkspace.getByRole("button", { name: "Export decision packet", exact: true })).toBeEnabled();
+  await expect
+    .poll(() =>
+      mock.requests.workspacePuts.some(
+        (workspace) => workspace?.stage === "certify" && String(workspace?.selected_run_id || "").trim() !== "",
+      ),
+    )
+    .toBe(true);
+});
+
 test("compare selections and approvals survive a reload", async ({ page }) => {
   const baselineRunId = "baseline12345678";
   const candidateRunId = "candidate87654321";

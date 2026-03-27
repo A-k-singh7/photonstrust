@@ -1,0 +1,51 @@
+name: Documentation update
+description: Report outdated docs, missing guidance, or propose documentation improvements.
+title: "[Docs]: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when the problem is primarily about documentation,
+        contributor guidance, or repo workflow clarity.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Documentation area
+      description: Which part of the documentation is affected?
+      options:
+        - README or quickstart
+        - User guides
+        - Developer or maintainer docs
+        - Research docs
+        - Release or validation docs
+        - GitHub templates or contributor workflow
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+      description: Describe the gap, stale content, or confusing workflow.
+      placeholder: The contributor docs still point to files that no longer exist.
+    validations:
+      required: true
+  - type: textarea
+    id: source_of_truth
+    attributes:
+      label: Current source of truth
+      description: If you know the correct file, command, or workflow, list it here.
+      placeholder: scripts/release/release_gate_check.py and docs/dev/release_process.md
+  - type: textarea
+    id: proposed_fix
+    attributes:
+      label: Proposed update
+      description: Explain what the docs should say or how the workflow should be documented.
+      placeholder: Replace the stale week-based references with the current guide and release docs.
+  - type: textarea
+    id: impacted_files
+    attributes:
+      label: Likely files to update
+      description: List any docs, templates, or examples that should be touched together.
+      placeholder: README.md, CONTRIBUTING.md, docs/README.md, .github/pull_request_template.md

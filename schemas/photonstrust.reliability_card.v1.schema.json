@@ -96,7 +96,7 @@
           "type": "object",
           "properties": {
             "sync_drift_ps_rms": { "type": "number" },
-            "coincidence_window_ps": { "type": "number" }
+            "coincidence_window_ps": { "type": ["number", "null"] }
           }
         },
         "protocol": {

@@ -1,6 +1,6 @@
 # Configuration Reference
 
-This document is the complete parameter reference for PhotonsTrust simulation
+This document is the complete parameter reference for PhotonTrust simulation
 configurations. Parameters can be set via the Python API (`simulate_qkd_link`
 keyword arguments and `**overrides`), YAML config files, or the scenario
 gallery.

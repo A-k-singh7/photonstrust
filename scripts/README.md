@@ -63,3 +63,12 @@ python scripts/product/product_readiness_gate.py --spawn-api
 
 If a script supports `--help`, prefer reading that output before reading the
 script source.
+
+## Maintenance Rule
+
+If you add, rename, move, or remove a script:
+
+- update this index in the same branch,
+- update `README.md` if the script appears in user-facing examples,
+- update `docs/dev/release_process.md` if release or evidence flow changed,
+- update `CHANGELOG.md` when the change is externally visible.

@@ -146,6 +146,21 @@ def test_api_healthz() -> None:
     assert payload["status"] == "ok"
 
 
+def test_api_ui_telemetry_cors_preflight_allows_credentials() -> None:
+    client = TestClient(app)
+    res = client.options(
+        "/v0/ui/telemetry/events",
+        headers={
+            "Origin": "http://127.0.0.1:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert res.status_code == 200
+    assert res.headers.get("access-control-allow-origin") == "http://127.0.0.1:5173"
+    assert res.headers.get("access-control-allow-credentials") == "true"
+
+
 def test_api_registry_kinds() -> None:
     client = TestClient(app)
     res = client.get("/v0/registry/kinds")

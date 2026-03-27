@@ -18,11 +18,13 @@ function _statusLabel(status) {
   return "caution";
 }
 
-function _issueRows({ selectedRunManifest, compileResult, projectApprovals }) {
+function _issueRows({ selectedRunManifest, selectedRunId, compileResult, projectApprovals }) {
   const issues = [];
-  const runId = _toText(selectedRunManifest?.run_id, "");
+  const runId = _toText(selectedRunManifest?.run_id || selectedRunId, "");
   if (!runId) {
     issues.push({ level: "block", message: "No selected run manifest." });
+  } else if (!_toText(selectedRunManifest?.run_id, "")) {
+    issues.push({ level: "caution", message: "Selected run manifest is still loading." });
   }
 
   const compileErrors = _asArray(compileResult?.diagnostics?.errors);
@@ -51,8 +53,9 @@ function _issueRows({ selectedRunManifest, compileResult, projectApprovals }) {
   return issues;
 }
 
-function _defaultChecklist({ selectedRunManifest, compileResult, projectApprovals, packetExportHref, onPacketExport }) {
-  const runId = _toText(selectedRunManifest?.run_id, "");
+function _defaultChecklist({ selectedRunManifest, selectedRunId, compileResult, projectApprovals, packetExportHref, onPacketExport }) {
+  const manifestRunId = _toText(selectedRunManifest?.run_id, "");
+  const runId = _toText(manifestRunId || selectedRunId, "");
   const compileErrors = _asArray(compileResult?.diagnostics?.errors);
   const compileWarnings = _asArray(compileResult?.diagnostics?.warnings);
   const artifacts = _asObject(selectedRunManifest?.artifacts);
@@ -73,9 +76,9 @@ function _defaultChecklist({ selectedRunManifest, compileResult, projectApproval
     },
     {
       id: "artifacts",
-      label: "Artifacts present",
+      label: manifestRunId ? "Artifacts present" : "Manifest status",
       status: artifacts && Object.keys(artifacts).length ? "pass" : runId ? "caution" : "block",
-      detail: artifacts && Object.keys(artifacts).length ? "Artifacts indexed in manifest." : "No artifact map available.",
+      detail: artifacts && Object.keys(artifacts).length ? "Artifacts indexed in manifest." : manifestRunId ? "No artifact map available." : "Waiting for manifest details.",
     },
     {
       id: "approvals",
@@ -99,6 +102,7 @@ function _defaultChecklist({ selectedRunManifest, compileResult, projectApproval
 
 export default function CertificationWorkspace({
   selectedRunManifest,
+  selectedRunId,
   compileResult,
   projectApprovals,
   readinessChecklist,
@@ -119,7 +123,7 @@ export default function CertificationWorkspace({
 }) {
   const checklist = Array.isArray(readinessChecklist)
     ? readinessChecklist
-    : _defaultChecklist({ selectedRunManifest, compileResult, projectApprovals, packetExportHref, onPacketExport });
+    : _defaultChecklist({ selectedRunManifest, selectedRunId, compileResult, projectApprovals, packetExportHref, onPacketExport });
 
   const issueRows = Array.isArray(issues)
     ? issues.map((issue) => {
@@ -129,9 +133,9 @@ export default function CertificationWorkspace({
           message: _toText(issue?.message, "Issue details unavailable."),
         };
       })
-    : _issueRows({ selectedRunManifest, compileResult, projectApprovals });
+    : _issueRows({ selectedRunManifest, selectedRunId, compileResult, projectApprovals });
 
-  const runId = _toText(selectedRunManifest?.run_id, "");
+  const runId = _toText(selectedRunManifest?.run_id || selectedRunId, "");
   const exportDisabled = Boolean(packetExportDisabled) || (!runId && !packetExportHref);
   const publishDisabled = Boolean(packetPublishDisabled) || !runId;
   const verifyDisabled = Boolean(packetVerifyDisabled) || !packetPublishResult?.bundle_sha256;

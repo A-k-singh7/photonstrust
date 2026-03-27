@@ -1,17 +1,44 @@
 import { PROFILE_OPTIONS } from "../../photontrust/kinds";
 
+function shortRunId(value) {
+  const text = String(value || "").trim();
+  if (!text) return "No run yet";
+  return text.length > 14 ? `${text.slice(0, 12)}...` : text;
+}
+
+function sessionValue(value, fallback) {
+  const text = String(value || "").trim();
+  return text || fallback;
+}
+
+function titleCase(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export default function AppTopBar({
   programStageSubtitle,
+  objectiveTitle,
+  objectiveSummary,
   mode,
   onModeChange,
   experienceMode,
   onExperienceModeChange,
+  userMode,
+  onUserModeChange,
+  selectedViewPresetId,
+  savedViews,
+  onViewPresetChange,
+  onSaveView,
   profile,
   onProfileChange,
   graphId,
   onGraphIdChange,
   apiBase,
   onApiBaseChange,
+  selectedProjectId,
+  activeRunId,
   onDemoMode,
   onPing,
   busy,
@@ -45,27 +72,47 @@ export default function AppTopBar({
       </div>
 
       <div className="ptTopbarBody">
-        <div className="ptTopbarPrimaryRow">
-          <label className="ptField">
-            <span>Experience</span>
-            <select value={experienceMode} disabled={demoModeOpen} onChange={(e) => onExperienceModeChange(String(e.target.value))}>
-              <option value="guided">Guided</option>
-              <option value="power">Power</option>
-            </select>
-          </label>
+        <div className="ptTopbarMission">
+          <div>
+            <div className="ptTopbarKicker">Current objective</div>
+            <div className="ptTopbarMissionTitle">{objectiveTitle}</div>
+            <div className="ptTopbarMissionSummary">{objectiveSummary}</div>
+          </div>
+          <div className="ptTopbarPrimaryRow">
+            <div className="ptSegment" aria-label="Experience">
+              <button
+                type="button"
+                className={`ptSegmentBtn ${experienceMode === "guided" ? "active" : ""}`}
+                disabled={demoModeOpen}
+                onClick={() => onExperienceModeChange("guided")}
+              >
+                Guided
+              </button>
+              <button
+                type="button"
+                className={`ptSegmentBtn ${experienceMode === "power" ? "active" : ""}`}
+                disabled={demoModeOpen}
+                onClick={() => onExperienceModeChange("power")}
+              >
+                Power
+              </button>
+            </div>
+          </div>
+        </div>
 
-          {showGraphProfileControls ? (
-            <label className="ptField">
-              <span>Profile</span>
-              <select value={profile} disabled={demoModeOpen} onChange={(e) => onProfileChange(String(e.target.value))}>
-                {PROFILE_OPTIONS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+        <div className="ptTopbarSessionRow" aria-label="Current session summary">
+          <div className="ptTopbarSessionChip">
+            <span>Project</span>
+            <strong>{sessionValue(selectedProjectId, "Not selected")}</strong>
+          </div>
+          <div className="ptTopbarSessionChip">
+            <span>Role</span>
+            <strong>{titleCase(sessionValue(userMode, "builder"))}</strong>
+          </div>
+          <div className="ptTopbarSessionChip">
+            <span>Run</span>
+            <strong className="ptMono">{shortRunId(activeRunId)}</strong>
+          </div>
         </div>
 
         <div className="ptBtnRow ptTopbarActionRow">
@@ -96,6 +143,19 @@ export default function AppTopBar({
         <details className="ptTopbarDetails">
           <summary>Advanced setup and diagnostics</summary>
           <div className="ptTopControls ptTopControlsAdvanced">
+            {showGraphProfileControls ? (
+              <label className="ptField">
+                <span>Profile</span>
+                <select value={profile} disabled={demoModeOpen} onChange={(e) => onProfileChange(String(e.target.value))}>
+                  {PROFILE_OPTIONS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             <label className="ptField">
               <span>Mode</span>
               <select value={mode} disabled={demoModeOpen} onChange={(e) => onModeChange(String(e.target.value))}>
@@ -111,6 +171,35 @@ export default function AppTopBar({
                 <input value={graphId} onChange={(e) => onGraphIdChange(String(e.target.value))} disabled={demoModeOpen} />
               </label>
             ) : null}
+
+            <label className="ptField">
+              <span>Role preset</span>
+              <select value={userMode} disabled={demoModeOpen} onChange={(e) => onUserModeChange(String(e.target.value))}>
+                <option value="builder">Builder</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="exec">Exec</option>
+              </select>
+            </label>
+
+            <label className="ptField">
+              <span>Saved view</span>
+              <select value={String(selectedViewPresetId || "")} disabled={demoModeOpen} onChange={(e) => onViewPresetChange(String(e.target.value))}>
+                <option value="">(select saved view)</option>
+                {(Array.isArray(savedViews) ? savedViews : []).map((view) => {
+                  const id = String(view?.id || "");
+                  if (!id) return null;
+                  return (
+                    <option key={id} value={id}>
+                      {String(view?.name || id)}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <button className="ptBtn" onClick={onSaveView} disabled={demoActionLock}>
+              Save View
+            </button>
 
             <label className="ptField ptFieldWide">
               <span>API</span>

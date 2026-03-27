@@ -119,7 +119,10 @@ Some features require optional dependencies.
 
 ## "JAX not found" / JAX errors
 
-JAX is a required dependency for PhotonsTrust. If you see JAX-related errors:
+JAX is not required for the base PhotonTrust QKD quickstart. If you see
+JAX-related errors, you are likely on an optional path that expects it.
+
+Install it only when the workflow you are using requires it:
 
 ```bash
 pip install jax
@@ -132,7 +135,8 @@ pip install jax[cpu]
 ```
 
 If you encounter `jax.config` errors on import, ensure you have a compatible
-JAX version (0.4+ recommended).
+JAX version (0.4+ recommended) and confirm the active workflow actually depends
+on JAX.
 
 ---
 
@@ -210,7 +214,7 @@ If none of the above resolves your issue:
    protocol, detector, or band.
 2. Check the [config-reference.md](config-reference.md) for valid parameter
    ranges.
-3. Look at the error's `.suggestion` attribute -- PhotonsTrust errors include
+3. Look at the error's `.suggestion` attribute -- PhotonTrust errors include
    actionable fix suggestions:
 
    ```python

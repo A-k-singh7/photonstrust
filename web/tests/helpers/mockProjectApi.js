@@ -149,6 +149,7 @@ export async function installMockApi(page, options = {}) {
     bootstrapCalls: [],
     workspacePuts: [],
     diffCalls: [],
+    runCalls: [],
     approvalPosts: [],
     publishCalls: [],
     verifyCalls: [],
@@ -285,6 +286,42 @@ export async function installMockApi(page, options = {}) {
         runs_root: "/tmp/api_runs",
         project_id: url.searchParams.get("project_id") || null,
         runs: state.runs,
+      });
+    }
+    if (url.pathname === "/v0/qkd/run" && method === "POST") {
+      const body = route.request().postDataJSON() || {};
+      requests.runCalls.push(body);
+      const runId = `run${String(state.runs.length + 1).padStart(12, "0")}`;
+      const generatedAt = "2026-03-07T12:15:00Z";
+      const run = buildRun(projectId, runId, generatedAt);
+      const manifest = {
+        ...buildRunManifest(projectId, runId),
+        generated_at: generatedAt,
+        input: {
+          project_id: projectId,
+          protocol_selected: "BBM92",
+        },
+      };
+      state.runs = [run, ...state.runs];
+      state.runManifests[runId] = manifest;
+      return json({
+        run_id: runId,
+        generated_at: generatedAt,
+        output_dir: `/tmp/${runId}`,
+        graph_hash: "mock-graph-hash",
+        results: {
+          cards: [
+            {
+              scenario_id: "ui_qkd_link",
+              band: "c_1550",
+              outputs: { key_rate_bps: 123456 },
+            },
+          ],
+        },
+        artifact_relpaths: {
+          reliability_card_json: "reports/reliability_card.json",
+          run_manifest_json: "run_manifest.json",
+        },
       });
     }
     if (url.pathname === "/v0/runs/diff" && method === "POST") {

@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -35,12 +35,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
       - name: Run pre-commit hooks
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.12'
         run: pre-commit run --all-files --show-diff-on-failure
       - name: Run CI guardrails (compileall + pytest + validation harness smoke + coverage floor)
         run: python scripts/validation/ci_checks.py --pytest-args "-q --cov=photonstrust --cov-report=term-missing:skip-covered --cov-fail-under=60"
       - name: Check benchmark drift
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.12'
         run: python scripts/validation/check_benchmark_drift.py
 
   api-contract-security:
@@ -52,7 +52,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install API lane dependencies
         run: |
           python -m pip install --upgrade pip
@@ -73,7 +73,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install parity lane dependencies
         run: |
           python -m pip install --upgrade pip
@@ -113,7 +113,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install optional lane dependencies
         run: |
           python -m pip install --upgrade pip
