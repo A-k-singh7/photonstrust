@@ -109,8 +109,9 @@ def test_pic_touchstone_nport_requires_wavelength_nm():
         simulate_pic_netlist(netlist)
 
 
-def test_pic_touchstone_2port_accepts_relative_path_with_touchstone_root(tmp_path):
+def test_pic_touchstone_2port_accepts_relative_path_with_touchstone_root(tmp_path, monkeypatch):
     source_path = Path(__file__).parent / "fixtures" / "touchstone_demo.s2p"
+    monkeypatch.chdir(tmp_path)
     touchstone_root = tmp_path / "models"
     touchstone_root.mkdir()
     touchstone_path = touchstone_root / source_path.name
@@ -125,7 +126,7 @@ def test_pic_touchstone_2port_accepts_relative_path_with_touchstone_root(tmp_pat
             {
                 "id": "ts",
                 "kind": "pic.touchstone_2port",
-                "params": {"touchstone_root": str(touchstone_root), "touchstone_path": source_path.name},
+                "params": {"touchstone_root": "models", "touchstone_path": source_path.name},
             },
         ],
         "edges": [],
@@ -138,8 +139,9 @@ def test_pic_touchstone_2port_accepts_relative_path_with_touchstone_root(tmp_pat
     assert outs[0]["power"] == pytest.approx(0.25, abs=1e-12)
 
 
-def test_pic_touchstone_2port_rejects_absolute_path_outside_working_tree(tmp_path):
+def test_pic_touchstone_2port_rejects_absolute_path_outside_working_tree(tmp_path, monkeypatch):
     source_path = Path(__file__).parent / "fixtures" / "touchstone_demo.s2p"
+    monkeypatch.chdir(Path(__file__).parent)
     external_path = tmp_path / "external-touchstone.s2p"
     external_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
 

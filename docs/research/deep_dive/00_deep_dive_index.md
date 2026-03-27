@@ -105,4 +105,3 @@ Applied to: execution sequence rationale, architecture assumptions, and ecosyste
 - QuTiP latest releases (v5.2.3 listed on January 26, 2026): https://qutip.org/download.html
 - Qiskit SDK 2.2 release notes (IBM Quantum docs): https://quantum.cloud.ibm.com/docs/en/api/qiskit/release-notes/2.2
 - Streamlit release notes (v1.54.0, February 4, 2026): https://docs.streamlit.io/develop/quick-reference/release-notes
-

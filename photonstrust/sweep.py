@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import platform
 import sys
+import tempfile
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -22,24 +24,52 @@ from photonstrust.report import (
 from photonstrust.workflow.schema import multifidelity_report_schema_path
 
 
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _workspace_root() -> str:
+    return os.path.realpath(os.getcwd())
+
+
+def _allowed_roots() -> tuple[str, ...]:
+    roots = (
+        _workspace_root(),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _is_within_allowed_roots(path_text: str) -> bool:
+    return any(_is_within_root(path_text, root_text) for root_text in _allowed_roots())
+
+
+def _resolve_output_root(output_root: Path) -> Path:
+    candidate = os.path.realpath(os.path.join(_workspace_root(), os.fspath(output_root)))
+    if not _is_within_allowed_roots(candidate):
+        raise ValueError("output_root must stay within the workspace, home, or temp directories")
+    return Path(candidate)
+
+
 def _resolve_scenario_output_dir(output_root: Path, scenario: dict, *, scenario_id: str, band: str) -> Path:
-    base_dir = output_root.resolve()
+    base_dir = os.path.realpath(os.fspath(output_root))
     raw_output_dir = scenario.get("output_dir")
     if raw_output_dir is None or str(raw_output_dir).strip() == "":
-        candidate = base_dir / scenario_id / band
+        candidate = os.path.realpath(os.path.join(base_dir, scenario_id, band))
     else:
-        user_path = Path(str(raw_output_dir)).expanduser()
-        candidate = user_path.resolve() if user_path.is_absolute() else (Path.cwd() / user_path).resolve()
+        candidate = os.path.realpath(os.path.join(base_dir, os.path.expanduser(str(raw_output_dir).strip())))
 
-    try:
-        candidate.relative_to(base_dir)
-    except ValueError as exc:
-        raise ValueError(f"scenario output_dir must stay within output_root: {base_dir}") from exc
-    return candidate
+    if not _is_within_root(candidate, base_dir):
+        raise ValueError(f"scenario output_dir must stay within output_root: {base_dir}")
+    return Path(candidate)
 
 
 def run_scenarios(scenarios: list[dict], output_root: Path, *, run_id: str | None = None) -> dict:
-    output_root = output_root.resolve()
+    output_root = _resolve_output_root(output_root)
     output_root.mkdir(parents=True, exist_ok=True)
     grouped = {}
     cards = []

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -83,11 +84,12 @@ def test_certification_mode_uses_certification_settings():
     assert sweep["uncertainty"] is not None
 
 
-def test_run_scenarios_writes_schema_valid_multifidelity_report(tmp_path):
+def test_run_scenarios_writes_schema_valid_multifidelity_report(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     scenario = _scenario("preview")
-    out = run_scenarios([scenario], tmp_path, run_id="phase51_w08_multifidelity")
+    out = run_scenarios([scenario], Path("results"), run_id="phase51_w08_multifidelity")
 
-    report_path = tmp_path / "multifidelity_report.json"
+    report_path = tmp_path / "results" / "multifidelity_report.json"
     assert report_path.exists()
     assert out.get("multifidelity_report_path") == str(report_path)
 
@@ -98,9 +100,10 @@ def test_run_scenarios_writes_schema_valid_multifidelity_report(tmp_path):
     assert "qiskit:repeater_primitive" in payload["backend_results"]
 
 
-def test_run_scenarios_rejects_output_dir_outside_output_root(tmp_path):
+def test_run_scenarios_rejects_output_dir_outside_output_root(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     scenario = _scenario("preview")
-    scenario["output_dir"] = str(tmp_path.parent / "escaped-output")
+    scenario["output_dir"] = "../escaped-output"
 
     with pytest.raises(ValueError, match="scenario output_dir must stay within output_root"):
-        run_scenarios([scenario], tmp_path, run_id="phase51_w08_escape")
+        run_scenarios([scenario], Path("results"), run_id="phase51_w08_escape")

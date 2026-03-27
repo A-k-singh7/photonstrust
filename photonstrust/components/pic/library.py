@@ -10,7 +10,9 @@ ChipVerify workflows. The v1 philosophy:
 from __future__ import annotations
 
 import math
+import os
 import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -93,26 +95,57 @@ def component_all_ports(kind: str, params: dict | None = None) -> tuple[str, ...
 _TOUCHSTONE_SUFFIX_RE = re.compile(r"\.s\d+p$")
 
 
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _workspace_root() -> str:
+    return os.path.realpath(os.getcwd())
+
+
+def _allowed_roots() -> tuple[str, ...]:
+    roots = (
+        _workspace_root(),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _is_within_allowed_roots(path_text: str) -> bool:
+    return any(_is_within_root(path_text, root_text) for root_text in _allowed_roots())
+
+
+def _resolve_touchstone_root(params: dict, *, kind: str) -> str:
+    base_value = params.get("touchstone_root")
+    if base_value is None or str(base_value).strip() == "":
+        return _workspace_root()
+
+    base_dir = os.path.realpath(os.path.join(_workspace_root(), os.path.expanduser(str(base_value).strip())))
+    if not _is_within_allowed_roots(base_dir):
+        raise ValueError(f"{kind} touchstone_root must stay within the workspace, home, or temp directories")
+    return base_dir
+
+
 def _resolve_touchstone_path(params: dict, *, kind: str) -> str:
     path_value = params.get("touchstone_path") or params.get("path")
     if not path_value:
         raise ValueError(f"{kind} requires params.touchstone_path (or params.path)")
 
-    base_value = params.get("touchstone_root")
-    base_dir = Path(str(base_value)).expanduser().resolve() if base_value else Path.cwd().resolve()
-    candidate = Path(str(path_value)).expanduser()
-    resolved = candidate.resolve() if candidate.is_absolute() else (base_dir / candidate).resolve()
+    base_dir = _resolve_touchstone_root(params, kind=kind)
+    resolved = os.path.realpath(os.path.join(base_dir, os.path.expanduser(str(path_value).strip())))
+    if not _is_within_root(resolved, base_dir):
+        raise ValueError(f"{kind} touchstone_path must resolve within touchstone_root or the current working directory")
 
-    try:
-        resolved.relative_to(base_dir)
-    except ValueError as exc:
-        raise ValueError(f"{kind} touchstone_path must resolve within touchstone_root or the current working directory") from exc
-
-    if not resolved.is_file():
+    resolved_path = Path(resolved)
+    if not resolved_path.is_file():
         raise ValueError(f"{kind} touchstone_path does not exist: {resolved}")
-    if not _TOUCHSTONE_SUFFIX_RE.fullmatch(resolved.suffix.lower()):
+    if not _TOUCHSTONE_SUFFIX_RE.fullmatch(resolved_path.suffix.lower()):
         raise ValueError(f"{kind} touchstone_path must point to a .sNp file")
-    return str(resolved)
+    return resolved
 
 
 def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | None = None) -> np.ndarray:

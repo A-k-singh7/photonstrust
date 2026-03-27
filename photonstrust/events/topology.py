@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from photonstrust.network.types import NetworkTopology
+
 
 def build_link(node_a: str, node_b: str, channel_cfg: dict) -> dict:
     return {
@@ -24,7 +29,7 @@ def build_star(center: str, nodes: list[str], channel_cfg: dict) -> dict:
     return {"nodes": [center] + nodes, "links": links}
 
 
-def topology_dict_to_network(topo_dict: dict) -> "NetworkTopology":
+def topology_dict_to_network(topo_dict: dict) -> NetworkTopology:
     """Convert legacy ``{nodes, links}`` dict to :class:`NetworkTopology`."""
     from photonstrust.network.types import NetworkLink, NetworkNode, NetworkTopology
 
