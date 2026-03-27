@@ -213,10 +213,19 @@ def create_app() -> Any:
                 )
                 # Read generated files and embed in response
                 out = Path(tmp)
-                netlist_text = (out / result["artifacts"]["netlist_path"]).read_text(encoding="utf-8")
+                netlist_rel = Path(str(result["artifacts"]["netlist_path"]).strip())
+                if netlist_rel.is_absolute() or any(part in ("", "..") for part in netlist_rel.parts):
+                    raise ValueError("netlist artifact path must be a safe relative path")
+                netlist_path = (out / netlist_rel).resolve()
+                netlist_path.relative_to(out.resolve())
+                netlist_text = netlist_path.read_text(encoding="utf-8")
                 lib_text = None
                 if "compact_models_lib" in result["artifacts"]:
-                    lib_path = out / result["artifacts"]["compact_models_lib"]
+                    lib_rel = Path(str(result["artifacts"]["compact_models_lib"]).strip())
+                    if lib_rel.is_absolute() or any(part in ("", "..") for part in lib_rel.parts):
+                        raise ValueError("compact model artifact path must be a safe relative path")
+                    lib_path = (out / lib_rel).resolve()
+                    lib_path.relative_to(out.resolve())
                     if lib_path.exists():
                         lib_text = lib_path.read_text(encoding="utf-8")
                 return {

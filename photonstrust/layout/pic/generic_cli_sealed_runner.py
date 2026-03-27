@@ -239,17 +239,14 @@ def _resolve_cwd(cwd_value: str | None) -> tuple[str | None, str | None]:
         return None, "invalid_cwd"
 
     try:
-        cwd_path = Path(cwd_text)
-        if not cwd_path.is_absolute():
-            cwd_path = (Path.cwd() / cwd_path).resolve()
-        else:
-            cwd_path = cwd_path.resolve()
+        candidate = cwd_text if os.path.isabs(cwd_text) else os.path.join(os.getcwd(), cwd_text)
+        resolved_text = os.path.realpath(candidate)
     except OSError:
         return None, "invalid_cwd"
 
-    resolved_text = os.path.realpath(os.fspath(cwd_path))
     if not _is_within_allowed_roots(resolved_text):
         return None, "invalid_cwd"
+    cwd_path = Path(resolved_text)
     if not cwd_path.exists() or not cwd_path.is_dir():
         return None, "invalid_cwd"
     return resolved_text, None
@@ -263,16 +260,12 @@ def _resolve_path(path_text: str, *, cwd: str | None) -> tuple[Path | None, str 
         return None, "invalid_path"
 
     try:
-        path = Path(raw)
-        if not path.is_absolute():
-            base = Path(cwd) if cwd else Path.cwd()
-            path = (base / path).resolve()
-        else:
-            path = path.resolve()
+        base_text = str(cwd).strip() if cwd else os.getcwd()
+        candidate = raw if os.path.isabs(raw) else os.path.join(base_text, raw)
+        resolved_text = os.path.realpath(candidate)
     except OSError:
         return None, "invalid_path"
 
-    resolved_text = os.path.realpath(os.fspath(path))
     if not _is_within_allowed_roots(resolved_text):
         return None, "invalid_path"
     return Path(resolved_text), None

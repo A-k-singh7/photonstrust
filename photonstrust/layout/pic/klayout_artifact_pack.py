@@ -130,11 +130,21 @@ def build_klayout_run_artifact_pack(
     pack with `status="skipped"` and a clear `execution.error` message.
     """
 
-    input_gds = _resolve_allowed_path(input_gds_path, label="input_gds_path")
+    input_gds_raw = os.path.expanduser(os.fspath(input_gds_path))
+    input_gds_candidate = input_gds_raw if os.path.isabs(input_gds_raw) else os.path.join(os.getcwd(), input_gds_raw)
+    input_gds_resolved = os.path.realpath(input_gds_candidate)
+    if not any(_is_within_root(input_gds_resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError("input_gds_path must stay within the repository, home, or temp directories")
+    input_gds = Path(input_gds_resolved)
     if not input_gds.exists() or not input_gds.is_file():
         raise FileNotFoundError(str(input_gds))
 
-    out_dir = _resolve_allowed_path(output_dir, label="output_dir")
+    out_dir_raw = os.path.expanduser(os.fspath(output_dir))
+    out_dir_candidate = out_dir_raw if os.path.isabs(out_dir_raw) else os.path.join(os.getcwd(), out_dir_raw)
+    out_dir_resolved = os.path.realpath(out_dir_candidate)
+    if not any(_is_within_root(out_dir_resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError("output_dir must stay within the repository, home, or temp directories")
+    out_dir = Path(out_dir_resolved)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     s = dict(settings or {})
@@ -152,10 +162,14 @@ def build_klayout_run_artifact_pack(
     endpoint_snap_tol_um = float(s.get("endpoint_snap_tol_um", 2.0) or 2.0)
     top_cell = str(s.get("top_cell", "") or "").strip() or None
 
-    macro = _resolve_allowed_path(
-        macro_path if macro_path is not None else default_klayout_macro_template_path(),
-        label="macro_path",
+    macro_raw = os.path.expanduser(
+        os.fspath(macro_path if macro_path is not None else default_klayout_macro_template_path())
     )
+    macro_candidate = macro_raw if os.path.isabs(macro_raw) else os.path.join(os.getcwd(), macro_raw)
+    macro_resolved = os.path.realpath(macro_candidate)
+    if not any(_is_within_root(macro_resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError("macro_path must stay within the repository, home, or temp directories")
+    macro = Path(macro_resolved)
     if not macro.exists() or not macro.is_file():
         raise FileNotFoundError(str(macro))
 

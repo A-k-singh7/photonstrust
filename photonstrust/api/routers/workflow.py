@@ -29,6 +29,10 @@ from photonstrust.utils import hash_dict
 router = APIRouter()
 
 
+def _safe_workflow_error_message(*, fallback: str) -> str:
+    return str(fallback).strip() or "workflow step failed"
+
+
 def _normalize_invdesign_kind(payload: dict[str, Any], inv_cfg: dict[str, Any]) -> str:
     inv_kind_raw = inv_cfg.get("kind")
     if inv_kind_raw is None:
@@ -166,9 +170,17 @@ def pic_workflow_invdesign_chain(payload: dict[str, Any] = Body(...)) -> dict[st
                     "artifact_relpaths": k_res.get("artifact_relpaths") if isinstance(k_res, dict) else None,
                 }
             except HTTPException as exc:
-                klayout_step = {"status": "error", "run_id": None, "error": str(getattr(exc, "detail", None) or exc)}
-            except Exception as exc:
-                klayout_step = {"status": "error", "run_id": None, "error": str(exc)}
+                klayout_step = {
+                    "status": "error",
+                    "run_id": None,
+                    "error": _safe_workflow_error_message(fallback="klayout pack step failed"),
+                }
+            except Exception:
+                klayout_step = {
+                    "status": "error",
+                    "run_id": None,
+                    "error": _safe_workflow_error_message(fallback="klayout pack step failed"),
+                }
         else:
             klayout_step = {"status": "skipped", "run_id": None, "reason": "layout did not emit a .gds artifact"}
 
@@ -309,12 +321,12 @@ def pic_workflow_invdesign_chain_replay(request: Request, payload: dict[str, Any
     try:
         workflow_run_id = run_store.validate_run_id(workflow_run_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid workflow_run_id format") from exc
 
     try:
         src_dir = run_store.run_dir_for_id(workflow_run_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Could not resolve workflow run directory") from exc
     if not src_dir.exists():
         raise HTTPException(status_code=404, detail="workflow run not found")
 
@@ -343,7 +355,7 @@ def pic_workflow_invdesign_chain_replay(request: Request, payload: dict[str, Any
             try:
                 request_payload["project_id"] = project_id_or_400({"project_id": raw_project_id})
             except Exception as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
+                raise HTTPException(status_code=400, detail="Invalid project_id format") from exc
 
     request_payload["replayed_from_run_id"] = workflow_run_id
     return {
