@@ -69,6 +69,24 @@ def _manifest_path(job_dir: Path) -> Path:
     return _resolve_job_dir_candidate(job_dir) / JOB_MANIFEST_BASENAME
 
 
+def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        dir=str(target.parent),
+        prefix=f"{target.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as handle:
+        json.dump(payload, handle, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+        tmp_name = handle.name
+    os.replace(tmp_name, target)
+
+
 def read_job(job_id: str) -> dict[str, Any] | None:
     path = _manifest_path(job_dir_for_id(job_id))
     if not path.exists():
@@ -94,7 +112,7 @@ def create_job(
     run_dir.mkdir(parents=True, exist_ok=True)
 
     request_path = run_dir / "job_request.json"
-    request_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    _write_json_atomic(request_path, payload)
 
     manifest: dict[str, Any] = {
         "schema_version": "0.1",
@@ -117,7 +135,7 @@ def create_job(
             "store": "filesystem.v0",
         },
     }
-    _manifest_path(run_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    _write_json_atomic(_manifest_path(run_dir), manifest)
     return manifest
 
 
@@ -130,7 +148,7 @@ def set_status(job_id: str, status: str) -> dict[str, Any]:
         raise FileNotFoundError("job not found")
     manifest["status"] = value
     manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
-    _manifest_path(job_dir_for_id(job_id)).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    _write_json_atomic(_manifest_path(job_dir_for_id(job_id)), manifest)
     return manifest
 
 
@@ -141,7 +159,7 @@ def set_result(job_id: str, result: dict[str, Any]) -> dict[str, Any]:
 
     run_dir = job_dir_for_id(job_id)
     result_path = run_dir / "job_result.json"
-    result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    _write_json_atomic(result_path, result)
 
     artifacts = manifest.get("artifacts") if isinstance(manifest.get("artifacts"), dict) else {}
     artifacts["job_result_json"] = "job_result.json"
@@ -150,7 +168,7 @@ def set_result(job_id: str, result: dict[str, Any]) -> dict[str, Any]:
     manifest["error"] = None
     manifest["status"] = "succeeded"
     manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
-    _manifest_path(run_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    _write_json_atomic(_manifest_path(run_dir), manifest)
     return manifest
 
 
@@ -161,7 +179,7 @@ def set_error(job_id: str, error: dict[str, Any]) -> dict[str, Any]:
 
     run_dir = job_dir_for_id(job_id)
     error_path = run_dir / "job_error.json"
-    error_path.write_text(json.dumps(error, indent=2), encoding="utf-8")
+    _write_json_atomic(error_path, error)
 
     artifacts = manifest.get("artifacts") if isinstance(manifest.get("artifacts"), dict) else {}
     artifacts["job_error_json"] = "job_error.json"
@@ -170,7 +188,7 @@ def set_error(job_id: str, error: dict[str, Any]) -> dict[str, Any]:
     manifest["error"] = dict(error)
     manifest["status"] = "failed"
     manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
-    _manifest_path(run_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    _write_json_atomic(_manifest_path(run_dir), manifest)
     return manifest
 
 
