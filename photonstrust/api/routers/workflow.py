@@ -341,11 +341,11 @@ def pic_workflow_invdesign_chain_replay(request: Request, payload: dict[str, Any
     except FileNotFoundError:
         raise HTTPException(status_code=400, detail="workflow run does not contain workflow_request.json (cannot replay)")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Failed to resolve workflow_request.json: {exc}") from exc
+        raise HTTPException(status_code=400, detail="failed to resolve workflow_request.json") from exc
     try:
         request_payload = json.loads(req_path.read_text(encoding="utf-8"))
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Failed to read workflow_request.json: {exc}") from exc
+        raise HTTPException(status_code=400, detail="failed to read workflow_request.json") from exc
     if not isinstance(request_payload, dict):
         raise HTTPException(status_code=400, detail="workflow_request.json must be a JSON object")
 

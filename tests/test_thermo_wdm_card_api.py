@@ -218,3 +218,15 @@ class TestAPIServer:
             assert r.json()["status"] == "ok"
         except (ImportError, RuntimeError):
             pytest.skip("fastapi/httpx/starlette not installed")
+
+    def test_reliability_card_endpoint_uses_fixed_safe_title(self):
+        try:
+            from fastapi.testclient import TestClient
+            from photonstrust.api_server import create_app
+            client = TestClient(create_app())
+            r = client.post("/report/reliability_card", json={"title": '<script>alert("x")</script>'})
+            assert r.status_code == 200
+            assert "<script>alert" not in r.text
+            assert "PhotonTrust Reliability Card" in r.text
+        except (ImportError, RuntimeError):
+            pytest.skip("fastapi/httpx/starlette not installed")

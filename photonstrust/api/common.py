@@ -71,14 +71,14 @@ def project_id_or_400(payload: dict[str, Any]) -> str:
     try:
         return project_store.validate_project_id(payload.get("project_id", "default"))
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid project_id format") from exc
 
 
 def project_id_value_or_400(value: Any) -> str:
     try:
         return project_store.validate_project_id(str(value or "default"))
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid project_id format") from exc
 
 
 def allowed_projects_from_ctx(ctx: dict[str, Any]) -> set[str] | None:
@@ -102,7 +102,7 @@ def resolve_reference_run(payload: dict[str, Any]) -> tuple[str, str | None, Pat
     try:
         ref_dir = run_store.run_dir_for_id(ref_run_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid source_run_id/layout_run_id format") from exc
     if not ref_dir.exists():
         raise HTTPException(status_code=404, detail="source_run_id not found" if source_run_id else "layout_run_id not found")
     return ref_run_id, layout_run_id or None, ref_dir
