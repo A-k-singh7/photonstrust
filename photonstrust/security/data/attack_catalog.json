@@ -1,0 +1,69 @@
+{
+  "attacks": {
+    "pns": {
+      "name": "Photon Number Splitting",
+      "applicable_protocols": ["BB84", "BB84_DECOY"],
+      "applicable_detectors": ["snspd", "ingaas", "si_apd"],
+      "parameters": {}
+    },
+    "blinding": {
+      "name": "Detector Blinding",
+      "applicable_protocols": ["BB84_DECOY", "BBM92", "MDI_QKD", "TF_QKD", "PM_QKD", "AMDI_QKD"],
+      "applicable_detectors": ["snspd", "ingaas", "si_apd"],
+      "parameters": {
+        "blinding_threshold_mw": {
+          "snspd": 5.0,
+          "ingaas": 0.05,
+          "si_apd": 0.1
+        }
+      }
+    },
+    "trojan_horse": {
+      "name": "Trojan Horse Attack",
+      "applicable_protocols": ["BB84_DECOY", "BBM92", "BB84"],
+      "applicable_detectors": ["snspd", "ingaas", "si_apd"],
+      "parameters": {
+        "default_isolator_db": 40,
+        "default_extinction_db": 30
+      }
+    },
+    "time_shift": {
+      "name": "Time-Shift Attack",
+      "applicable_protocols": ["BB84_DECOY", "BBM92", "BB84"],
+      "applicable_detectors": ["snspd", "ingaas", "si_apd"],
+      "parameters": {}
+    },
+    "dead_time": {
+      "name": "Detector Dead-Time Attack",
+      "applicable_protocols": ["BB84_DECOY", "BBM92", "BB84", "MDI_QKD"],
+      "applicable_detectors": ["snspd", "ingaas", "si_apd"],
+      "parameters": {}
+    }
+  },
+  "countermeasures": {
+    "decoy_state": {
+      "target_attack": "pns",
+      "effectiveness_base": 0.999
+    },
+    "watchdog_detector": {
+      "target_attack": "blinding",
+      "effectiveness_base": 0.95
+    },
+    "optical_isolator": {
+      "target_attack": "trojan_horse",
+      "effectiveness_base": 0.99
+    },
+    "random_gating": {
+      "target_attack": "blinding",
+      "effectiveness_base": 0.85
+    },
+    "bit_flip_assignment": {
+      "target_attack": "time_shift",
+      "effectiveness_base": 0.999
+    },
+    "active_dead_time": {
+      "target_attack": "dead_time",
+      "effectiveness_base": 0.90
+    }
+  }
+}

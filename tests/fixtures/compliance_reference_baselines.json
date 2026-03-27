@@ -1,516 +1,792 @@
 {
-  "kind": "photonstrust.compliance_reference_baselines.v0",
   "cases": [
     {
       "config": "configs/compliance/compliant_bb84_snspd.yml",
       "report": {
         "kind": "etsi_qkd_compliance_report",
-        "schema_version": "0.1",
-        "standards": [
-          "GS-QKD-004",
-          "GS-QKD-008",
-          "GS-QKD-011"
-        ],
-        "overall_status": "CONDITIONAL_PASS",
-        "summary": {
-          "fail": 0,
-          "not_assessed": 0,
-          "pass": 11,
-          "total": 12,
-          "warning": 1
-        },
-        "scenario_summary": {
-          "protocol": "BB84_DECOY",
-          "target_distance_km": 50.0,
-          "wavelength_nm": 1550.0,
-          "row_count": 1,
-          "key_rate_min_bps": 967703.401372,
-          "key_rate_max_bps": 967703.401372,
-          "qber_min": 0.010000740952,
-          "qber_max": 0.010000740952
-        },
+        "overall_status": "PARTIAL",
         "requirements": [
           {
-            "req_id": "GS-QKD-004-F1",
-            "status": "PASS",
             "computed_value": 967703.401372,
-            "threshold": 1000.0,
-            "unit": "bps",
             "notes": [
               "distance_km=50.0"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F1",
+            "status": "PASS",
+            "threshold": 1000.0,
+            "unit": "bps"
           },
           {
-            "req_id": "GS-QKD-004-F2",
-            "status": "PASS",
             "computed_value": 0.010000740952,
-            "threshold": 0.11,
-            "unit": "ratio",
             "notes": [
               "checked_points=1",
               "d_spec_km=50"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F2",
+            "status": "PASS",
+            "threshold": 0.11,
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-004-F3",
-            "status": "PASS",
             "computed_value": 967703.401372,
-            "threshold": 0.0,
-            "unit": "bps",
             "notes": [
               "distance_window_km=[50,50]"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F3",
+            "status": "PASS",
+            "threshold": 0.0,
+            "unit": "bps"
           },
           {
-            "req_id": "GS-QKD-004-F4",
-            "status": "PASS",
             "computed_value": 1e-11,
-            "threshold": 1e-10,
-            "unit": "epsilon",
             "notes": [
               "Worst finite_key_epsilon across assessed sweep points."
-            ]
+            ],
+            "req_id": "GS-QKD-004-F4",
+            "status": "PASS",
+            "threshold": 1e-10,
+            "unit": "epsilon"
           },
           {
-            "req_id": "GS-QKD-008-S1",
-            "status": "PASS",
+            "computed_value": null,
+            "notes": [
+              "No proof_method specified in finite_key configuration."
+            ],
+            "req_id": "GS-QKD-005-SP1",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No epsilon_budget found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP2",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No composable_key_length_bits found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP3",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No composable_key_length_bits found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP4",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "composable_version=''; SP5 only assessed for v2 composable proofs."
+            ],
+            "req_id": "GS-QKD-005-SP5",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
             "computed_value": 0.0520656401381,
-            "threshold": 0.0,
-            "unit": "ratio",
             "notes": [
               "Minimum single-photon gain proxy across sweep rows."
-            ]
+            ],
+            "req_id": "GS-QKD-008-S1",
+            "status": "PASS",
+            "threshold": 0.0,
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-008-S2",
-            "status": "PASS",
             "computed_value": 0.0113509885881,
-            "threshold": 0.5,
-            "unit": "ratio",
             "notes": [
               "distance_km=50.0"
-            ]
+            ],
+            "req_id": "GS-QKD-008-S2",
+            "status": "PASS",
+            "threshold": 0.5,
+            "unit": "ratio"
           },
           {
+            "computed_value": 0.5,
+            "notes": [
+              "S3 heuristic from ETSI brief: practical multi-photon risk thresholding by mu."
+            ],
             "req_id": "GS-QKD-008-S3",
             "status": "PASS",
-            "computed_value": 0.5,
             "threshold": {
               "pass_lt": 0.6,
               "warn_lt": 1.0
             },
-            "unit": "mean_photons_per_pulse",
-            "notes": [
-              "S3 heuristic from ETSI brief: practical multi-photon risk thresholding by mu."
-            ]
+            "unit": "mean_photons_per_pulse"
           },
           {
+            "computed_value": "BB84_DECOY",
+            "notes": [
+              "Protocol is in the curated coherent-attack proof set from the M2 brief."
+            ],
             "req_id": "GS-QKD-008-S4",
             "status": "PASS",
-            "computed_value": "BB84_DECOY",
             "threshold": [
               "BB84_DECOY",
               "MDI_QKD",
               "PM_QKD",
               "TF_QKD"
             ],
-            "unit": "protocol",
-            "notes": [
-              "Protocol is in the curated coherent-attack proof set from the M2 brief."
-            ]
+            "unit": "protocol"
           },
           {
+            "computed_value": 0.01,
+            "notes": [
+              "WCP-style heuristic from M2 brief: source_qber ~= misalignment_prob."
+            ],
             "req_id": "GS-QKD-011-C1",
             "status": "WARNING",
-            "computed_value": 0.01,
             "threshold": {
               "pass_lt": 0.01,
               "warn_lt": 0.03
             },
-            "unit": "ratio",
-            "notes": [
-              "WCP-style heuristic from M2 brief: source_qber ~= misalignment_prob."
-            ]
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-011-C2",
-            "status": "PASS",
             "computed_value": 100.0,
-            "threshold": 10000.0,
-            "unit": "cps",
             "notes": [
               "Detector dark count threshold from M2 brief."
-            ]
+            ],
+            "req_id": "GS-QKD-011-C2",
+            "status": "PASS",
+            "threshold": 10000.0,
+            "unit": "cps"
           },
           {
+            "computed_value": 0.75,
+            "notes": [
+              "Detector efficiency thresholding from M2 brief."
+            ],
             "req_id": "GS-QKD-011-C3",
             "status": "PASS",
-            "computed_value": 0.75,
             "threshold": {
               "pass_ge": 0.1,
               "warn_ge": 0.07
             },
-            "unit": "ratio",
-            "notes": [
-              "Detector efficiency thresholding from M2 brief."
-            ]
+            "unit": "ratio"
           },
           {
+            "computed_value": 4.10782519111e-15,
+            "notes": [
+              "Penalty model: 1 - erf(Tw / (2*sqrt(2)*sigma_jitter))."
+            ],
             "req_id": "GS-QKD-011-C4",
             "status": "PASS",
-            "computed_value": 4.10782519111e-15,
             "threshold": {
               "pass_lt": 0.1,
               "warn_lt": 0.2
             },
-            "unit": "fractional_penalty",
+            "unit": "fractional_penalty"
+          },
+          {
+            "computed_value": null,
             "notes": [
-              "Penalty model: 1 - erf(Tw / (2*sqrt(2)*sigma_jitter))."
-            ]
+              "No KMS configuration in scenario or context."
+            ],
+            "req_id": "GS-QKD-014-K1",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No pool key data in context."
+            ],
+            "req_id": "GS-QKD-014-K2",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No pool key data in context."
+            ],
+            "req_id": "GS-QKD-014-K3",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": 0.0,
+            "notes": [
+              "Configured rate 0.0 keys/s within simulated capacity 3780.1 keys/s."
+            ],
+            "req_id": "GS-QKD-014-K4",
+            "status": "PASS",
+            "threshold": 3780.09141161,
+            "unit": "keys/s"
           }
-        ]
+        ],
+        "scenario_summary": {
+          "key_rate_max_bps": 967703.401372,
+          "key_rate_min_bps": 967703.401372,
+          "protocol": "BB84_DECOY",
+          "qber_max": 0.010000740952,
+          "qber_min": 0.010000740952,
+          "row_count": 1,
+          "target_distance_km": 50.0,
+          "wavelength_nm": 1550.0
+        },
+        "schema_version": "0.1",
+        "standards": [
+          "GS-QKD-004",
+          "GS-QKD-005",
+          "GS-QKD-008",
+          "GS-QKD-011",
+          "GS-QKD-014"
+        ],
+        "summary": {
+          "fail": 0,
+          "not_assessed": 8,
+          "pass": 12,
+          "total": 21,
+          "warning": 1
+        }
       }
     },
     {
       "config": "configs/compliance/marginal_bb84_ingaas.yml",
       "report": {
         "kind": "etsi_qkd_compliance_report",
-        "schema_version": "0.1",
-        "standards": [
-          "GS-QKD-004",
-          "GS-QKD-008",
-          "GS-QKD-011"
-        ],
         "overall_status": "PARTIAL",
-        "summary": {
-          "fail": 0,
-          "not_assessed": 1,
-          "pass": 7,
-          "total": 12,
-          "warning": 4
-        },
-        "scenario_summary": {
-          "protocol": "BB84_DECOY",
-          "target_distance_km": 50.0,
-          "wavelength_nm": 1550.0,
-          "row_count": 1,
-          "key_rate_min_bps": 9160.64673161,
-          "key_rate_max_bps": 9160.64673161,
-          "qber_min": 0.0209785946491,
-          "qber_max": 0.0209785946491
-        },
         "requirements": [
           {
-            "req_id": "GS-QKD-004-F1",
-            "status": "PASS",
             "computed_value": 9160.64673161,
-            "threshold": 1000.0,
-            "unit": "bps",
             "notes": [
               "distance_km=50.0"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F1",
+            "status": "PASS",
+            "threshold": 1000.0,
+            "unit": "bps"
           },
           {
-            "req_id": "GS-QKD-004-F2",
-            "status": "PASS",
             "computed_value": 0.0209785946491,
-            "threshold": 0.11,
-            "unit": "ratio",
             "notes": [
               "checked_points=1",
               "d_spec_km=50"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F2",
+            "status": "PASS",
+            "threshold": 0.11,
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-004-F3",
-            "status": "PASS",
             "computed_value": 9160.64673161,
-            "threshold": 0.0,
-            "unit": "bps",
             "notes": [
               "distance_window_km=[50,50]"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F3",
+            "status": "PASS",
+            "threshold": 0.0,
+            "unit": "bps"
           },
           {
-            "req_id": "GS-QKD-004-F4",
-            "status": "NOT_ASSESSED",
             "computed_value": null,
-            "threshold": null,
-            "unit": null,
             "notes": [
               "finite_key is not enabled; F4 not assessed."
-            ]
+            ],
+            "req_id": "GS-QKD-004-F4",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
           },
           {
-            "req_id": "GS-QKD-008-S1",
-            "status": "PASS",
+            "computed_value": null,
+            "notes": [
+              "No proof_method specified in finite_key configuration."
+            ],
+            "req_id": "GS-QKD-005-SP1",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No epsilon_budget found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP2",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No composable_key_length_bits found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP3",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No composable_key_length_bits found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP4",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "composable_version=''; SP5 only assessed for v2 composable proofs."
+            ],
+            "req_id": "GS-QKD-005-SP5",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
             "computed_value": 0.00274770309921,
-            "threshold": 0.0,
-            "unit": "ratio",
             "notes": [
               "Minimum single-photon gain proxy across sweep rows."
-            ]
+            ],
+            "req_id": "GS-QKD-008-S1",
+            "status": "PASS",
+            "threshold": 0.0,
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-008-S2",
-            "status": "PASS",
             "computed_value": 0.0237656869038,
-            "threshold": 0.5,
-            "unit": "ratio",
             "notes": [
               "distance_km=50.0"
-            ]
+            ],
+            "req_id": "GS-QKD-008-S2",
+            "status": "PASS",
+            "threshold": 0.5,
+            "unit": "ratio"
           },
           {
+            "computed_value": 0.65,
+            "notes": [
+              "S3 heuristic from ETSI brief: practical multi-photon risk thresholding by mu."
+            ],
             "req_id": "GS-QKD-008-S3",
             "status": "WARNING",
-            "computed_value": 0.65,
             "threshold": {
               "pass_lt": 0.6,
               "warn_lt": 1.0
             },
-            "unit": "mean_photons_per_pulse",
-            "notes": [
-              "S3 heuristic from ETSI brief: practical multi-photon risk thresholding by mu."
-            ]
+            "unit": "mean_photons_per_pulse"
           },
           {
+            "computed_value": "BB84_DECOY",
+            "notes": [
+              "Protocol is in the curated coherent-attack proof set from the M2 brief."
+            ],
             "req_id": "GS-QKD-008-S4",
             "status": "PASS",
-            "computed_value": "BB84_DECOY",
             "threshold": [
               "BB84_DECOY",
               "MDI_QKD",
               "PM_QKD",
               "TF_QKD"
             ],
-            "unit": "protocol",
-            "notes": [
-              "Protocol is in the curated coherent-attack proof set from the M2 brief."
-            ]
+            "unit": "protocol"
           },
           {
+            "computed_value": 0.02,
+            "notes": [
+              "WCP-style heuristic from M2 brief: source_qber ~= misalignment_prob."
+            ],
             "req_id": "GS-QKD-011-C1",
             "status": "WARNING",
-            "computed_value": 0.02,
             "threshold": {
               "pass_lt": 0.01,
               "warn_lt": 0.03
             },
-            "unit": "ratio",
-            "notes": [
-              "WCP-style heuristic from M2 brief: source_qber ~= misalignment_prob."
-            ]
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-011-C2",
-            "status": "PASS",
             "computed_value": 9500.0,
-            "threshold": 10000.0,
-            "unit": "cps",
             "notes": [
               "Detector dark count threshold from M2 brief."
-            ]
+            ],
+            "req_id": "GS-QKD-011-C2",
+            "status": "PASS",
+            "threshold": 10000.0,
+            "unit": "cps"
           },
           {
+            "computed_value": 0.09,
+            "notes": [
+              "Detector efficiency thresholding from M2 brief."
+            ],
             "req_id": "GS-QKD-011-C3",
             "status": "WARNING",
-            "computed_value": 0.09,
             "threshold": {
               "pass_ge": 0.1,
               "warn_ge": 0.07
             },
-            "unit": "ratio",
-            "notes": [
-              "Detector efficiency thresholding from M2 brief."
-            ]
+            "unit": "ratio"
           },
           {
+            "computed_value": 0.165962551688,
+            "notes": [
+              "Penalty model: 1 - erf(Tw / (2*sqrt(2)*sigma_jitter))."
+            ],
             "req_id": "GS-QKD-011-C4",
             "status": "WARNING",
-            "computed_value": 0.165962551688,
             "threshold": {
               "pass_lt": 0.1,
               "warn_lt": 0.2
             },
-            "unit": "fractional_penalty",
+            "unit": "fractional_penalty"
+          },
+          {
+            "computed_value": null,
             "notes": [
-              "Penalty model: 1 - erf(Tw / (2*sqrt(2)*sigma_jitter))."
-            ]
+              "No KMS configuration in scenario or context."
+            ],
+            "req_id": "GS-QKD-014-K1",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No pool key data in context."
+            ],
+            "req_id": "GS-QKD-014-K2",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No pool key data in context."
+            ],
+            "req_id": "GS-QKD-014-K3",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": 0.0,
+            "notes": [
+              "Configured rate 0.0 keys/s within simulated capacity 35.8 keys/s."
+            ],
+            "req_id": "GS-QKD-014-K4",
+            "status": "PASS",
+            "threshold": 35.7837762953,
+            "unit": "keys/s"
           }
-        ]
+        ],
+        "scenario_summary": {
+          "key_rate_max_bps": 9160.64673161,
+          "key_rate_min_bps": 9160.64673161,
+          "protocol": "BB84_DECOY",
+          "qber_max": 0.0209785946491,
+          "qber_min": 0.0209785946491,
+          "row_count": 1,
+          "target_distance_km": 50.0,
+          "wavelength_nm": 1550.0
+        },
+        "schema_version": "0.1",
+        "standards": [
+          "GS-QKD-004",
+          "GS-QKD-005",
+          "GS-QKD-008",
+          "GS-QKD-011",
+          "GS-QKD-014"
+        ],
+        "summary": {
+          "fail": 0,
+          "not_assessed": 9,
+          "pass": 8,
+          "total": 21,
+          "warning": 4
+        }
       }
     },
     {
       "config": "configs/compliance/noncompliant_high_qber.yml",
       "report": {
         "kind": "etsi_qkd_compliance_report",
-        "schema_version": "0.1",
-        "standards": [
-          "GS-QKD-004",
-          "GS-QKD-008",
-          "GS-QKD-011"
-        ],
         "overall_status": "FAIL",
-        "summary": {
-          "fail": 8,
-          "not_assessed": 1,
-          "pass": 3,
-          "total": 12,
-          "warning": 0
-        },
-        "scenario_summary": {
-          "protocol": "BB84_DECOY",
-          "target_distance_km": 50.0,
-          "wavelength_nm": 1550.0,
-          "row_count": 1,
-          "key_rate_min_bps": 0.0,
-          "key_rate_max_bps": 0.0,
-          "qber_min": 0.25491445003,
-          "qber_max": 0.25491445003
-        },
         "requirements": [
           {
-            "req_id": "GS-QKD-004-F1",
-            "status": "FAIL",
             "computed_value": 0.0,
-            "threshold": 1000.0,
-            "unit": "bps",
             "notes": [
               "distance_km=50.0"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F1",
+            "status": "FAIL",
+            "threshold": 1000.0,
+            "unit": "bps"
           },
           {
-            "req_id": "GS-QKD-004-F2",
-            "status": "FAIL",
             "computed_value": 0.25491445003,
-            "threshold": 0.11,
-            "unit": "ratio",
             "notes": [
               "checked_points=1",
               "d_spec_km=50"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F2",
+            "status": "FAIL",
+            "threshold": 0.11,
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-004-F3",
-            "status": "FAIL",
             "computed_value": 0.0,
-            "threshold": 0.0,
-            "unit": "bps",
             "notes": [
               "distance_window_km=[50,50]",
               "key_rate_zero_or_negative_at_km=50"
-            ]
+            ],
+            "req_id": "GS-QKD-004-F3",
+            "status": "FAIL",
+            "threshold": 0.0,
+            "unit": "bps"
           },
           {
-            "req_id": "GS-QKD-004-F4",
-            "status": "NOT_ASSESSED",
             "computed_value": null,
-            "threshold": null,
-            "unit": null,
             "notes": [
               "finite_key is not enabled; F4 not assessed."
-            ]
+            ],
+            "req_id": "GS-QKD-004-F4",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
           },
           {
-            "req_id": "GS-QKD-008-S1",
-            "status": "PASS",
+            "computed_value": null,
+            "notes": [
+              "No proof_method specified in finite_key configuration."
+            ],
+            "req_id": "GS-QKD-005-SP1",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No epsilon_budget found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP2",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No composable_key_length_bits found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP3",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No composable_key_length_bits found in sweep results."
+            ],
+            "req_id": "GS-QKD-005-SP4",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "composable_version=''; SP5 only assessed for v2 composable proofs."
+            ],
+            "req_id": "GS-QKD-005-SP5",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
             "computed_value": 0.000337686660068,
-            "threshold": 0.0,
-            "unit": "ratio",
             "notes": [
               "Minimum single-photon gain proxy across sweep rows."
-            ]
+            ],
+            "req_id": "GS-QKD-008-S1",
+            "status": "PASS",
+            "threshold": 0.0,
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-008-S2",
-            "status": "PASS",
             "computed_value": 0.37524683195,
-            "threshold": 0.5,
-            "unit": "ratio",
             "notes": [
               "distance_km=50.0"
-            ]
+            ],
+            "req_id": "GS-QKD-008-S2",
+            "status": "PASS",
+            "threshold": 0.5,
+            "unit": "ratio"
           },
           {
+            "computed_value": 1.1,
+            "notes": [
+              "S3 heuristic from ETSI brief: practical multi-photon risk thresholding by mu."
+            ],
             "req_id": "GS-QKD-008-S3",
             "status": "FAIL",
-            "computed_value": 1.1,
             "threshold": {
               "pass_lt": 0.6,
               "warn_lt": 1.0
             },
-            "unit": "mean_photons_per_pulse",
-            "notes": [
-              "S3 heuristic from ETSI brief: practical multi-photon risk thresholding by mu."
-            ]
+            "unit": "mean_photons_per_pulse"
           },
           {
+            "computed_value": "BB84_DECOY",
+            "notes": [
+              "Protocol is in the curated coherent-attack proof set from the M2 brief."
+            ],
             "req_id": "GS-QKD-008-S4",
             "status": "PASS",
-            "computed_value": "BB84_DECOY",
             "threshold": [
               "BB84_DECOY",
               "MDI_QKD",
               "PM_QKD",
               "TF_QKD"
             ],
-            "unit": "protocol",
-            "notes": [
-              "Protocol is in the curated coherent-attack proof set from the M2 brief."
-            ]
+            "unit": "protocol"
           },
           {
+            "computed_value": 0.25,
+            "notes": [
+              "WCP-style heuristic from M2 brief: source_qber ~= misalignment_prob."
+            ],
             "req_id": "GS-QKD-011-C1",
             "status": "FAIL",
-            "computed_value": 0.25,
             "threshold": {
               "pass_lt": 0.01,
               "warn_lt": 0.03
             },
-            "unit": "ratio",
-            "notes": [
-              "WCP-style heuristic from M2 brief: source_qber ~= misalignment_prob."
-            ]
+            "unit": "ratio"
           },
           {
-            "req_id": "GS-QKD-011-C2",
-            "status": "FAIL",
             "computed_value": 20000.0,
-            "threshold": 10000.0,
-            "unit": "cps",
             "notes": [
               "Detector dark count threshold from M2 brief."
-            ]
+            ],
+            "req_id": "GS-QKD-011-C2",
+            "status": "FAIL",
+            "threshold": 10000.0,
+            "unit": "cps"
           },
           {
+            "computed_value": 0.05,
+            "notes": [
+              "Detector efficiency thresholding from M2 brief."
+            ],
             "req_id": "GS-QKD-011-C3",
             "status": "FAIL",
-            "computed_value": 0.05,
             "threshold": {
               "pass_ge": 0.1,
               "warn_ge": 0.07
             },
-            "unit": "ratio",
-            "notes": [
-              "Detector efficiency thresholding from M2 brief."
-            ]
+            "unit": "ratio"
           },
           {
+            "computed_value": 0.284414758525,
+            "notes": [
+              "Penalty model: 1 - erf(Tw / (2*sqrt(2)*sigma_jitter))."
+            ],
             "req_id": "GS-QKD-011-C4",
             "status": "FAIL",
-            "computed_value": 0.284414758525,
             "threshold": {
               "pass_lt": 0.1,
               "warn_lt": 0.2
             },
-            "unit": "fractional_penalty",
+            "unit": "fractional_penalty"
+          },
+          {
+            "computed_value": null,
             "notes": [
-              "Penalty model: 1 - erf(Tw / (2*sqrt(2)*sigma_jitter))."
-            ]
+              "No KMS configuration in scenario or context."
+            ],
+            "req_id": "GS-QKD-014-K1",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No pool key data in context."
+            ],
+            "req_id": "GS-QKD-014-K2",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": null,
+            "notes": [
+              "No pool key data in context."
+            ],
+            "req_id": "GS-QKD-014-K3",
+            "status": "NOT_ASSESSED",
+            "threshold": null,
+            "unit": null
+          },
+          {
+            "computed_value": 0.0,
+            "notes": [
+              "Configured rate 0.0 keys/s within simulated capacity 0.0 keys/s."
+            ],
+            "req_id": "GS-QKD-014-K4",
+            "status": "PASS",
+            "threshold": 0.0,
+            "unit": "keys/s"
           }
-        ]
+        ],
+        "scenario_summary": {
+          "key_rate_max_bps": 0.0,
+          "key_rate_min_bps": 0.0,
+          "protocol": "BB84_DECOY",
+          "qber_max": 0.25491445003,
+          "qber_min": 0.25491445003,
+          "row_count": 1,
+          "target_distance_km": 50.0,
+          "wavelength_nm": 1550.0
+        },
+        "schema_version": "0.1",
+        "standards": [
+          "GS-QKD-004",
+          "GS-QKD-005",
+          "GS-QKD-008",
+          "GS-QKD-011",
+          "GS-QKD-014"
+        ],
+        "summary": {
+          "fail": 8,
+          "not_assessed": 9,
+          "pass": 4,
+          "total": 21,
+          "warning": 0
+        }
       }
     }
-  ]
+  ],
+  "kind": "photonstrust.compliance_reference_baselines.v0"
 }

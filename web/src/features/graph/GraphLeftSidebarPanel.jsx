@@ -1,3 +1,26 @@
+import { useState } from "react";
+import ComponentInfoCard from "./ComponentInfoCard";
+import { COMPONENT_INFO } from "../../photontrust/componentInfo";
+
+const infoButtonStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "20px",
+  height: "20px",
+  border: "1px solid rgba(16, 23, 34, 0.14)",
+  borderRadius: "6px",
+  background: "rgba(255, 255, 255, 0.7)",
+  color: "rgba(16, 23, 34, 0.5)",
+  fontSize: "12px",
+  fontWeight: 600,
+  cursor: "pointer",
+  lineHeight: 1,
+  padding: 0,
+  flexShrink: 0,
+  transition: "background 120ms ease, color 120ms ease",
+};
+
 export default function GraphLeftSidebarPanel({
   busy = false,
   profile = "qkd_link",
@@ -18,16 +41,23 @@ export default function GraphLeftSidebarPanel({
   kindBlueprint,
   kindAvailability,
 }) {
+  const [infoCardKind, setInfoCardKind] = useState(null);
   const byKind = kindRegistry && typeof kindRegistry === "object" ? kindRegistry.byKind || {} : {};
 
   return (
     <>
       <div className="ptSidebarSection">
-        <div className="ptSidebarTitle">Templates</div>
+        <div className="ptSidebarTitle">QKD Templates</div>
         <div className="ptBtnRow">
           <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("qkd")} disabled={busy}>
             QKD Link
           </button>
+        </div>
+      </div>
+
+      <div className="ptSidebarSection">
+        <div className="ptSidebarTitle">PIC Templates</div>
+        <div className="ptBtnRow" style={{ flexWrap: "wrap" }}>
           <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_chain")} disabled={busy}>
             PIC Chain
           </button>
@@ -36,6 +66,24 @@ export default function GraphLeftSidebarPanel({
           </button>
           <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_spice_import")} disabled={busy}>
             SPICE Import
+          </button>
+          <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_balanced_receiver")} disabled={busy}>
+            Balanced Receiver
+          </button>
+          <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_awg_demux")} disabled={busy}>
+            AWG Demux
+          </button>
+          <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_ring_filter")} disabled={busy}>
+            Ring Filter
+          </button>
+          <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_coherent_rx")} disabled={busy}>
+            Coherent Receiver
+          </button>
+          <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_modulator_tx")} disabled={busy}>
+            Modulator TX
+          </button>
+          <button className="ptBtn ptBtnGhost" onClick={() => onLoadTemplate("pic_switch_2x2")} disabled={busy}>
+            2×2 Switch
           </button>
         </div>
       </div>
@@ -97,6 +145,7 @@ export default function GraphLeftSidebarPanel({
                   if (availability.apiEnabled) badges.push("API");
                   if (!availability.apiEnabled && availability.cliEnabled) badges.push("CLI-only");
                   if (k === "pic.touchstone_nport") badges.push("N-port");
+                  const hasInfo = Boolean(COMPONENT_INFO[k]);
                   return (
                     <div
                       key={k}
@@ -116,7 +165,32 @@ export default function GraphLeftSidebarPanel({
                         }
                       }}
                     >
-                      <div className="ptPaletteTitle">{blueprint.title || k}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <div className="ptPaletteTitle" style={{ flex: 1 }}>{blueprint.title || k}</div>
+                        {hasInfo ? (
+                          <button
+                            style={infoButtonStyle}
+                            title={`Info: ${k}`}
+                            aria-label={`Show info for ${k}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setInfoCardKind(k);
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "rgba(44, 154, 116, 0.12)";
+                              e.currentTarget.style.color = "rgba(44, 154, 116, 0.95)";
+                              e.currentTarget.style.borderColor = "rgba(44, 154, 116, 0.3)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "rgba(255, 255, 255, 0.7)";
+                              e.currentTarget.style.color = "rgba(16, 23, 34, 0.5)";
+                              e.currentTarget.style.borderColor = "rgba(16, 23, 34, 0.14)";
+                            }}
+                          >
+                            {"\u2139"}
+                          </button>
+                        ) : null}
+                      </div>
                       <div className="ptPaletteMeta">
                         <div className="ptPaletteKind">{k}</div>
                         {badges.length ? (
@@ -159,6 +233,10 @@ export default function GraphLeftSidebarPanel({
           <span>Require JSON Schema on compile</span>
         </label>
       </div>
+
+      {infoCardKind ? (
+        <ComponentInfoCard kind={infoCardKind} onClose={() => setInfoCardKind(null)} />
+      ) : null}
     </>
   );
 }

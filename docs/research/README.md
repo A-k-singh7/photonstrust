@@ -1,6 +1,17 @@
 # PhotonTrust Research Documentation
 
-Start here:
+These docs are background, deep technical context, roadmap material, and
+research planning artifacts. Do not start here if you are trying to get the
+product running for the first time.
+
+For supported first-run paths, use:
+
+- `../README.md`
+- `../guide/getting-started.md`
+- `../guide/use-cases.md`
+
+If you want the research narrative behind the product, start here:
+
 - `00_overview.md`
 
 Core research set:

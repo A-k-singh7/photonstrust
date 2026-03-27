@@ -376,3 +376,139 @@ def _edelta_from_phase_slices(m: int) -> float:
         return 0.0
     x = math.pi / float(m)
     return float(x - (float(m) / math.pi) ** 2 * (math.sin(x) ** 3))
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrappers (PM-QKD and TF-QKD)
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class PMQKDParams(BaseModel):
+    """Protocol-specific parameters for PM-QKD (Phase-Matching)."""
+
+    mu: float = Field(0.1, gt=0.0, description="Mean photon number per pulse")
+    M: int = Field(16, ge=2, description="Number of phase slices")
+    link_asymmetry: float = Field(
+        0.5, gt=0.0, lt=1.0,
+        description="Relay fraction for asymmetric link splitting",
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+
+
+class PMQKDProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the PM-QKD protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="pm_qkd",
+            title="PM-QKD (Phase-Matching)",
+            aliases=("pm",),
+            description=(
+                "Phase-matching QKD with phase slicing and relay-based "
+                "single-photon interference, achieving O(sqrt(eta)) scaling."
+            ),
+            channel_models=("fiber",),
+            gate_policy={"plob_repeaterless_bound": "skip"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return PMQKDParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_pm_qkd(scenario, distance_km, runtime_overrides)
+
+    @classmethod
+    def applicability(cls, scenario: dict[str, Any]) -> ProtocolApplicability:
+        channel = (scenario or {}).get("channel", {}) or {}
+        model = str(channel.get("model", "fiber")).lower()
+        if model != "fiber":
+            return ProtocolApplicability(
+                status="fail",
+                reasons=(
+                    f"PM-QKD currently supports fiber channel only, got model={model!r}",
+                ),
+            )
+        return ProtocolApplicability(status="pass", reasons=())
+
+
+class TFQKDParams(BaseModel):
+    """Protocol-specific parameters for TF-QKD (Twin-Field)."""
+
+    mu: float = Field(0.1, gt=0.0, description="Mean photon number per pulse")
+    M: int = Field(16, ge=2, description="Number of phase slices")
+    link_asymmetry: float = Field(
+        0.5, gt=0.0, lt=1.0,
+        description="Relay fraction for asymmetric link splitting",
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+
+
+class TFQKDProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the TF-QKD (Twin-Field) protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="tf_qkd",
+            title="TF-QKD",
+            aliases=("tf", "twin_field", "twinfield"),
+            description=(
+                "Twin-field QKD variant of the phase-matching protocol, "
+                "sharing the same analytical model as PM-QKD."
+            ),
+            channel_models=("fiber",),
+            gate_policy={"plob_repeaterless_bound": "skip"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return TFQKDParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_pm_qkd(
+            scenario, distance_km, runtime_overrides, tf_variant=True
+        )
+
+    @classmethod
+    def applicability(cls, scenario: dict[str, Any]) -> ProtocolApplicability:
+        channel = (scenario or {}).get("channel", {}) or {}
+        model = str(channel.get("model", "fiber")).lower()
+        if model != "fiber":
+            return ProtocolApplicability(
+                status="fail",
+                reasons=(
+                    f"TF-QKD currently supports fiber channel only, got model={model!r}",
+                ),
+            )
+        return ProtocolApplicability(status="pass", reasons=())

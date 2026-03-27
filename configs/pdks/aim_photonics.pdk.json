@@ -108,6 +108,46 @@
       "ports": ["opt1", "opt2"],
       "support_level": "layout_only",
       "recommended_workflows": ["layout", "io_planning", "gds"]
+    },
+    {
+      "name": "mzm_pn",
+      "library": "aim",
+      "cell": "MZM_PN_DEPLETION",
+      "ports": ["in", "out"],
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.mzm",
+      "default_params": {"V_pi_L_pi_Vcm": 2.5, "insertion_loss_db": 4.5, "phase_shifter_length_mm": 3.0},
+      "recommended_workflows": ["layout", "gds", "modulator_analysis"]
+    },
+    {
+      "name": "ge_pd",
+      "library": "aim",
+      "cell": "GE_PD",
+      "ports": ["in", "out"],
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.photodetector",
+      "default_params": {"alpha_per_cm": 4500.0, "length_um": 25.0},
+      "recommended_workflows": ["layout", "gds", "detector_analysis"]
+    },
+    {
+      "name": "thermal_tuner",
+      "library": "aim",
+      "cell": "HEATER_TIN",
+      "ports": ["in", "out"],
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.heater",
+      "default_params": {"length_um": 300.0, "material": "Si"},
+      "recommended_workflows": ["layout", "gds", "phase_tuning"]
+    },
+    {
+      "name": "awg_8ch",
+      "library": "aim",
+      "cell": "AWG_8CH_CWDM",
+      "ports": ["in", "out1", "out2", "out3", "out4", "out5", "out6", "out7", "out8"],
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.awg",
+      "default_params": {"n_channels": 8, "channel_spacing_nm": 20.0, "insertion_loss_db": 3.0},
+      "recommended_workflows": ["layout", "gds", "wavelength_routing"]
     }
   ],
   "interop": {

@@ -1,0 +1,12 @@
+# Multi-Segment Repeater Chain Analysis
+name: repeater_chain
+runner: compare_protocols
+config:
+  protocols:
+    - bb84
+    - tf_qkd
+    - sns_tf_qkd
+  distances:
+    start: 0
+    stop: 500
+    step: 25

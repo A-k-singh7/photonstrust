@@ -1,0 +1,28 @@
+{
+  "name": "lionix_triplex",
+  "version": "0.1",
+  "description": "LioniX TriPleX Si3N4/SiO2 ultra-low-loss platform (published specs)",
+  "design_rules": {
+    "min_waveguide_width_um": 0.80,
+    "min_waveguide_gap_um": 1.00,
+    "min_bend_radius_um": 100.0
+  },
+  "capabilities": {
+    "supports_layout": false,
+    "supports_performance_drc": true,
+    "supports_lvs_lite_signoff": false,
+    "supports_spice_export": false
+  },
+  "layer_stack": [
+    {"name": "sin_core", "gds_layer": 1, "gds_datatype": 0, "material": "Si3N4", "thickness_um": 0.17},
+    {"name": "sio2_box", "gds_layer": 2, "gds_datatype": 0, "material": "SiO2", "thickness_um": 8.0},
+    {"name": "sio2_top_clad", "gds_layer": 3, "gds_datatype": 0, "material": "SiO2", "thickness_um": 8.0}
+  ],
+  "component_cells": [
+    {"name": "single_stripe_wg", "library": "lionix_triplex", "cell": "WG_SS", "ports": ["in", "out"], "maps_to_internal_kind": "pic.waveguide", "default_params": {"loss_db_per_cm": 0.01}},
+    {"name": "double_stripe_wg", "library": "lionix_triplex", "cell": "WG_DS", "ports": ["in", "out"], "maps_to_internal_kind": "pic.waveguide", "default_params": {"loss_db_per_cm": 0.1}},
+    {"name": "mmi_1x2", "library": "lionix_triplex", "cell": "MMI_1X2", "ports": ["in", "out1", "out2"], "maps_to_internal_kind": "pic.mmi", "default_params": {"insertion_loss_db": 0.15, "n_ports_in": 1, "n_ports_out": 2}},
+    {"name": "edge_coupler", "library": "lionix_triplex", "cell": "EC_SSC", "ports": ["in", "out"], "maps_to_internal_kind": "pic.ssc", "default_params": {"coupling_loss_db": 0.5}}
+  ],
+  "interop": null
+}

@@ -32,6 +32,9 @@ Example (Jupyter notebook)
 
 from __future__ import annotations
 
+import os
+import tempfile
+from pathlib import Path
 from typing import Any, Optional
 
 __all__ = [
@@ -78,6 +81,31 @@ __all__ = [
     # REST server
     "start_server",
 ]
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_output_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.getcwd()),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_output_path(path_value: str) -> Path:
+    raw = os.path.expanduser(str(path_value or "").strip())
+    candidate = raw if os.path.isabs(raw) else os.path.join(os.getcwd(), raw)
+    resolved = os.path.realpath(candidate)
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_output_roots()):
+        raise ValueError("output path must stay within the workspace, home, or temp directories")
+    return Path(resolved)
 
 
 # ---------------------------------------------------------------------------
@@ -430,11 +458,10 @@ def export_spice(
     >>> print(result["artifacts"]["netlist_path"])
     netlist.sp
     """
-    import pathlib
     from photonstrust.spice.export import export_pic_graph_to_spice_artifacts
     from photonstrust.spice.compact_models import write_component_library
 
-    out = pathlib.Path(output_dir)
+    out = _resolve_output_path(output_dir)
     result = export_pic_graph_to_spice_artifacts(
         {"graph": graph, "settings": {"top_name": top_name}},
         out,
@@ -480,9 +507,10 @@ def export_component_library(
     'C:/Users/.../my_project/pt_components.lib'
     """
     from photonstrust.spice.compact_models import write_component_library
-    from pathlib import Path
-    write_component_library(output_path, params_by_kind)
-    return str(Path(output_path).resolve())
+
+    resolved = _resolve_output_path(output_path)
+    write_component_library(str(resolved), params_by_kind)
+    return str(resolved)
 
 
 # ---------------------------------------------------------------------------
@@ -1123,4 +1151,3 @@ def start_server(
     """
     from photonstrust.api_server import start_server as _fn
     _fn(host=host, port=port, reload=reload)
-

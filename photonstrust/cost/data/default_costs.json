@@ -1,0 +1,22 @@
+{
+  "equipment": {
+    "snspd_system": {"unit_cost_usd": 150000, "category": "detector"},
+    "ingaas_apd_system": {"unit_cost_usd": 20000, "category": "detector"},
+    "si_apd_system": {"unit_cost_usd": 5000, "category": "detector"},
+    "qkd_tx_bb84": {"unit_cost_usd": 80000, "category": "source"},
+    "qkd_tx_entangled": {"unit_cost_usd": 200000, "category": "source"},
+    "timing_electronics": {"unit_cost_usd": 15000, "category": "electronics"},
+    "classical_channel": {"unit_cost_usd": 5000, "category": "electronics"},
+    "trusted_node_enclosure": {"unit_cost_usd": 25000, "category": "electronics"}
+  },
+  "infrastructure": {
+    "dark_fiber_per_km": {"cost_per_km_usd": 5000, "category": "fiber"},
+    "leased_fiber_annual_per_km": {"cost_per_km_usd": 2000, "category": "fiber"},
+    "node_site_prep": {"fixed_cost_usd": 50000, "category": "housing"}
+  },
+  "opex": {
+    "maintenance_per_link_annual": {"annual_cost_usd": 10000, "category": "maintenance"},
+    "power_per_kw_annual": {"annual_cost_per_kw_usd": 1000, "category": "power"},
+    "cooling_per_snspd_annual": {"annual_cost_usd": 8000, "category": "cooling"}
+  }
+}

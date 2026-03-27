@@ -15,6 +15,20 @@ from photonstrust.utils import clamp
 
 
 def compute_sweep(scenario: dict, include_uncertainty: bool = True) -> dict:
+    """Run a QKD simulation over a distance sweep.
+
+    Parameters
+    ----------
+    scenario : dict
+        Scenario configuration including distances_km, source, channel, etc.
+    include_uncertainty : bool
+        Whether to run Monte Carlo uncertainty analysis.
+
+    Returns
+    -------
+    dict
+        Keys: ``results`` (list of QKDResult), ``uncertainty``, ``performance``.
+    """
     mode_settings = _mode_settings(scenario)
     t0 = time.perf_counter()
     results = []
@@ -47,6 +61,22 @@ def compute_point(
     distance_km: float,
     runtime_overrides: dict | None = None,
 ) -> QKDResult:
+    """Evaluate QKD performance at a single distance point.
+
+    Parameters
+    ----------
+    scenario : dict
+        Full scenario configuration.
+    distance_km : float
+        Link distance in kilometres.
+    runtime_overrides : dict or None
+        Optional execution-mode overrides (e.g. detector_sample_scale).
+
+    Returns
+    -------
+    QKDResult
+        Protocol-level key-rate and diagnostic metrics.
+    """
     protocol_cfg = (scenario or {}).get("protocol", {}) or {}
     module = resolve_protocol_module(protocol_cfg.get("name"))
     applicability = module.applicability(scenario)
@@ -65,6 +95,11 @@ def _compute_uncertainty(
     samples: int = 200,
     runtime_overrides: dict | None = None,
 ) -> dict | None:
+    """Run Monte Carlo uncertainty analysis over all sweep distances.
+
+    Perturbs scenario parameters via ``_apply_uncertainty`` for *samples*
+    iterations and returns 90 % confidence intervals per distance.
+    """
     uncertainty = scenario.get("uncertainty", {})
     if not uncertainty:
         return None
@@ -174,6 +209,13 @@ def _compute_uncertainty_sample(
 
 
 def _apply_uncertainty(base: dict, uncertainty: dict, rng: np.random.Generator) -> dict:
+    """Apply random perturbations to scenario parameters.
+
+    Supported uncertainty keys use additive uniform noise (fiber_loss,
+    connector_loss, atmospheric_extinction) or multiplicative fractional
+    uniform noise (pointing_jitter, pde, jitter, g2_0, mu).  ``dark_counts``
+    uses a log-uniform factor via ``2^value``.
+    """
     scenario = {key: copy_value(value) for key, value in base.items()}
     channel = scenario["channel"]
     detector = scenario["detector"]
@@ -241,6 +283,11 @@ def copy_value(value):
 
 
 def _mode_settings(scenario: dict) -> dict:
+    """Return execution-mode settings for preview, standard, or certification.
+
+    Preview uses fewer uncertainty samples and lower detector resolution.
+    Certification increases both for higher-fidelity results.
+    """
     mode = str(scenario.get("execution_mode", "standard")).strip().lower()
     if mode not in {"standard", "preview", "certification"}:
         mode = "standard"

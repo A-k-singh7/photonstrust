@@ -20,8 +20,8 @@ FIXTURE_RELPATHS = [
 
 BASELINE_TESTS = [
     "tests/test_regression_baselines.py",
-    "tests/test_phase41_canonical_baselines.py",
-    "tests/test_phase54_satellite_canonical_baselines.py",
+    "tests/test_canonical_baselines.py",
+    "tests/test_satellite_canonical_baselines.py",
     "tests/test_validation_harness.py",
 ]
 

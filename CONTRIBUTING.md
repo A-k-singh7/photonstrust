@@ -1,16 +1,20 @@
 # Contributing to PhotonTrust
 
-Thanks for contributing. PhotonTrust mixes open-source software practice with a
-research-heavy validation workflow, so the contribution path depends on the type
-of change you are making.
+Thanks for contributing. PhotonTrust combines normal open-source software
+practice with a research-heavy validation workflow, so good contributions are
+not just code-complete, they are reproducible, reviewable, and documented.
 
-## Before You Start
+## Start Here
 
-- Read `README.md` for install and runtime options.
-- Use `docs/README.md` to find the right documentation set.
-- Use `configs/README.md` and `scripts/README.md` to find runnable examples and
-  maintainer commands.
-- For security issues, use `SECURITY.md` instead of opening a public issue.
+- Read `README.md` for install options, main entry points, and supported
+  surfaces.
+- Use `docs/README.md` to find the current documentation map.
+- Use `docs/dev/git_and_docs_workflow.md` for branch, commit, PR, and docs-sync
+  rules.
+- Use `docs/dev/testing.md` for targeted validation commands.
+- Use `scripts/README.md` and `configs/README.md` to find runnable automation and
+  examples.
+- For security issues, use `SECURITY.md` instead of filing a public issue.
 
 ## Local Setup
 
@@ -26,17 +30,30 @@ pip install -e .[api,qutip,qiskit]
 cd web && npm ci && cd ..
 ```
 
+## Normal Contributor Flow
+
+1. Update local `main` and branch from it.
+2. Keep the branch scoped to one logical change.
+3. Run the smallest relevant checks first.
+4. Update docs, examples, and changelog entries in the same branch.
+5. Review the diff for accidental files before pushing.
+6. Open a PR only when the description reflects the real scope of the branch.
+
+Use `docs/dev/git_and_docs_workflow.md` as the authoritative workflow for these
+steps.
+
 ## Contribution Types
 
 ### Small changes
 
-Use the normal OSS flow for:
+Use the standard OSS flow for:
 
 - bug fixes,
 - docs improvements,
 - test-only changes,
 - refactors that do not change model behavior,
-- UI polish and accessibility fixes.
+- UI polish and accessibility fixes,
+- contributor tooling and repo hygiene updates.
 
 ### Substantial changes
 
@@ -52,10 +69,11 @@ Use the full research-to-build workflow for:
 
 1. Research brief
 2. Implementation plan and code-fit analysis
-3. Build and tests
-4. Final documentation update
+3. Build and validation
+4. Documentation and reproducibility update
 
-Do not skip these steps for non-trivial model or benchmark work.
+Do not skip these steps for non-trivial model, benchmark, or release-policy
+work.
 
 ### Research brief requirements
 
@@ -86,11 +104,13 @@ behavior, validation, or release evidence.
 
 ## Testing Expectations
 
-Run the smallest relevant checks first, then broader gates as needed.
+Run the smallest relevant checks first, then expand to broader gates when
+needed.
 
 Common commands:
 
 ```bash
+pytest -q tests/test_docs_experience.py
 python scripts/validation/ci_checks.py
 python scripts/validation/check_benchmark_drift.py
 python scripts/validation/run_validation_harness.py --output-root results/validation
@@ -101,35 +121,63 @@ For UI work:
 ```bash
 cd web
 npm run build
+npm run lint
 npm run test:ui
 ```
+
+See `docs/dev/testing.md` for a fuller map.
+
+## Documentation Expectations
+
+If you change behavior, you are expected to update the docs that explain that
+behavior. At minimum, review the following when relevant:
+
+- `README.md`
+- `CHANGELOG.md`
+- `docs/README.md`
+- `docs/reference/*.md`
+- `docs/user/*.md`
+- `docs/guide/*.md`
+- `scripts/README.md`
+
+Contributor workflow changes must also update:
+
+- this file,
+- `docs/dev/README.md`,
+- `docs/dev/git_and_docs_workflow.md`,
+- GitHub issue or PR templates when the review contract changed.
 
 ## Pull Request Expectations
 
 - Keep changes scoped and explain why they are needed.
-- Link issues, research docs, or benchmark references when relevant.
-- Update docs when behavior, examples, or contributor workflow changes.
-- Do not include unrelated generated artifacts or local scratch outputs.
+- Link issues, research docs, benchmark references, or state clearly that the
+  change is self-contained.
+- Record the validation commands you actually ran.
+- Call out contract, schema, fixture, or result changes explicitly.
+- Do not include unrelated generated artifacts, local scratch outputs, or build
+  products.
 
 ## Quality Gates
 
 A change should not be treated as complete unless:
 
 - tests pass for the affected area,
+- docs smoke tests pass when documentation or onboarding changed,
 - docs and examples stay accurate,
 - reproducibility expectations are preserved,
-- research and planning artifacts exist when assumptions changed.
+- research and planning artifacts exist when assumptions changed,
+- `git diff --check` is clean,
+- the branch contains only intentional files.
 
-## Maintainer Baselines and Release Gates
+## Release and Evidence Changes
 
-Use these artifacts as active baseline references for architecture, API, and CI
-policy:
+If your change affects release behavior, publication, or evidence handling, also
+update:
 
-- `docs/operations/week1/architecture_freeze_memo_2026-02-12.md`
-- `docs/operations/week1/api_contract_table_2026-02-12.md`
-- `docs/operations/week1/ci_baseline_rules_2026-02-12.md`
+- `docs/dev/release_process.md`
+- `scripts/README.md`
+- `CHANGELOG.md`
+- any user-facing command examples in `README.md`
 
-Release and completion references:
-
-- `docs/operations/program_completion_report_2026-02-12.md`
-- `scripts/release/release_gate_check.py`
+Use `scripts/release/release_gate_check.py` and related release tooling as the
+current execution surface for release-adjacent work.

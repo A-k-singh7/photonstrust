@@ -8,7 +8,7 @@ from photonstrust.channels.coexistence import compute_raman_counts_cps
 from photonstrust.channels.fiber import apply_fiber_loss, dispersion_ps
 from photonstrust.channels.free_space import total_free_space_efficiency
 from photonstrust.qkd_protocols.common import apply_dead_time, per_pulse_prob_from_rate
-from photonstrust.qkd_protocols.finite_key import apply_composable_finite_key
+from photonstrust.qkd_protocols.finite_key import apply_finite_key_dispatch
 from photonstrust.qkd_types import QKDResult
 from photonstrust.utils import binary_entropy, clamp
 
@@ -100,16 +100,35 @@ def compute_point_bb84_decoy(
     q_om, _ = _gain_error(mu=omega, eta=eta, p_noise=p_noise, e_opt=e_opt)
 
     y0 = clamp(float(q_om), 0.0, 1.0)
-    y1_l = _y1_lower_bound(mu=mu, nu=nu, q_mu=q_mu, q_nu=q_nu, y0=y0)
+
+    decoy_method = str(proto.get("decoy_method", "vacuum_weak") or "vacuum_weak").strip().lower()
+    if decoy_method == "3intensity":
+        y1_l = _y1_lower_bound_3intensity(
+            mu=mu, nu=nu, omega=omega,
+            q_mu=q_mu, q_nu=q_nu, q_om=q_om, y0=y0,
+        )
+    else:
+        y1_l = _y1_lower_bound(mu=mu, nu=nu, q_mu=q_mu, q_nu=q_nu, y0=y0)
     q1_l = clamp(float(mu * math.exp(-mu) * y1_l), 0.0, 1.0)
 
-    e1_u = _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)
+    if decoy_method == "3intensity":
+        e1_u = _e1_upper_bound_3intensity(
+            nu=nu, omega=omega,
+            q_nu=q_nu, e_nu=e_nu, q_om=q_om, y0=y0, y1_l=y1_l,
+        )
+    else:
+        e1_u = _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)
     privacy_term_asymptotic = max(0.0, 1.0 - binary_entropy(e1_u))
 
-    fk = apply_composable_finite_key(
+    fk = apply_finite_key_dispatch(
         finite_key_cfg=scenario.get("finite_key"),
         sifting=sifting,
         privacy_term_asymptotic=privacy_term_asymptotic,
+        protocol_name="bb84_decoy",
+        single_photon_yield_lb=y1_l,
+        single_photon_error_ub=e1_u,
+        qber=float(e_mu),
+        f_ec=f_ec,
     )
 
     r_pulse = q1_l * fk.privacy_term_effective - q_mu * f_ec * binary_entropy(e_mu)
@@ -205,3 +224,127 @@ def _e1_upper_bound(*, nu: float, q_nu: float, e_nu: float, y0: float, y1_l: flo
     if denom <= 0.0:
         return 0.5
     return clamp(float(numer / denom), 0.0, 0.5)
+
+
+def _y1_lower_bound_3intensity(
+    *, mu: float, nu: float, omega: float,
+    q_mu: float, q_nu: float, q_om: float, y0: float,
+) -> float:
+    """Tighter Y1 lower bound using 3-intensity decoy method.
+
+    Uses signal, weak decoy, and vacuum intensities for tighter single-photon
+    yield estimation via:
+
+        Y1_L = mu / (mu*nu - nu^2) * [Q_nu*e^nu - Q_omega*e^omega*(nu^2/omega^2)
+               - (mu^2 - nu^2)/mu^2 * (Q_omega*e^omega - Y0)]
+
+    For omega = 0, falls back to the vacuum+weak bound with the additional
+    constraint from the signal state.
+
+    Ref: Ma, Qi, Zhao, Lo, PRA 72, 012326 (2005), Eq. (10)
+    """
+    mu, nu, omega = float(mu), float(nu), float(omega)
+    if mu <= nu or nu <= 0:
+        return 0.0
+
+    # Compute the standard vacuum+weak bound first
+    y1_vw = _y1_lower_bound(mu=mu, nu=nu, q_mu=q_mu, q_nu=q_nu, y0=y0)
+
+    # Compute the signal-constrained bound
+    # Y1 >= [mu*e^mu*Q_nu - nu*e^nu*Q_mu - (mu^2-nu^2)*Y0] / (mu*nu*(mu-nu))
+    if mu <= nu:
+        return y1_vw
+    numer = (
+        mu * math.exp(mu) * q_nu
+        - nu * math.exp(nu) * q_mu
+        - (mu ** 2 - nu ** 2) * y0
+    )
+    denom = mu * nu * (mu - nu)
+    if denom <= 0:
+        return y1_vw
+    y1_signal = numer / denom
+
+    # Take the tighter (higher) of the two bounds
+    return clamp(max(y1_vw, y1_signal), 0.0, 1.0)
+
+
+def _e1_upper_bound_3intensity(
+    *, nu: float, omega: float,
+    q_nu: float, e_nu: float, q_om: float, y0: float, y1_l: float,
+) -> float:
+    """Tighter e1 upper bound using 3-intensity decoy method.
+
+    Uses both weak decoy and vacuum statistics for a tighter error bound:
+
+        e1_U = [Q_nu*e^nu*E_nu - e0*Y0] / (nu*Y1_L)
+
+    This is the same formula as 2-intensity but benefits from the tighter
+    Y1_L computed by _y1_lower_bound_3intensity.
+
+    Ref: Ma, Qi, Zhao, Lo, PRA 72, 012326 (2005), Eq. (11)
+    """
+    return _e1_upper_bound(nu=nu, q_nu=q_nu, e_nu=e_nu, y0=y0, y1_l=y1_l)
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class BB84DecoyParams(BaseModel):
+    """Protocol-specific parameters for BB84 Decoy-State QKD."""
+
+    mu: float = Field(0.5, gt=0.0, description="Signal-state mean photon number")
+    nu: float = Field(0.1, ge=0.0, description="Weak decoy intensity")
+    omega: float = Field(0.0, ge=0.0, description="Vacuum/second decoy intensity")
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    sifting_factor: float = Field(
+        0.5, gt=0.0, le=1.0, description="Basis sifting fraction"
+    )
+    decoy_method: str = Field(
+        "vacuum_weak",
+        description="Decoy analysis method ('vacuum_weak' or '3intensity')",
+    )
+
+
+class BB84DecoyProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the BB84 Decoy-State protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="bb84_decoy",
+            title="BB84 Decoy-State",
+            aliases=("bb84", "decoy_bb84", "bb84_wcp", "decoy"),
+            description=(
+                "BB84 weak-coherent-pulse protocol with vacuum + weak decoy "
+                "state analysis for single-photon yield/error estimation."
+            ),
+            channel_models=("fiber", "free_space"),
+            gate_policy={"plob_repeaterless_bound": "apply"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return BB84DecoyParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_bb84_decoy(scenario, distance_km, runtime_overrides)

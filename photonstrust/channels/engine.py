@@ -28,6 +28,10 @@ def compute_channel_diagnostics(
         return _free_space_diag(distance_km=distance_km, wavelength_nm=wavelength_nm, channel_cfg=channel_cfg)
     if model == "satellite":
         return _satellite_diag(distance_km=distance_km, wavelength_nm=wavelength_nm, channel_cfg=channel_cfg)
+    if model == "satellite_pass":
+        return _satellite_pass_diag(distance_km=distance_km, wavelength_nm=wavelength_nm, channel_cfg=channel_cfg)
+    if model == "underwater":
+        return _underwater_diag(distance_km=distance_km, wavelength_nm=wavelength_nm, channel_cfg=channel_cfg)
     return _fiber_diag(distance_km=distance_km, channel_cfg=channel_cfg)
 
 
@@ -168,6 +172,89 @@ def _satellite_diag(*, distance_km: float, wavelength_nm: float, channel_cfg: di
         "segments_km": {
             "uplink": float(d_up),
             "downlink": float(d_down),
+        },
+    }
+
+
+def _satellite_pass_diag(
+    *,
+    distance_km: float,
+    wavelength_nm: float,
+    channel_cfg: dict[str, Any],
+) -> dict[str, Any]:
+    """Orbit-pass-aware satellite channel that uses the orbit envelope."""
+    from photonstrust.satellite.orbit import compute_orbit_pass_envelope, slant_range_km
+
+    altitude_km = float(channel_cfg.get("orbit_altitude_km", 500.0) or 500.0)
+    max_el = float(channel_cfg.get("max_elevation_deg", 70.0) or 70.0)
+    pass_dur = float(channel_cfg.get("pass_duration_s", 300.0) or 300.0)
+    time_step = float(channel_cfg.get("time_step_s", 10.0) or 10.0)
+
+    def _channel_eff(el_deg: float, sr_km: float) -> float:
+        cfg = dict(channel_cfg)
+        cfg["elevation_deg"] = el_deg
+        cfg["model"] = "satellite"
+        cfg["satellite_uplink_fraction"] = 0.0  # downlink-only for pass budget
+        diag = _satellite_diag(distance_km=sr_km, wavelength_nm=wavelength_nm, channel_cfg=cfg)
+        return float(diag.get("eta_channel", 0.0))
+
+    env = compute_orbit_pass_envelope(
+        orbit_altitude_km=altitude_km,
+        max_elevation_deg=max_el,
+        pass_duration_s=pass_dur,
+        time_step_s=time_step,
+        channel_efficiency_fn=_channel_eff,
+    )
+
+    # Pick the midpoint values as the representative diagnostics
+    n = len(env.eta_channel)
+    mid = n // 2 if n > 0 else 0
+    eta_mid = env.eta_channel[mid] if n > 0 else 0.0
+
+    return {
+        "model": "satellite_pass",
+        "eta_channel": float(eta_mid),
+        "total_loss_db": float(_linear_to_db_loss(max(1e-15, eta_mid))),
+        "background_counts_cps": float(env.background_counts_cps[mid]) if n > 0 else 0.0,
+        "raman_counts_cps": 0.0,
+        "outage_probability": float(env.outage_fraction),
+        "total_key_bits": float(env.total_key_bits),
+        "pass_duration_s": float(env.pass_duration_s),
+        "orbit_altitude_km": float(env.orbit_altitude_km),
+        "max_elevation_deg": float(env.max_elevation_deg),
+        "envelope": env.as_dict(),
+    }
+
+
+def _underwater_diag(
+    *,
+    distance_km: float,
+    wavelength_nm: float,
+    channel_cfg: dict[str, Any],
+) -> dict[str, Any]:
+    """Underwater optical channel using Beer-Lambert / Jerlov model."""
+    from photonstrust.channels.underwater import underwater_channel
+
+    distance_m = distance_km * 1000.0
+    water_type = str(channel_cfg.get("water_type", "IB") or "IB")
+    r = underwater_channel(
+        distance_m,
+        wavelength_nm=wavelength_nm,
+        water_type=water_type,
+    )
+    eta_channel = clamp(r.transmission, 0.0, 1.0)
+    return {
+        "model": "underwater",
+        "eta_channel": float(eta_channel),
+        "total_loss_db": float(r.loss_db),
+        "background_counts_cps": 0.0,
+        "raman_counts_cps": 0.0,
+        "decomposition": {
+            "water_type": water_type,
+            "attenuation_per_m": float(r.attenuation_coeff_per_m),
+            "absorption_per_m": float(r.absorption_coeff_per_m),
+            "scattering_per_m": float(r.scattering_coeff_per_m),
+            "distance_m": float(distance_m),
         },
     }
 

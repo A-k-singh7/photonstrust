@@ -1,3 +1,11 @@
+/**
+ * App — Main application shell component.
+ *
+ * Manages graph state (nodes/edges), simulation execution, and workspace routing.
+ * Key state: nodes, edges, profile, runResult, simOverlayVisible.
+ * Subcomponents: AppTopBar, CenterWorkspacePane, GraphLeftSidebarPanel,
+ *                GraphRightSidebarContent.
+ */
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge,
@@ -16,6 +24,7 @@ import RightSidebarTabs from "./features/shell/RightSidebarTabs";
 import StatusFooter from "./features/shell/StatusFooter";
 import { PRODUCT_STAGE_ITEMS, PRODUCT_STAGE_ROUTES, stageLabel, stageSubtitle } from "./features/shell/copy";
 import WorkspaceContextBar from "./features/workspace/WorkspaceContextBar";
+import { createOpaqueId, randomToken } from "./state/randomId";
 import { createUiSessionId, createUiTelemetrySink } from "./state/uiTelemetry";
 import {
   buildProjectWorkspaceSnapshot,
@@ -35,7 +44,7 @@ import {
 import { loadRecentActivity, loadViewPresets, saveRecentActivity, saveViewPreset } from "./state/workspaceState";
 
 import { BAND_OPTIONS, KIND_DEFS, kindDef, portDomainFor } from "./photontrust/kinds";
-import { templatePicChain, templatePicMzi, templatePicSpiceImportHarness, templateQkdLink } from "./photontrust/templates";
+import { templatePicChain, templatePicMzi, templatePicSpiceImportHarness, templateQkdLink, templatePicBalancedReceiver, templatePicAwgDemux, templatePicRingFilter, templatePicCoherentRx, templatePicModulatorTx, templatePicSwitch2x2 } from "./photontrust/templates";
 import { buildGraphPayload } from "./photontrust/graph";
 import PtNode from "./photontrust/PtNode";
 import {
@@ -259,10 +268,7 @@ function _saveGuidedProgress(progress) {
 function _ensureNewcomerId() {
   const existing = String(localStorage.getItem("pt_newcomer_id") || "").trim();
   if (existing) return existing;
-  const generated =
-    typeof globalThis?.crypto?.randomUUID === "function"
-      ? globalThis.crypto.randomUUID()
-      : `anon-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const generated = createOpaqueId("anon");
   localStorage.setItem("pt_newcomer_id", generated);
   return generated;
 }
@@ -317,7 +323,7 @@ function _nextNodeId(kind, existingNodes) {
     const candidate = `${slug}_${i}`;
     if (!taken.has(candidate)) return candidate;
   }
-  return `${slug}_${Math.floor(Math.random() * 1e9)}`;
+  return `${slug}_${randomToken(4)}`;
 }
 
 function _flowFromGraph(graph, registryByKind = null) {
@@ -565,6 +571,7 @@ export default function App() {
   const projectWorkspaceLoadRef = useRef("");
   const projectWorkspaceSyncTimerRef = useRef(null);
   const projectWorkspacePauseUntilRef = useRef(0);
+  const latestRunSelectionRef = useRef("");
   const [guidedFlowWizardOpen, setGuidedFlowWizardOpen] = useState(false);
   const [guidedFlowInitialGoal, setGuidedFlowInitialGoal] = useState("qkd");
   const newcomerFlowRef = useRef({ active: false, startedAtMs: 0, completed: false });
@@ -688,12 +695,15 @@ export default function App() {
   const [compileResult, setCompileResult] = useState(null);
   const [orbitValidateResult, setOrbitValidateResult] = useState(null);
   const [runResult, setRunResult] = useState(null);
+  const [simOverlayVisible, setSimOverlayVisible] = useState(true);
   const [busy, setBusy] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [paletteScope, setPaletteScope] = useState("all");
   const [statusText, setStatusText] = useState("Ready.");
   const statusTimer = useRef(null);
+  const [connectionWarning, setConnectionWarning] = useState("");
+  const connWarnTimer = useRef(null);
 
   const reactFlowInstance = useReactFlow();
 
@@ -861,6 +871,14 @@ export default function App() {
     return { apiReady, cliOnly };
   }, [kindOptions, kindRegistry.byKind]);
 
+  const certificationRunId = String(
+    selectedRunManifest?.run_id || selectedRunId || runResult?.run_id || workflowResult?.run_id || latestRunSelectionRef.current || "",
+  ).trim();
+
+  useEffect(() => {
+    latestRunSelectionRef.current = certificationRunId;
+  }, [certificationRunId]);
+
   const decisionContext = useMemo(() => {
     const compileErrors = Array.isArray(compileResult?.diagnostics?.errors) ? compileResult.diagnostics.errors : [];
     const compileWarnings = Array.isArray(compileResult?.diagnostics?.warnings) ? compileResult.diagnostics.warnings : [];
@@ -898,10 +916,10 @@ export default function App() {
     if (runError) blockers.push(`Run failed: ${runError}`);
     if (compileErrors.length) blockers.push(`${compileErrors.length} compile error(s) still open.`);
     if (newViolationCount > 0) blockers.push(`${newViolationCount} new violation(s) vs baseline.`);
-    if (!String(selectedRunManifest?.run_id || runResult?.run_id || "").trim()) blockers.push("No selected run evidence bundle.");
+    if (!certificationRunId) blockers.push("No selected run evidence bundle.");
 
     const highlights = [];
-    if (runResult?.run_id) highlights.push(`Latest run id: ${String(runResult.run_id)}`);
+    if (certificationRunId) highlights.push(`Active run id: ${certificationRunId}`);
     if (compileWarnings.length) highlights.push(`${compileWarnings.length} compile warning(s) flagged for review.`);
     if (approvalsCount) highlights.push(`${approvalsCount} approval event(s) recorded.`);
     if (!highlights.length) highlights.push("Run, compile, and trust surfaces are ready for review.");
@@ -934,19 +952,16 @@ export default function App() {
       actions,
       recommendation,
       payload: {
-        run_id: String(runResult?.run_id || selectedRunManifest?.run_id || ""),
+        run_id: certificationRunId,
         confidence_score: confidenceScore,
         risk_level: riskLevel,
         recommendation,
       },
       uncertaintyList: Array.isArray(uncertainty) ? uncertainty : Object.entries(uncertainty || {}).map(([k, v]) => `${k}: ${String(v)}`),
     };
-  }, [runResult, compileResult, runsDiffResult, projectApprovals, selectedRunManifest, uncertainty]);
+  }, [certificationRunId, runResult, compileResult, runsDiffResult, projectApprovals, uncertainty]);
 
-  const guidedRunId = useMemo(
-    () => String(runResult?.run_id || selectedRunManifest?.run_id || "").trim(),
-    [runResult?.run_id, selectedRunManifest?.run_id],
-  );
+  const guidedRunId = certificationRunId;
 
   const guidedCompareDone = useMemo(
     () =>
@@ -1185,6 +1200,7 @@ export default function App() {
     async (runId) => {
       const rid = String(runId || "").trim();
       if (!rid) return;
+      latestRunSelectionRef.current = rid;
       setBusy(true);
       setSelectedRunId(rid);
       setSelectedRunManifest(null);
@@ -1298,6 +1314,8 @@ export default function App() {
     emitUiEvent,
     recordActivity,
     runResult,
+    selectedProjectId,
+    selectedRunId,
     selectedRunManifest,
     setApprovalResult,
     setBusy,
@@ -1463,6 +1481,16 @@ export default function App() {
   }, [selectedRunManifest?.run_id]);
 
   useEffect(() => {
+    if (programStage !== "certify" || mode !== "runs" || activeRightTab !== "manifest") return;
+    if (String(selectedRunManifest?.run_id || selectedRunId || "").trim()) return;
+    const fallbackRunId = String(runResult?.run_id || latestRunSelectionRef.current || runsIndex?.runs?.[0]?.run_id || "").trim();
+    if (!fallbackRunId) return;
+    latestRunSelectionRef.current = fallbackRunId;
+    setSelectedRunId(fallbackRunId);
+    void loadRunManifest(fallbackRunId);
+  }, [activeRightTab, loadRunManifest, mode, programStage, runResult?.run_id, runsIndex?.runs, selectedRunId, selectedRunManifest?.run_id]);
+
+  useEffect(() => {
     localStorage.setItem("pt_approval_actor", String(approvalActor));
   }, [approvalActor]);
 
@@ -1514,6 +1542,12 @@ export default function App() {
     setActiveRightTab("inspect");
   }, [experienceMode, mode, profile, activeRightTab]);
 
+  const _showConnWarning = useCallback((msg) => {
+    setConnectionWarning(String(msg || ""));
+    if (connWarnTimer.current) clearTimeout(connWarnTimer.current);
+    connWarnTimer.current = setTimeout(() => setConnectionWarning(""), 2000);
+  }, []);
+
   const onConnect = useCallback(
     (params) => {
       const sourceId = String(params?.source || "").trim();
@@ -1528,22 +1562,23 @@ export default function App() {
       const fromPort = String(params?.sourceHandle || "out");
       const toPort = String(params?.targetHandle || "in");
       const edgeKind = "optical";
-      if (profile === "pic_circuit") {
-        const fromDomain = _nodePortDomain(sourceNode, "out", fromPort);
-        const toDomain = _nodePortDomain(targetNode, "in", toPort);
 
-        if (fromDomain !== toDomain) {
-          _setStatus(
-            `Blocked connection: ${sourceId}.${fromPort} (${fromDomain}) -> ${targetId}.${toPort} (${toDomain}).`,
-          );
-          return;
-        }
-        if (fromDomain !== edgeKind) {
-          _setStatus(
-            `Blocked connection: edge kind ${edgeKind} incompatible with ${fromDomain} ports.`,
-          );
-          return;
-        }
+      const fromDomain = _nodePortDomain(sourceNode, "out", fromPort);
+      const toDomain = _nodePortDomain(targetNode, "in", toPort);
+
+      if (fromDomain !== toDomain) {
+        const msg = `Cannot connect ${fromDomain} output to ${toDomain} input.`;
+        _setStatus(
+          `Blocked connection: ${sourceId}.${fromPort} (${fromDomain}) -> ${targetId}.${toPort} (${toDomain}).`,
+        );
+        _showConnWarning(msg);
+        return;
+      }
+      if (profile === "pic_circuit" && fromDomain !== edgeKind) {
+        const msg = `Blocked: edge kind ${edgeKind} incompatible with ${fromDomain} ports.`;
+        _setStatus(msg);
+        _showConnWarning(msg);
+        return;
       }
 
       setEdges((eds) =>
@@ -1558,7 +1593,7 @@ export default function App() {
         ),
       );
     },
-    [setEdges, profile, nodes, _setStatus],
+    [setEdges, profile, nodes, _setStatus, _showConnWarning],
   );
 
   const loadTemplate = useCallback(
@@ -1622,21 +1657,84 @@ export default function App() {
         setNodes(t.nodes);
         setEdges(t.edges);
         _setStatus("Loaded template: PIC SPICE import harness (Touchstone path required for CLI runs).");
+        return;
+      }
+      if (templateId === "pic_balanced_receiver") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicBalancedReceiver();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Balanced Receiver.");
+        return;
+      }
+      if (templateId === "pic_awg_demux") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicAwgDemux();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: AWG Demux.");
+        return;
+      }
+      if (templateId === "pic_ring_filter") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicRingFilter();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Ring Filter.");
+        return;
+      }
+      if (templateId === "pic_coherent_rx") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicCoherentRx();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Coherent Receiver.");
+        return;
+      }
+      if (templateId === "pic_modulator_tx") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicModulatorTx();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: Modulator TX.");
+        return;
+      }
+      if (templateId === "pic_switch_2x2") {
+        setProfile("pic_circuit");
+        setGraphId("ui_pic_circuit");
+        setCircuit({ ...DEFAULT_PIC_CIRCUIT });
+        const t = templatePicSwitch2x2();
+        setNodes(t.nodes);
+        setEdges(t.edges);
+        _setStatus("Loaded template: 2×2 Switch.");
       }
     },
     [setNodes, setEdges, _setStatus, setCompileResult, setRunResult, setActiveRightTab],
   );
 
   const switchOperationalMode = useCallback(
-    (nextMode, { nextTab = null, nextStage = null, statusText = "" } = {}) => {
+    (nextMode, { nextTab = null, nextStage = null, statusText = "", preserveRunSelection = false } = {}) => {
       const next = String(nextMode || "graph");
       setMode(next);
       setCompileResult(null);
       setOrbitValidateResult(null);
       setRunResult(null);
       setSelectedNodeId(null);
-      setSelectedRunId(null);
-      setSelectedRunManifest(null);
+      if (!preserveRunSelection) {
+        latestRunSelectionRef.current = "";
+        setSelectedRunId(null);
+        setSelectedRunManifest(null);
+      }
       setRunsDiffResult(null);
       setDiffLhsRunId("");
       setDiffRhsRunId("");
@@ -1681,6 +1779,13 @@ export default function App() {
     (stageId, options = {}) => {
       const key = String(stageId || "build");
       const route = PRODUCT_STAGE_ROUTES[key] || PRODUCT_STAGE_ROUTES.build;
+      const preservedRunId = String(
+        options.selectedRunId ||
+          latestRunSelectionRef.current ||
+          (route.mode === "runs"
+            ? selectedRunManifest?.run_id || selectedRunId || runResult?.run_id || ""
+            : ""),
+      ).trim();
       setProgramStage(key);
       setShowLanding(false);
       if (options.userMode) setUserMode(String(options.userMode));
@@ -1688,10 +1793,17 @@ export default function App() {
         nextTab: route.tab,
         nextStage: key,
         statusText: options.statusText || `Stage: ${stageLabel(key)}.`,
+        preserveRunSelection: Boolean(preservedRunId),
       });
+      if (preservedRunId) {
+        setSelectedRunId(preservedRunId);
+        if (String(selectedRunManifest?.run_id || "").trim() !== preservedRunId) {
+          void loadRunManifest(preservedRunId);
+        }
+      }
       recordActivity("stage_change", `Opened ${stageLabel(key)} stage.`, { stage: key, mode: route.mode });
     },
-    [switchOperationalMode, recordActivity],
+    [loadRunManifest, recordActivity, runResult?.run_id, selectedRunId, selectedRunManifest?.run_id, switchOperationalMode],
   );
 
   const handleChecklistAction = useCallback(
@@ -2293,6 +2405,43 @@ export default function App() {
     emitUiEvent("ui_run_failed", { outcome: "failure" });
   }, [emitUiEvent]);
 
+  /** Attach per-node simulation metrics from the PIC simulate response. */
+  const applySimResultsToNodes = useCallback(
+    (simResponse) => {
+      if (!simResponse || typeof simResponse !== "object") return;
+      // The API may return component_results keyed by node id, or a flat results map.
+      const compResults =
+        simResponse.component_results ||
+        simResponse.components ||
+        simResponse.results ||
+        null;
+      if (!compResults || typeof compResults !== "object") return;
+
+      setNodes((prev) =>
+        prev.map((n) => {
+          const entry = compResults[String(n.id)];
+          if (!entry || typeof entry !== "object") return n;
+          return {
+            ...n,
+            data: { ...n.data, simResult: entry },
+          };
+        }),
+      );
+    },
+    [setNodes],
+  );
+
+  /** Remove simResult data from all nodes (hide overlay). */
+  const clearSimResultsFromNodes = useCallback(() => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (!n.data?.simResult) return n;
+        const { simResult: _, ...rest } = n.data;
+        return { ...n, data: rest };
+      }),
+    );
+  }, [setNodes]);
+
   const runGraph = useCallback(async () => {
     emitUiEvent("ui_run_started", { outcome: "success" });
     setBusy(true);
@@ -2301,6 +2450,11 @@ export default function App() {
       if (mode === "orbit") {
         const payload = await apiRunOrbitPass(apiBase, orbitConfig, { requireSchema: orbitRequireSchema, projectId: selectedProjectId || null });
         setRunResult(payload);
+        if (payload?.run_id) {
+          latestRunSelectionRef.current = String(payload.run_id);
+          setSelectedRunId(String(payload.run_id));
+          setSelectedRunManifest(null);
+        }
         setActiveRightTab("run");
         markRunSucceeded(payload);
         if (payload?.run_id) {
@@ -2314,6 +2468,11 @@ export default function App() {
       if (profile === "qkd_link") {
         const payload = await apiRunQkd(apiBase, graphPayload, { executionMode: qkdExecutionMode, projectId: selectedProjectId || null });
         setRunResult(payload);
+        if (payload?.run_id) {
+          latestRunSelectionRef.current = String(payload.run_id);
+          setSelectedRunId(String(payload.run_id));
+          setSelectedRunManifest(null);
+        }
         setActiveRightTab("run");
         markRunSucceeded(payload);
         if (payload?.run_id) {
@@ -2332,8 +2491,16 @@ export default function App() {
           .filter((x) => Number.isFinite(x));
         const payload = await apiSimulatePic(apiBase, graphPayload, { sweepNm: sweep.length ? sweep : null });
         setRunResult(payload);
+        if (payload?.run_id) {
+          latestRunSelectionRef.current = String(payload.run_id);
+          setSelectedRunId(String(payload.run_id));
+          setSelectedRunManifest(null);
+        }
         setActiveRightTab("run");
         markRunSucceeded(payload);
+        if (simOverlayVisible) {
+          applySimResultsToNodes(payload);
+        }
         if (payload?.run_id) {
           await refreshRuns(selectedProjectId || null);
           await loadRunManifest(payload.run_id);
@@ -2370,6 +2537,8 @@ export default function App() {
     recordActivity,
     refreshRuns,
     _setStatus,
+    simOverlayVisible,
+    applySimResultsToNodes,
   ]);
 
   const runGuidedFlowNow = useCallback(async () => {
@@ -2845,7 +3014,7 @@ export default function App() {
     setActiveRightTab("inspect");
   }, [importText, applyGraphObject, _setStatus]);
 
-  const approvalControlsNode = selectedRunManifest?.run_id ? (
+  const approvalControlsNode = certificationRunId ? (
     <ApprovalControls
       approvalActor={approvalActor}
       approvalNote={approvalNote}
@@ -2857,7 +3026,7 @@ export default function App() {
   ) : null;
 
   const demoDegraded = demoModeOpen && apiHealth.status !== "ok";
-  const demoRunId = String(selectedRunManifest?.run_id || runResult?.run_id || workflowResult?.run_id || "").trim();
+  const demoRunId = certificationRunId;
   const demoPacketHref = demoRunId ? _runBundleUrl(apiBase, demoRunId) : "";
   const demoDiffSummary =
     runsDiffResult?.diff?.violation_diff?.summary && typeof runsDiffResult.diff.violation_diff.summary === "object"
@@ -2868,6 +3037,120 @@ export default function App() {
   const demoApprovalCount = Array.isArray(projectApprovals?.approvals) ? projectApprovals.approvals.length : 0;
   const demoPacketActionEnabled = !demoModeOpen || demoScene === "packet";
   const workspaceReady = !showLanding || demoModeOpen;
+  const currentStageLabel = stageLabel(programStage);
+  const activeRoleLabel = useMemo(
+    () => ROLE_PRESET_OPTIONS.find((item) => String(item.id) === String(userMode))?.label || String(userMode || "Builder"),
+    [userMode],
+  );
+  const currentStageIndex = useMemo(
+    () => Math.max(1, PRODUCT_STAGE_ITEMS.findIndex((item) => String(item.id) === String(programStage)) + 1),
+    [programStage],
+  );
+  const workflowObjective = useMemo(() => {
+    const shortRunId = certificationRunId ? certificationRunId.slice(0, 12) : "";
+    const blockerCount = Array.isArray(decisionContext?.blockers) ? decisionContext.blockers.length : 0;
+
+    if (programStage === "build") {
+      return {
+        title: profile === "pic_circuit" ? "Prepare the next PIC candidate" : "Prepare the next trusted QKD run",
+        summary:
+          profile === "pic_circuit"
+            ? "Stay in Build until the circuit, parameters, and assumptions are coherent enough to compile cleanly."
+            : "Use Build to set the link scenario, graph inputs, and assumptions before you execute the run.",
+      };
+    }
+
+    if (programStage === "run") {
+      return {
+        title: shortRunId ? `Review run ${shortRunId}` : "Execute the next run",
+        summary: shortRunId
+          ? "The latest run is available. Inspect the result, then promote it into compare or certify without losing context."
+          : "Run the current graph to generate a manifest, outputs, and decision-ready evidence.",
+      };
+    }
+
+    if (programStage === "validate") {
+      return {
+        title: "Review assumptions before promotion",
+        summary: blockerCount
+          ? `Validation still shows ${blockerCount} blocker(s). Clear the trust gaps before the run moves toward certification.`
+          : "Use the assumptions and diagnostics surface to decide whether the current run is ready for compare and signoff.",
+      };
+    }
+
+    if (programStage === "compare") {
+      return {
+        title: "Choose the candidate worth promoting",
+        summary:
+          diffLhsRunId && diffRhsRunId
+            ? "Baseline and candidate are selected. Compute the delta, review the violations, then move the winning run into certify."
+            : "Select the baseline and candidate runs first, then compute the delta that matters for the decision.",
+      };
+    }
+
+    if (programStage === "certify") {
+      return {
+        title: shortRunId ? `Certify run ${shortRunId}` : "Prepare the decision packet",
+        summary: shortRunId
+          ? "Finish the trust review, collect approvals, and confirm the run is ready to leave the workspace as evidence."
+          : "Pick or recover the active run first so approvals, packet export, and verification all point at the same evidence.",
+      };
+    }
+
+    return {
+      title: shortRunId ? `Export evidence for ${shortRunId}` : "Share the evidence package",
+      summary:
+        bundlePublishResult?.bundle_sha256
+          ? "The packet is published. Verify the bundle integrity before you treat it as final outside the workspace."
+          : "Open, publish, and verify the decision packet so reviewers receive the same evidence you approved here.",
+    };
+  }, [
+    bundlePublishResult?.bundle_sha256,
+    certificationRunId,
+    decisionContext?.blockers,
+    diffLhsRunId,
+    diffRhsRunId,
+    profile,
+    programStage,
+  ]);
+  const workflowPrimaryAction = useMemo(() => {
+    if (programStage === "build") {
+      return { label: "Compile graph", action: compileGraph, disabled: busy };
+    }
+    if (programStage === "run") {
+      return { label: "Execute run", action: runGraph, disabled: busy };
+    }
+    if (programStage === "validate") {
+      return compileResult
+        ? { label: "Open compare", action: () => openProgramStage("compare"), disabled: false }
+        : { label: "Compile before review", action: compileGraph, disabled: busy };
+    }
+    if (programStage === "compare") {
+      return { label: "Compare selected runs", action: diffRuns, disabled: busy || !diffLhsRunId || !diffRhsRunId };
+    }
+    if (programStage === "certify") {
+      return { label: "Open decision packet", action: exportDecisionPacket, disabled: !certificationRunId };
+    }
+    if (bundlePublishResult?.bundle_sha256) {
+      return { label: "Verify published packet", action: verifyPublishedDecisionPacket, disabled: busy };
+    }
+    return { label: "Publish shareable packet", action: publishDecisionPacket, disabled: busy || !certificationRunId };
+  }, [
+    bundlePublishResult?.bundle_sha256,
+    busy,
+    certificationRunId,
+    compileGraph,
+    compileResult,
+    diffLhsRunId,
+    diffRhsRunId,
+    diffRuns,
+    exportDecisionPacket,
+    openProgramStage,
+    programStage,
+    publishDecisionPacket,
+    runGraph,
+    verifyPublishedDecisionPacket,
+  ]);
 
   return (
     <div className="ptApp">
@@ -2877,6 +3160,8 @@ export default function App() {
 
       <AppTopBar
         programStageSubtitle={stageSubtitle(programStage)}
+        objectiveTitle={workflowObjective.title}
+        objectiveSummary={workflowObjective.summary}
         mode={mode}
         onModeChange={(nextValue) => {
           const next = String(nextValue);
@@ -2911,6 +3196,8 @@ export default function App() {
         onGraphIdChange={setGraphId}
         apiBase={apiBase}
         onApiBaseChange={setApiBase}
+        selectedProjectId={selectedProjectId}
+        activeRunId={certificationRunId}
         onDemoMode={investorDemoCheckpoint}
         onPing={pingApi}
         busy={busy}
@@ -2930,25 +3217,47 @@ export default function App() {
         apiHealthVersion={apiHealth.version}
         apiHealthError={apiHealth.error}
         showGraphProfileControls={mode === "graph"}
+        simOverlayVisible={simOverlayVisible}
+        onToggleSimOverlay={() => {
+          setSimOverlayVisible((prev) => {
+            const next = !prev;
+            if (!next) {
+              clearSimResultsFromNodes();
+            } else if (runResult && !runResult.error) {
+              applySimResultsToNodes(runResult);
+            }
+            return next;
+          });
+        }}
+        showSimOverlayToggle={mode === "graph" && profile === "pic_circuit"}
       />
 
       <nav className="ptStageNav" aria-label="Product stage navigation">
-        {PRODUCT_STAGE_ITEMS.map((stage) => {
+        <div className="ptStageNavIntro">
+          <div className="ptTopbarKicker">Workflow map</div>
+          <div className="ptStageNavCopy">Move from graph inputs to decision-ready evidence without changing tools or losing run context.</div>
+        </div>
+        <div className="ptStageRail">
+        {PRODUCT_STAGE_ITEMS.map((stage, idx) => {
           const active = String(stage.id) === String(programStage);
           return (
             <button
               key={stage.id}
               className={`ptStagePill ${active ? "active" : ""}`}
+              data-stage-index={String(idx + 1).padStart(2, "0")}
+              data-stage-sub={stageSubtitle(stage.id)}
               onClick={() => openProgramStage(stage.id)}
               type="button"
               disabled={demoModeOpen}
               aria-current={active ? "step" : undefined}
-              aria-label={`${stage.label}: ${stageSubtitle(stage.id)}`}
+              aria-label={stage.label}
+              title={stageSubtitle(stage.id)}
             >
               {stage.label}
             </button>
           );
         })}
+        </div>
       </nav>
 
       {!showLanding ? (
@@ -2963,6 +3272,9 @@ export default function App() {
             })
             .filter(Boolean)}
           selectedProjectId={selectedProjectId}
+          currentStageLabel={currentStageLabel}
+          activeRunId={certificationRunId}
+          roleLabel={activeRoleLabel}
           onProjectChange={handleWorkspaceProjectChange}
           rolePresets={ROLE_PRESET_OPTIONS}
           selectedRolePreset={userMode}
@@ -2979,8 +3291,23 @@ export default function App() {
         />
       ) : null}
 
-      {!showLanding && mode === "graph" ? (
+      {!showLanding &&
+      ["build", "run", "validate"].includes(String(programStage || "")) &&
+      activeRightTab !== "run" ? (
         <GuidanceStrip
+          currentStage={programStage}
+          currentStageLabel={currentStageLabel}
+          stageIndex={currentStageIndex}
+          stageCount={PRODUCT_STAGE_ITEMS.length}
+          projectId={selectedProjectId}
+          activeRunId={certificationRunId}
+          roleLabel={activeRoleLabel}
+          blockerCount={decisionContext.blockers.length}
+          objectiveTitle={workflowObjective.title}
+          objectiveSummary={workflowObjective.summary}
+          primaryActionLabel={workflowPrimaryAction.label}
+          primaryActionDisabled={workflowPrimaryAction.disabled}
+          onPrimaryAction={workflowPrimaryAction.action}
           experienceMode={experienceMode}
           checklist={guidedChecklist}
           glossaryTerms={GUIDED_GLOSSARY_TERMS}
@@ -3367,6 +3694,7 @@ export default function App() {
                   onCopied: () => _setStatus("Copied graph payload JSON to clipboard."),
                   onCopyFailed: (err) => _setStatus(`Copy failed: ${String(err?.message || err)}`),
                 }}
+                nodes={nodes}
               />
             </Suspense>
           ) : null}
@@ -3430,15 +3758,14 @@ export default function App() {
 
                 <CertificationWorkspace
                   selectedRunManifest={selectedRunManifest}
+                  selectedRunId={certificationRunId}
                   compileResult={compileResult}
                   projectApprovals={projectApprovals}
-                  packetExportHref={
-                    selectedRunManifest?.run_id ? _runBundleUrl(apiBase, selectedRunManifest.run_id) : ""
-                  }
+                  packetExportHref={certificationRunId ? _runBundleUrl(apiBase, certificationRunId) : ""}
                   onPacketExport={exportDecisionPacket}
                   packetPublishHref={bundlePublishResult?.bundle_sha256 ? _publishedBundleUrl(apiBase, bundlePublishResult.bundle_sha256) : ""}
                   onPacketPublish={publishDecisionPacket}
-                  packetPublishDisabled={busy || !selectedRunManifest?.run_id}
+                  packetPublishDisabled={busy || !certificationRunId}
                   packetPublishResult={bundlePublishResult}
                   onPacketVerify={verifyPublishedDecisionPacket}
                   packetVerifyDisabled={busy || !bundlePublishResult?.bundle_sha256}
@@ -3529,6 +3856,10 @@ export default function App() {
           edgeCount={edges.length}
           hashText={compileResult?.graph_hash || runResult?.graph_hash || runResult?.config_hash || "n/a"}
         />
+      ) : null}
+
+      {connectionWarning ? (
+        <div className="ptConnectionWarning" role="alert">{connectionWarning}</div>
       ) : null}
 
       <GraphJsonModals

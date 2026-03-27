@@ -32,6 +32,7 @@ Usage
 
 from __future__ import annotations
 
+import html
 import json
 import tempfile
 from pathlib import Path
@@ -49,6 +50,9 @@ except ImportError:
 def _require_fastapi() -> None:
     if not _FASTAPI:
         raise ImportError("FastAPI not installed. Run: pip install fastapi uvicorn")
+
+
+_RELIABILITY_CARD_TITLE = "PhotonTrust Reliability Card"
 
 
 # ---------------------------------------------------------------------------
@@ -164,14 +168,14 @@ def create_app() -> Any:
         try:
             return pt.simulate_netlist(req.netlist, wavelength_nm=req.wavelength_nm)
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="simulation failed") from exc
 
     @app.post("/simulate/sweep")
     def simulate_sweep(req: SweepRequest) -> list:
         try:
             return pt.simulate_netlist_sweep(req.netlist, wavelengths_nm=req.wavelengths_nm)
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="sweep simulation failed") from exc
 
     @app.post("/drc/crosstalk")
     def drc_crosstalk(req: CrosstalkDRCRequest) -> dict:
@@ -182,14 +186,14 @@ def create_app() -> Any:
                 process_metrics=req.process_metrics, mc_samples=req.mc_samples,
             )
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="crosstalk DRC failed") from exc
 
     @app.post("/drc/layout")
     def drc_layout(req: LayoutDRCRequest) -> dict:
         try:
             return pt.run_layout_drc_lvs(req.netlist, req.rules)
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="layout DRC/LVS failed") from exc
 
     @app.post("/yield")
     def estimate_yield(req: YieldRequest) -> dict:
@@ -199,7 +203,7 @@ def create_app() -> Any:
                 min_required_yield=req.min_required_yield,
             )
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="yield estimation failed") from exc
 
     @app.post("/spice/export")
     def spice_export(req: SpiceExportRequest) -> dict:
@@ -212,19 +216,21 @@ def create_app() -> Any:
                 )
                 # Read generated files and embed in response
                 out = Path(tmp)
-                netlist_text = (out / result["artifacts"]["netlist_path"]).read_text(encoding="utf-8")
+                netlist_path = out / "netlist.sp"
+                if not netlist_path.exists():
+                    raise ValueError("expected netlist.sp was not generated")
+                netlist_text = netlist_path.read_text(encoding="utf-8")
                 lib_text = None
-                if "compact_models_lib" in result["artifacts"]:
-                    lib_path = out / result["artifacts"]["compact_models_lib"]
-                    if lib_path.exists():
-                        lib_text = lib_path.read_text(encoding="utf-8")
+                lib_path = out / "photontrust_components.lib"
+                if lib_path.exists():
+                    lib_text = lib_path.read_text(encoding="utf-8")
                 return {
                     **result,
                     "netlist_text": netlist_text,
                     "compact_models_text": lib_text,
                 }
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="SPICE export failed") from exc
 
     @app.post("/spice/ac_sweep", response_class=JSONResponse)
     def spice_ac_sweep(req: SpiceACRequest) -> dict:
@@ -235,7 +241,7 @@ def create_app() -> Any:
             )
             return {"netlist": text}
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="SPICE AC sweep generation failed") from exc
 
     @app.post("/spice/monte_carlo")
     def spice_mc(req: SpiceMCRequest) -> dict:
@@ -244,7 +250,7 @@ def create_app() -> Any:
                 req.graph, n_runs=req.n_runs, sigma_scale=req.sigma_scale,
             )}
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="SPICE Monte Carlo generation failed") from exc
 
     @app.post("/spice/transient")
     def spice_transient(req: SpiceTransientRequest) -> dict:
@@ -254,14 +260,14 @@ def create_app() -> Any:
                 n_bits=req.n_bits, v_pi=req.v_pi,
             )}
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="SPICE transient generation failed") from exc
 
     @app.post("/layout/gds")
     def layout_gds(req: GDSRequest) -> dict:
         try:
             return pt.netlist_to_gdl(req.netlist)
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="layout export failed") from exc
 
     @app.post("/layout/pcell")
     def layout_pcell(req: PCellRequest) -> dict:
@@ -271,7 +277,7 @@ def create_app() -> Any:
                 rotation_deg=req.rotation_deg,
             )
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="PCell export failed") from exc
 
     @app.post("/wdm/analyze")
     def wdm_analyze(req: WDMRequest) -> dict:
@@ -284,7 +290,7 @@ def create_app() -> Any:
                 center_wl_nm=req.center_wl_nm,
             )
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="WDM analysis failed") from exc
 
     @app.post("/thermo/phase_shift")
     def thermo_phase_shift(req: ThermoOpticRequest) -> dict:
@@ -299,7 +305,7 @@ def create_app() -> Any:
                 wavelength_nm=req.wavelength_nm,
             )
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="thermo-optic phase calculation failed") from exc
 
     @app.post("/report/reliability_card", response_class=HTMLResponse)
     def reliability_card(req: ReliabilityCardRequest) -> str:
@@ -309,10 +315,10 @@ def create_app() -> Any:
                 netlist=req.netlist,
                 drc_params=req.drc_params,
                 yield_metrics=req.yield_metrics,
-                title=req.title,
+                title=html.escape(_RELIABILITY_CARD_TITLE, quote=True),
             )
         except Exception as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail="reliability card generation failed") from exc
 
     return app
 

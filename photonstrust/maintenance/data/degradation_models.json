@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "snspd": {"model": "exponential", "lambda_per_hour": 1e-6, "threshold_fraction": 0.5},
+    "ingaas": {"model": "exponential", "lambda_per_hour": 5e-5, "threshold_fraction": 0.5},
+    "si_apd": {"model": "exponential", "lambda_per_hour": 2e-5, "threshold_fraction": 0.5}
+  },
+  "fiber": {
+    "smf28": {"model": "linear", "rate_db_per_km_per_10khours": 0.001, "threshold_excess_db_per_km": 0.05}
+  },
+  "source": {
+    "emitter_cavity": {"model": "linear_g2", "rate_g2_per_10khours": 0.001, "threshold_g2": 0.1},
+    "spdc": {"model": "linear_g2", "rate_g2_per_10khours": 0.002, "threshold_g2": 0.15}
+  }
+}

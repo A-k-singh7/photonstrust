@@ -9,21 +9,33 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
-test("shows workspace context bar with project role and view controls", async ({ page }) => {
+async function openContextControls(page) {
   const contextBar = page.locator('section[aria-label="Workspace context bar"]');
-  const projectSelect = contextBar.locator("label").filter({ hasText: "Project" }).first().locator("select");
-  const rolePresetSelect = contextBar.locator("label").filter({ hasText: "Role preset" }).first().locator("select");
-  const savedViewSelect = contextBar.locator("label").filter({ hasText: "Saved view" }).first().locator("select");
+  const controls = contextBar.locator("details.ptWorkspaceControls");
+  const summary = controls.locator("summary");
 
   await expect(contextBar).toBeVisible();
+  await expect(summary).toBeVisible();
+  await summary.click();
+  await expect(controls).toHaveAttribute("open", "");
+
+  return { contextBar, controls };
+}
+
+test("shows workspace context bar with project role and view controls", async ({ page }) => {
+  const { controls } = await openContextControls(page);
+  const projectSelect = controls.locator("label").filter({ hasText: "Project" }).first().locator("select");
+  const rolePresetSelect = controls.locator("label").filter({ hasText: "Role preset" }).first().locator("select");
+  const savedViewSelect = controls.locator("label").filter({ hasText: "Saved view" }).first().locator("select");
+
   await expect(projectSelect).toBeVisible();
   await expect(rolePresetSelect).toBeVisible();
   await expect(savedViewSelect).toBeVisible();
 });
 
 test("Save View adds a recent activity chip", async ({ page }) => {
-  const contextBar = page.locator('section[aria-label="Workspace context bar"]');
-  const contextSaveView = contextBar.getByRole("button", { name: "Save view", exact: true });
+  const { contextBar, controls } = await openContextControls(page);
+  const contextSaveView = controls.getByRole("button", { name: "Save view", exact: true });
   const activityChip = contextBar.getByRole("button", { name: "Saved workspace view preset.", exact: true });
 
   await expect(contextSaveView).toBeVisible();
@@ -32,8 +44,8 @@ test("Save View adds a recent activity chip", async ({ page }) => {
 });
 
 test("selecting Reviewer role highlights Compare stage or shows runs cues", async ({ page }) => {
-  const contextBar = page.locator('section[aria-label="Workspace context bar"]');
-  const rolePreset = contextBar.locator("label").filter({ hasText: "Role preset" }).first().locator("select");
+  const { controls } = await openContextControls(page);
+  const rolePreset = controls.locator("label").filter({ hasText: "Role preset" }).first().locator("select");
   const compareActive = page.locator('nav[aria-label="Product stage navigation"] button.ptStagePill.active').filter({
     hasText: "Compare",
   });
@@ -96,18 +108,22 @@ test("guided mode shows guidance checklist and compare checklist action opens co
 });
 
 test("switching to Power experience updates selector and enables PIC advanced tabs", async ({ page }) => {
-  const experienceSelect = page.locator("header.ptTopbar label").filter({ hasText: "Experience" }).first().locator("select");
-  const profileSelect = page.locator("header.ptTopbar label").filter({ hasText: "Profile" }).first().locator("select");
+  const topbar = page.locator("header.ptTopbar");
+  const guidedButton = topbar.getByRole("button", { name: "Guided", exact: true });
+  const powerButton = topbar.getByRole("button", { name: "Power", exact: true });
+  const topbarDetails = topbar.locator("details.ptTopbarDetails");
+  const profileSelect = topbarDetails.locator("label").filter({ hasText: "Profile" }).first().locator("select");
   const guidanceStrip = page.locator('section[aria-label="Start here guidance"]');
   const switchToPowerButton = guidanceStrip.getByRole("button", { name: "Switch to Power", exact: true });
   const drcTab = page.getByRole("tab", { name: "DRC", exact: true });
 
-  await expect.poll(async () => experienceSelect.inputValue()).toBe("guided");
+  await expect(guidedButton).toHaveClass(/active/);
+  await topbarDetails.locator("summary").click();
   await profileSelect.selectOption("pic_circuit");
   await expect(drcTab).toHaveCount(0);
 
   await switchToPowerButton.click();
 
-  await expect.poll(async () => experienceSelect.inputValue()).toBe("power");
+  await expect(powerButton).toHaveClass(/active/);
   await expect(drcTab).toBeVisible();
 });

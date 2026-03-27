@@ -28,32 +28,95 @@
 
 .ptTopbar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
-  gap: 18px;
-  padding: 16px 18px 14px;
+  grid-template-columns: minmax(180px, auto) 1fr auto;
+  align-items: stretch;
+  gap: 16px;
+  padding: 18px 18px 16px;
   border-bottom: 1px solid rgba(16, 23, 34, 0.12);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.54));
-  box-shadow: 0 6px 20px rgba(16, 23, 34, 0.08);
-  backdrop-filter: blur(10px);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.66)),
+    radial-gradient(420px 220px at 82% 10%, rgba(44, 154, 116, 0.12), transparent 72%);
+  box-shadow: 0 10px 28px rgba(16, 23, 34, 0.08);
+  backdrop-filter: blur(14px);
   animation: ptFadeIn 220ms ease;
 }
 
 .ptTopbarBody {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+}
+
+.ptTopbarMission {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.ptTopbarKicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pt-muted);
+}
+
+.ptTopbarMissionTitle {
+  margin-top: 4px;
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  color: rgba(11, 22, 26, 0.96);
+}
+
+.ptTopbarMissionSummary {
+  margin-top: 5px;
+  max-width: 780px;
+  font-size: 13px;
+  line-height: 1.48;
+  color: rgba(15, 20, 23, 0.82);
 }
 
 .ptTopbarPrimaryRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: start;
   justify-content: flex-end;
   gap: 10px;
 }
 
 .ptTopbarActionRow {
   justify-content: flex-end;
+}
+
+.ptTopbarSessionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ptTopbarSessionChip {
+  min-width: 126px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 9px 10px;
+  display: grid;
+  gap: 4px;
+  box-shadow: 0 10px 18px rgba(15, 20, 23, 0.06);
+}
+
+.ptTopbarSessionChip span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pt-muted);
+}
+
+.ptTopbarSessionChip strong {
+  font-size: 13px;
+  color: rgba(15, 20, 23, 0.94);
 }
 
 .ptTopbarDetails {
@@ -75,14 +138,27 @@
 }
 
 .ptStageNav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 12px 14px;
   border-bottom: 1px solid rgba(16, 23, 34, 0.1);
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.5);
   animation: ptFadeIn 260ms ease;
+}
+
+.ptStageNavCopy {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--pt-muted);
+  line-height: 1.45;
+}
+
+.ptStageRail {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .ptActivityStrip {
@@ -116,26 +192,77 @@
 }
 
 .ptStagePill {
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
+  min-height: 72px;
+  padding: 12px 12px 10px;
+  border-radius: 18px;
   border: 1px solid rgba(16, 23, 34, 0.18);
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.78);
   color: var(--pt-muted);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
 }
 
 .ptStagePill.active {
   border-color: rgba(44, 154, 116, 0.56);
-  background: rgba(44, 154, 116, 0.14);
+  background: linear-gradient(180deg, rgba(44, 154, 116, 0.18), rgba(44, 154, 116, 0.1));
   color: rgba(8, 38, 28, 0.95);
+  box-shadow: 0 14px 24px rgba(44, 154, 116, 0.12);
 }
 
 .ptStagePill:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.ptStagePillIndex {
+  display: none;
+}
+
+.ptStagePillLabel {
+  display: none;
+}
+
+.ptStagePillSub {
+  display: none;
+}
+
+.ptStagePill::before {
+  content: attr(data-stage-index);
+  display: block;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(15, 20, 23, 0.54);
+}
+
+.ptStagePill::after {
+  content: attr(data-stage-sub);
+  display: block;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pt-muted);
+}
+
+.ptStagePill {
+  position: relative;
+  padding-top: 30px;
+  padding-bottom: 28px;
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgba(15, 20, 23, 0.96);
 }
 
 .ptLanding {
@@ -194,7 +321,9 @@
 .ptLandingActionPanel {
   border-radius: 18px;
   border: 1px solid rgba(15, 20, 23, 0.12);
-  background: rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.72)),
+    radial-gradient(240px 160px at 100% 0%, rgba(44, 154, 116, 0.1), transparent 70%);
   padding: 14px;
   box-shadow: 0 12px 26px rgba(15, 20, 23, 0.08);
 }
@@ -216,6 +345,51 @@
   margin-top: 12px;
   display: grid;
   gap: 8px;
+}
+
+.ptLandingPathGrid {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.ptLandingPathCard {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.ptLandingPathMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ptLandingPathMeta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(44, 154, 116, 0.08);
+  color: rgba(8, 38, 28, 0.88);
+  font-size: 10px;
+}
+
+.ptLandingPathTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ptLandingPathDesc {
+  font-size: 12px;
+  color: rgba(15, 20, 23, 0.82);
+  line-height: 1.45;
 }
 
 .ptLandingCapabilityGrid {
@@ -267,6 +441,8 @@
   background: rgba(255, 255, 255, 0.72);
   padding: 10px;
   cursor: pointer;
+  display: grid;
+  gap: 6px;
 }
 
 .ptLandingStage.active {
@@ -280,6 +456,13 @@
   font-weight: 600;
 }
 
+.ptLandingStageIndex {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--pt-muted);
+}
+
 .ptLandingStageSub {
   margin-top: 6px;
   font-size: 11px;
@@ -291,12 +474,99 @@
   margin: 16px 18px 0;
 }
 
+.ptGuidanceStripCompact {
+  padding-bottom: 10px;
+}
+
+.ptGuidanceStripCompact .ptGuidanceHero {
+  margin-bottom: 10px;
+}
+
+.ptGuidanceHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr);
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.ptGuidanceLead {
+  display: grid;
+  gap: 6px;
+}
+
+.ptGuidanceHeroTitle {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: rgba(11, 22, 26, 0.96);
+}
+
+.ptGuidanceMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ptGuidanceMetaCard {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.ptGuidanceMetaLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--pt-muted);
+}
+
+.ptGuidanceMetaValue {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgba(14, 20, 23, 0.96);
+}
+
 .ptGuidanceTop {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+}
+
+.ptGuidanceProgressWrap {
+  display: grid;
+  gap: 8px;
+  min-width: min(420px, 100%);
+}
+
+.ptGuidanceProgressMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ptGuidanceProgressBar {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(15, 20, 23, 0.08);
+  overflow: hidden;
+}
+
+.ptGuidanceProgressBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(44, 154, 116, 0.92), rgba(72, 188, 151, 0.7));
 }
 
 .ptGuidanceChecklist {
@@ -307,11 +577,11 @@
 }
 
 .ptGuidanceStep {
-  border-radius: var(--pt-radius-sm);
+  border-radius: 16px;
   border: 1px solid rgba(15, 20, 23, 0.16);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.78);
   font-size: 12px;
-  padding: 8px 9px;
+  padding: 10px;
   color: var(--pt-muted);
   display: flex;
   align-items: center;
@@ -638,7 +908,72 @@
 .ptWorkspaceContextHead {
   display: grid;
   gap: 4px;
+}
+
+.ptWorkspaceContextTop {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.ptContextMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ptContextMetric {
+  border-radius: 14px;
+  border: 1px solid rgba(15, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.ptContextMetricLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pt-muted);
+}
+
+.ptContextMetricValue {
+  font-family: "Space Grotesk", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgba(14, 20, 23, 0.95);
+}
+
+.ptWorkspaceControls {
+  border: 1px solid rgba(15, 20, 23, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 10px 12px;
+}
+
+.ptWorkspaceControls summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pt-muted);
+}
+
+.ptWorkspaceControls[open] summary {
   margin-bottom: 10px;
+}
+
+.ptWorkspaceControlsBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+}
+
+.ptWorkspaceActivity {
+  margin-top: 10px;
 }
 
 .ptBtn {
@@ -672,6 +1007,12 @@
 
 .ptBtnGhost {
   background: rgba(255, 255, 255, 0.42);
+}
+
+.ptBtnGhost.ptBtnActive {
+  background: rgba(76, 175, 80, 0.18);
+  border-color: rgba(76, 175, 80, 0.38);
+  color: #2e7d32;
 }
 
 .ptBtnPrimary {
@@ -1396,6 +1737,61 @@
   color: var(--pt-muted);
 }
 
+.ptNodeSymbol {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0 4px;
+  padding: 4px;
+  background: rgba(245, 247, 250, 0.7);
+  border-radius: 8px;
+}
+
+.ptNodeMetric {
+  margin-top: 6px;
+  padding: 3px 8px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #1565c0;
+  background: rgba(33, 150, 243, 0.08);
+  border-radius: 6px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.ptNodeResult {
+  margin-top: 4px;
+  padding: 3px 8px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2e7d32;
+  background: rgba(76, 175, 80, 0.10);
+  border: 1px solid rgba(76, 175, 80, 0.20);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.ptPortLabel {
+  position: absolute;
+  font-size: 9px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--pt-muted);
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.ptPortLabelIn {
+  left: 16px;
+}
+
+.ptPortLabelOut {
+  right: 16px;
+  text-align: right;
+}
+
 .ptHandle {
   width: 10px !important;
   height: 10px !important;
@@ -1412,6 +1808,21 @@
 .ptHandleOut {
   border-color: rgba(44, 154, 116, 0.68) !important;
   background: rgba(44, 154, 116, 0.12) !important;
+}
+
+.ptHandle--optical {
+  border-color: rgba(33, 150, 243, 0.70) !important;
+  background: rgba(33, 150, 243, 0.12) !important;
+}
+
+.ptHandle--electrical {
+  border-color: rgba(255, 152, 0, 0.70) !important;
+  background: rgba(255, 152, 0, 0.12) !important;
+}
+
+.ptHandle--control {
+  border-color: rgba(76, 175, 80, 0.70) !important;
+  background: rgba(76, 175, 80, 0.12) !important;
 }
 
 @keyframes ptFadeIn {
@@ -1501,8 +1912,16 @@
 
 @media (max-width: 980px) {
   .ptLandingHeroSplit,
-  .ptLandingCapabilityGrid {
+  .ptLandingCapabilityGrid,
+  .ptWorkspaceContextTop,
+  .ptGuidanceHero,
+  .ptStageNav {
     grid-template-columns: 1fr;
+  }
+  .ptStageRail,
+  .ptContextMetrics,
+  .ptGuidanceMetaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .ptLandingStages {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1534,6 +1953,9 @@
     grid-template-columns: 1fr;
     gap: 10px;
   }
+  .ptTopbarMission {
+    grid-template-columns: 1fr;
+  }
   .ptTopbarPrimaryRow,
   .ptTopbarActionRow {
     justify-content: flex-start;
@@ -1556,9 +1978,29 @@
   .ptJourneyRibbon,
   .ptJourneyGrid,
   .ptLandingStages,
-  .ptGuidanceChecklist {
+  .ptGuidanceChecklist,
+  .ptStageRail,
+  .ptContextMetrics,
+  .ptGuidanceMetaGrid {
     grid-template-columns: 1fr;
   }
+}
+
+.ptConnectionWarning {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(231, 52, 63, 0.92);
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  z-index: 1000;
+  animation: ptFadeIn 0.2s ease;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

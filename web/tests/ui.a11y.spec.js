@@ -10,28 +10,30 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("keyboard tab order starts with skip link and top controls", async ({ page }) => {
+  const topbar = page.locator("header.ptTopbar");
   const skipLink = page.getByRole("link", { name: "Skip to workspace" }).first();
-  const experienceSelect = page.locator("header.ptTopbar label").filter({ hasText: "Experience" }).first().locator("select");
-  const profileSelect = page.locator("header.ptTopbar label").filter({ hasText: "Profile" }).first().locator("select");
-  const compileButton = page.locator("header.ptTopbar button", { hasText: "Compile" }).first();
+  const guidedButton = topbar.getByRole("button", { name: "Guided", exact: true });
+  const powerButton = topbar.getByRole("button", { name: "Power", exact: true });
+  const compileButton = topbar.getByRole("button", { name: "Compile", exact: true });
 
   await page.locator("body").press("Tab");
   await expect(skipLink).toBeFocused();
 
   await page.keyboard.press("Tab");
-  await expect(experienceSelect).toBeFocused();
+  await expect(guidedButton).toBeFocused();
 
   await page.keyboard.press("Tab");
-  await expect(profileSelect).toBeFocused();
+  await expect(powerButton).toBeFocused();
 
   await page.keyboard.press("Tab");
   await expect(compileButton).toBeFocused();
 });
 
 test("keyboard reverse tab returns to previous control", async ({ page }) => {
-  const experienceSelect = page.locator("header.ptTopbar label").filter({ hasText: "Experience" }).first().locator("select");
-  const profileSelect = page.locator("header.ptTopbar label").filter({ hasText: "Profile" }).first().locator("select");
-  const compileButton = page.locator("header.ptTopbar button", { hasText: "Compile" }).first();
+  const topbar = page.locator("header.ptTopbar");
+  const guidedButton = topbar.getByRole("button", { name: "Guided", exact: true });
+  const powerButton = topbar.getByRole("button", { name: "Power", exact: true });
+  const compileButton = topbar.getByRole("button", { name: "Compile", exact: true });
 
   await page.locator("body").press("Tab");
   await page.keyboard.press("Tab");
@@ -40,10 +42,10 @@ test("keyboard reverse tab returns to previous control", async ({ page }) => {
   await expect(compileButton).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
-  await expect(profileSelect).toBeFocused();
+  await expect(powerButton).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
-  await expect(experienceSelect).toBeFocused();
+  await expect(guidedButton).toBeFocused();
 });
 
 test("skip link moves focus to main workspace", async ({ page }) => {

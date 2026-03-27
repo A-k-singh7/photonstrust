@@ -1,5 +1,52 @@
+import { useState } from "react";
 import JsonBox from "../../components/common/JsonBox";
+import MiniChart from "../../components/common/MiniChart";
 import KindTrustPanel from "./KindTrustPanel";
+import { PDK_LIST, PDK_RULES } from "../../photontrust/pdkRules";
+import { KIND_DEFS } from "../../photontrust/kinds";
+
+/**
+ * Simplified client-side wavelength sweep model.
+ * Sums insertion losses from all PIC nodes and adds Lorentzian dips
+ * for ring resonator components.
+ */
+function computeSweepTransmission(nodes, startNm, stopNm, stepNm) {
+  const wavelengths = [];
+  for (let w = startNm; w <= stopNm; w += stepNm) wavelengths.push(w);
+
+  // Sum baseline insertion loss from all PIC nodes
+  let baselineLoss = 0;
+  const rings = [];
+  (nodes || []).forEach((n) => {
+    const params = n.data?.params || {};
+    const kind = String(n.data?.kind || "");
+    if (params.insertion_loss_db) {
+      baselineLoss += Number(params.insertion_loss_db) || 0;
+    }
+    // Collect ring resonators for Lorentzian dips
+    if (kind.includes("ring") || kind.includes("resonator")) {
+      const resonance = Number(params.resonance_nm || params.wavelength_nm || 1550);
+      const fwhm = Number(params.fwhm_nm || 2);
+      const depth = Number(params.extinction_db || params.depth_db || 20);
+      rings.push({ resonance, fwhm, depth });
+    }
+  });
+
+  const points = wavelengths.map((w) => {
+    let transmission = -baselineLoss;
+    // Add Lorentzian dip for each ring resonator
+    for (const ring of rings) {
+      const halfWidth = ring.fwhm / 2;
+      const lorentzian = (halfWidth * halfWidth) / ((w - ring.resonance) * (w - ring.resonance) + halfWidth * halfWidth);
+      transmission -= ring.depth * lorentzian;
+    }
+    // Add a mild wavelength-dependent ripple for realism
+    transmission += 0.3 * Math.sin(((w - startNm) / (stopNm - startNm || 1)) * Math.PI * 4);
+    return { x: w, y: transmission };
+  });
+
+  return [points]; // single series
+}
 
 function SectionLead({ title, children }) {
   return (
@@ -19,6 +66,90 @@ function DisclosurePanel({ summary, children }) {
   );
 }
 
+function PdkConstraintsSection({ selectedPdk, onSetSelectedPdk, selectedNode }) {
+  const kind = String(selectedNode?.data?.kind || "");
+  const isPic = kind.startsWith("pic.");
+  const pdkRules = selectedPdk ? (PDK_RULES[selectedPdk] || {}) : {};
+  const kindRules = pdkRules[kind] || null;
+  const kindDefaultParams = KIND_DEFS[kind]?.defaultParams || {};
+  const nodeParams = selectedNode?.data?.params || {};
+  const mergedParams = { ...kindDefaultParams, ...nodeParams };
+
+  return (
+    <details className="ptTopbarDetails ptDisclosureCard">
+      <summary>PDK Constraints</summary>
+      <div style={{ padding: "6px 0" }}>
+        <label className="ptField">
+          <span>PDK</span>
+          <select
+            value={selectedPdk}
+            onChange={(e) => onSetSelectedPdk(String(e.target.value))}
+            style={{ width: "100%" }}
+          >
+            <option value="">-- Select PDK --</option>
+            {PDK_LIST.map((pdk) => (
+              <option key={pdk.id} value={pdk.id}>
+                {pdk.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {!selectedPdk ? (
+          <div className="ptHint" style={{ marginTop: 6 }}>Select a PDK to check constraints</div>
+        ) : !isPic ? (
+          <div className="ptHint" style={{ marginTop: 6 }}>PDK constraints apply to PIC components only</div>
+        ) : !selectedNode ? (
+          <div className="ptHint" style={{ marginTop: 6 }}>Select a node to check constraints</div>
+        ) : !kindRules ? (
+          <div className="ptHint" style={{ marginTop: 6 }}>No PDK rules for this component</div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", marginTop: 6 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--pt-border, #444)" }}>
+                <th style={{ textAlign: "left", padding: "3px 4px", fontWeight: 600 }}>Parameter</th>
+                <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: 600 }}>Value</th>
+                <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: 600 }}>Min</th>
+                <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: 600 }}>Max</th>
+                <th style={{ textAlign: "center", padding: "3px 4px", fontWeight: 600 }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(kindRules).map(([param, rule]) => {
+                const val = mergedParams[param];
+                const numVal = Number(val);
+                const hasValue = val != null && val !== "" && Number.isFinite(numVal);
+                const inRange = hasValue && numVal >= rule.min && numVal <= rule.max;
+                const displayVal = hasValue ? String(numVal) : "\u2014";
+                return (
+                  <tr key={param} style={{ borderBottom: "1px solid var(--pt-border, #333)" }}>
+                    <td style={{ padding: "3px 4px", fontFamily: "var(--pt-mono, monospace)", fontSize: "0.78rem" }}>
+                      {param}
+                      {rule.unit ? <span style={{ opacity: 0.55, marginLeft: 2 }}>({rule.unit})</span> : null}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "3px 4px" }}>{displayVal}</td>
+                    <td style={{ textAlign: "right", padding: "3px 4px", opacity: 0.65 }}>{rule.min}</td>
+                    <td style={{ textAlign: "right", padding: "3px 4px", opacity: 0.65 }}>{rule.max}</td>
+                    <td style={{ textAlign: "center", padding: "3px 4px" }}>
+                      {!hasValue ? (
+                        <span style={{ opacity: 0.4 }}>{"\u2014"}</span>
+                      ) : inRange ? (
+                        <span style={{ color: "#4caf50" }}>{"\u2713"}</span>
+                      ) : (
+                        <span style={{ color: "#ff9800", fontWeight: 700 }}>{"\u26A0"}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </details>
+  );
+}
+
 export default function GraphRightSidebarContent({
   activeRightTab,
   inspect,
@@ -30,7 +161,15 @@ export default function GraphRightSidebarContent({
   klayout,
   spice,
   graphJson,
+  nodes,
 }) {
+  const [selectedPdk, setSelectedPdk] = useState("");
+  const [sweepStart, setSweepStart] = useState(1500);
+  const [sweepStop, setSweepStop] = useState(1600);
+  const [sweepStep, setSweepStep] = useState(5);
+  const [sweepData, setSweepData] = useState([]);
+  const [sweepLoading, setSweepLoading] = useState(false);
+
   if (activeRightTab === "inspect") {
     return (
       <div id="pt-panel-graph-inspect" role="tabpanel" aria-labelledby="pt-tab-graph-inspect" className="ptRightBody">
@@ -67,6 +206,11 @@ export default function GraphRightSidebarContent({
               <DisclosurePanel summary="Advanced node parameters JSON">
                 <JsonBox title="params" value={inspect.selectedNode?.data?.params} onApply={inspect.onApplySelectedParams} />
               </DisclosurePanel>
+              <PdkConstraintsSection
+                selectedPdk={selectedPdk}
+                onSetSelectedPdk={setSelectedPdk}
+                selectedNode={inspect.selectedNode}
+              />
             </>
           ) : (
             <div className="ptHint">Click a node in the graph to edit its parameters. Until then, use the setup panels below to shape the overall scenario.</div>
@@ -151,6 +295,83 @@ export default function GraphRightSidebarContent({
             </DisclosurePanel>
           </div>
         )}
+
+        {inspect.profile === "pic_circuit" ? (
+          <div className="ptRightSection">
+            <div className="ptRightTitle">Wavelength Sweep</div>
+            <SectionLead title="Quick visualization">Run a simplified client-side transmission sweep across the current PIC graph to preview insertion loss and resonator dips before full simulation.</SectionLead>
+            <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
+              <label className="ptField" style={{ flex: 1, margin: 0 }}>
+                <span>Start (nm)</span>
+                <input
+                  type="number"
+                  value={sweepStart}
+                  onChange={(e) => {
+                    const v = Number(String(e.target.value));
+                    setSweepStart(Number.isFinite(v) ? v : 1500);
+                  }}
+                  style={{ width: "100%" }}
+                />
+              </label>
+              <label className="ptField" style={{ flex: 1, margin: 0 }}>
+                <span>Stop (nm)</span>
+                <input
+                  type="number"
+                  value={sweepStop}
+                  onChange={(e) => {
+                    const v = Number(String(e.target.value));
+                    setSweepStop(Number.isFinite(v) ? v : 1600);
+                  }}
+                  style={{ width: "100%" }}
+                />
+              </label>
+              <label className="ptField" style={{ flex: 1, margin: 0 }}>
+                <span>Step (nm)</span>
+                <input
+                  type="number"
+                  value={sweepStep}
+                  onChange={(e) => {
+                    const v = Number(String(e.target.value));
+                    setSweepStep(Number.isFinite(v) && v > 0 ? v : 5);
+                  }}
+                  style={{ width: "100%" }}
+                />
+              </label>
+            </div>
+            <div className="ptBtnRow" style={{ marginTop: 8 }}>
+              <button
+                className="ptBtn ptBtnPrimary"
+                disabled={sweepLoading || sweepStep <= 0 || sweepStart >= sweepStop}
+                onClick={() => {
+                  setSweepLoading(true);
+                  // Use setTimeout to let the UI update before computing
+                  setTimeout(() => {
+                    try {
+                      const result = computeSweepTransmission(nodes || [], sweepStart, sweepStop, sweepStep);
+                      setSweepData(result);
+                    } catch (_err) {
+                      setSweepData([]);
+                    }
+                    setSweepLoading(false);
+                  }, 0);
+                }}
+              >
+                {sweepLoading ? "Running..." : "Run Sweep"}
+              </button>
+            </div>
+            {sweepData.length > 0 && sweepData.some((s) => s.length > 0) ? (
+              <div style={{ marginTop: 8 }}>
+                <MiniChart
+                  data={sweepData}
+                  width={280}
+                  height={160}
+                  xLabel="Wavelength (nm)"
+                  yLabel="Transmission (dB)"
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {inspect.profile === "pic_circuit" ? (
           <div className="ptRightSection">

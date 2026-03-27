@@ -107,7 +107,7 @@
           "from_port": { "type": "string" },
           "to": { "type": "string" },
           "to_port": { "type": "string" },
-          "kind": { "type": "string", "enum": ["optical", "electrical", "control"] },
+          "kind": { "type": "string", "enum": ["optical", "electrical", "control", "free_space", "satellite_downlink", "satellite_uplink"] },
           "label": { "type": "string" },
           "params": { "type": "object" }
         }

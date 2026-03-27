@@ -1,0 +1,15 @@
+{
+  "component_id": "nir_850",
+  "category": "band",
+  "subcategory": "nir",
+  "vendor": null,
+  "model": null,
+  "version": "1.0",
+  "params": {
+    "wavelength_nm": 850,
+    "fiber_loss_db_per_km": 2.2,
+    "dispersion_ps_per_km": 2.0
+  },
+  "tags": ["nir", "near_infrared", "850nm"],
+  "notes": "Near-IR 850 nm band."
+}

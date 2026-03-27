@@ -11,7 +11,7 @@ looks predictable and professional at scale.
 
 - `test_detector_model.py`
 - `test_graph_compiler.py`
-- `test_qkd_basic.py`
+- `test_qkd_smoke.py`
 - `test_satellite_chain_pipeline.py`
 
 These are good and should remain the model.
@@ -26,9 +26,9 @@ These are also good and should be grouped under a dedicated folder.
 
 ### Internal-program or milestone patterns
 
-- `test_phase61_packaging_readiness.py`
-- `test_phase62_ga_release_cycle.py`
-- `test_phase63_post_ga_hardening.py`
+- `test_packaging_readiness.py`
+- `test_ga_release_cycle.py`
+- `test_post_ga_hardening.py`
 - `test_day10_tapeout_rehearsal.py`
 - `test_m3_checkpoint.py`
 
@@ -55,7 +55,7 @@ surface.
 | Contract tests | `test_protocol_engine_contract.py` | `tests/contracts/` | Keep filename, move folder |
 | Schema tests | `test_evidence_bundle_manifest_schema.py` | `tests/contracts/` or `tests/validation/` | Keep filename, group consistently |
 | Domain tests | `test_detector_model.py` | `tests/unit/` or `tests/integration/` | Keep filename, move folder |
-| Validation baseline tests | `test_phase41_canonical_baselines.py` | `tests/validation/program/` | Keep filename initially, add README |
+| Validation baseline tests | `test_canonical_baselines.py` | `tests/validation/program/` | Keep filename initially, add README |
 | Milestone/day tests | `test_day10_tapeout_rehearsal.py` | `tests/validation/milestones/` | Keep filename initially, add README |
 | UI helper Python tests | `test_ui_data_helpers.py` | `tests/ui/` | Keep filename, move folder |
 
@@ -73,8 +73,8 @@ surface.
   - candidate future name: `test_program_m3_checkpoint.py`
 - `test_day10_tapeout_rehearsal.py`
   - candidate future name: `test_tapeout_day10_rehearsal.py`
-- `test_phase62_ga_release_cycle.py`
-  - candidate future name: `test_ga_release_cycle_phase62.py`
+- `test_ga_release_cycle.py`
+  - (already renamed from `test_phase62_ga_release_cycle.py`)
 
 ## Recommended Execution Order
 

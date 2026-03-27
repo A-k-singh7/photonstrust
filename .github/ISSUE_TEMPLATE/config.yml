@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Documentation map
+    url: https://github.com/photonstrust/photonstrust/blob/main/docs/README.md
+    about: Use the docs map to find the current user, maintainer, and release guides.
   - name: Security issue
     url: https://github.com/photonstrust/photonstrust/blob/main/SECURITY.md
     about: Please do not file public security issues; follow the security policy instead.

@@ -155,6 +155,12 @@ class TestReliabilityCard:
         assert "Test Card" in html
         assert "PhotonTrust" in html
 
+    def test_html_escapes_title_markup(self):
+        from photonstrust.reports.reliability_card import generate_reliability_card_html
+        html = generate_reliability_card_html(title='<script>alert("x")</script>')
+        assert "<script>alert" not in html
+        assert "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;" in html
+
     def test_html_contains_drc_section(self):
         from photonstrust.reports.reliability_card import generate_reliability_card_html
         html = generate_reliability_card_html(netlist=self._netlist())
@@ -210,5 +216,17 @@ class TestAPIServer:
             r = client.get("/health")
             assert r.status_code == 200
             assert r.json()["status"] == "ok"
+        except (ImportError, RuntimeError):
+            pytest.skip("fastapi/httpx/starlette not installed")
+
+    def test_reliability_card_endpoint_uses_fixed_safe_title(self):
+        try:
+            from fastapi.testclient import TestClient
+            from photonstrust.api_server import create_app
+            client = TestClient(create_app())
+            r = client.post("/report/reliability_card", json={"title": '<script>alert("x")</script>'})
+            assert r.status_code == 200
+            assert "<script>alert" not in r.text
+            assert "PhotonTrust Reliability Card" in r.text
         except (ImportError, RuntimeError):
             pytest.skip("fastapi/httpx/starlette not installed")

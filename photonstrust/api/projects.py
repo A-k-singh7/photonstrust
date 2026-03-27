@@ -7,7 +7,9 @@ adding DB dependencies during early rollout phases.
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,6 +24,29 @@ PROJECT_WORKSPACE_BASENAME = "workspace.json"
 _PROJECT_ID_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 
 
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_project_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.fspath(run_store.runs_root())),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_project_dir_candidate(path_value: Path | str) -> Path:
+    resolved = os.path.realpath(os.fspath(Path(path_value)))
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_project_roots()):
+        raise ValueError("project directory must stay within the runs, home, or temp directories")
+    return Path(resolved)
+
+
 def validate_project_id(project_id: str) -> str:
     pid = str(project_id or "").strip().lower()
     if not pid:
@@ -32,12 +57,17 @@ def validate_project_id(project_id: str) -> str:
 
 
 def projects_root() -> Path:
-    return (run_store.runs_root() / "projects").resolve()
+    return _resolve_project_dir_candidate(run_store.runs_root() / "projects")
 
 
 def project_dir_for_id(project_id: str) -> Path:
     pid = validate_project_id(project_id)
-    return projects_root() / f"project_{pid}"
+    root = projects_root()
+    candidate = os.path.realpath(os.path.join(os.fspath(root), f"project_{pid}"))
+    root_text = os.path.realpath(os.fspath(root))
+    if not _is_within_root(candidate, root_text):
+        raise ValueError("project_id resolves outside projects root")
+    return Path(candidate)
 
 
 def approvals_path(project_id: str) -> Path:

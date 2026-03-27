@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import html
 import json
+import os
 import platform
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,12 +17,42 @@ from photonstrust.qkd_protocols.common import normalize_protocol_name
 from photonstrust.utils import hash_dict
 
 
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_output_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.getcwd()),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_output_path(path_value: Path | str) -> Path:
+    raw = os.path.expanduser(os.fspath(path_value))
+    candidate = raw if os.path.isabs(raw) else os.path.join(os.getcwd(), raw)
+    resolved = os.path.realpath(candidate)
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_output_roots()):
+        raise ValueError("output path must stay within the workspace, home, or temp directories")
+    return Path(resolved)
+
+
+def _escape_html(value: object) -> str:
+    return html.escape(str(value), quote=True)
+
+
 def build_reliability_card(
     scenario: dict,
     results: list[QKDResult],
     uncertainty: dict | None,
     output_dir: Path,
 ) -> dict:
+    output_dir = _resolve_output_path(output_dir)
     version = str((scenario or {}).get("reliability_card_version") or "1.0").strip().lower()
     if version in {"1.1", "v1.1", "v1_1"}:
         return _build_reliability_card_v1_1(scenario, results, uncertainty, output_dir)
@@ -98,6 +131,7 @@ def _build_reliability_card_v1_0(
     uncertainty: dict | None,
     output_dir: Path,
 ) -> dict:
+    output_dir = _resolve_output_path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     primary = results[0]
 
@@ -499,12 +533,14 @@ def _build_trust_metadata(*, scenario: dict, card: dict) -> dict:
 
 
 def write_reliability_card(card: dict, output_path: Path) -> None:
+    output_path = _resolve_output_path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(card, indent=2), encoding="utf-8")
 
 
 def write_html_report(card: dict, output_path: Path, plot_paths: dict | None = None) -> None:
     plot_paths = plot_paths or {}
+    output_path = _resolve_output_path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     html = _render_html(card, plot_paths)
     output_path.write_text(html, encoding="utf-8")
@@ -517,6 +553,7 @@ def write_pdf_report(card: dict, output_path: Path) -> None:
     except Exception as exc:  # pragma: no cover - optional dependency
         raise RuntimeError(f"reportlab is required for PDF export: {exc}")
 
+    output_path = _resolve_output_path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     c = canvas.Canvas(str(output_path), pagesize=letter)
     width, height = letter
@@ -560,7 +597,7 @@ def _safe_use_label(primary: QKDResult) -> tuple[str, str]:
 def _render_html(card: dict, plot_paths: dict) -> str:
     plot_path = card["artifacts"].get("plots", {}).get("key_rate_vs_distance_path")
     plot_block = (
-        f"<img src=\"{plot_path}\" alt=\"Key rate plot\" />" if plot_path else ""
+        f"<img src=\"{_escape_html(plot_path)}\" alt=\"Key rate plot\" />" if plot_path else ""
     )
 
     return f"""<!doctype html>
@@ -598,7 +635,7 @@ def _render_html(card: dict, plot_paths: dict) -> str:
 </head>
 <body>
   <h1>PhotonTrust Reliability Card</h1>
-  <p class=\"subtle\">Scenario: {card["scenario_id"]} | Band: {card["band"]} | {card["wavelength_nm"]} nm</p>
+  <p class=\"subtle\">Scenario: {_escape_html(card["scenario_id"])} | Band: {_escape_html(card["band"])} | {card["wavelength_nm"]} nm</p>
 
   <div class=\"grid\">
     <div class=\"card\">
@@ -613,13 +650,13 @@ def _render_html(card: dict, plot_paths: dict) -> str:
     </div>
     <div class=\"card\">
       <div class=\"label\">Safe Use</div>
-      <span class=\"tag\">{card["safe_use_label"]["label"]}</span>
-      <p>{card["safe_use_label"]["rationale"]}</p>
+      <span class=\"tag\">{_escape_html(card["safe_use_label"]["label"])}</span>
+      <p>{_escape_html(card["safe_use_label"]["rationale"])}</p>
     </div>
     <div class=\"card\">
       <div class=\"label\">Error Budget</div>
       <table>
-        <tr><td>Dominant</td><td>{card["error_budget"]["dominant_error"]}</td></tr>
+        <tr><td>Dominant</td><td>{_escape_html(card["error_budget"]["dominant_error"])}</td></tr>
         <tr><td>Loss fraction</td><td>{card["error_budget"]["error_budget"]["loss_fraction"]:.3f}</td></tr>
         <tr><td>Detector fraction</td><td>{card["error_budget"]["error_budget"]["detector_fraction"]:.3f}</td></tr>
         <tr><td>Multiphoton fraction</td><td>{card["error_budget"]["error_budget"]["multiphoton_fraction"]:.3f}</td></tr>
@@ -629,7 +666,7 @@ def _render_html(card: dict, plot_paths: dict) -> str:
     <div class=\"card\">
       <div class=\"label\">Reproducibility</div>
       <table>
-        <tr><td>Config hash</td><td>{card["reproducibility"]["config_hash"]}</td></tr>
+        <tr><td>Config hash</td><td>{_escape_html(card["reproducibility"]["config_hash"])}</td></tr>
         <tr><td>Seed</td><td>{card["reproducibility"]["seed"]}</td></tr>
       </table>
     </div>

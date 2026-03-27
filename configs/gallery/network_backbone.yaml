@@ -1,0 +1,17 @@
+# 5-Node Backbone Ring Network
+name: network_backbone
+runner: plan_network
+config:
+  nodes:
+    - HQ
+    - DataCenter1
+    - DataCenter2
+    - DataCenter3
+    - DR_Site
+  links:
+    - {a: HQ, b: DataCenter1, distance_km: 15}
+    - {a: DataCenter1, b: DataCenter2, distance_km: 25}
+    - {a: DataCenter2, b: DataCenter3, distance_km: 20}
+    - {a: DataCenter3, b: DR_Site, distance_km: 30}
+    - {a: DR_Site, b: HQ, distance_km: 35}
+    - {a: HQ, b: DataCenter2, distance_km: 40}

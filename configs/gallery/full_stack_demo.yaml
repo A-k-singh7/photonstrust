@@ -1,0 +1,9 @@
+# Full-Stack Protocol Comparison
+name: full_stack_demo
+runner: compare_protocols
+config:
+  protocols: null
+  distances:
+    start: 0
+    stop: 100
+    step: 5

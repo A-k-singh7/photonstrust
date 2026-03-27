@@ -1,0 +1,27 @@
+{
+  "name": "gf_45clo",
+  "version": "0.1",
+  "description": "GlobalFoundries 45CLO monolithic CMOS+photonics platform (published specs)",
+  "design_rules": {
+    "min_waveguide_width_um": 0.30,
+    "min_waveguide_gap_um": 0.20,
+    "min_bend_radius_um": 5.0
+  },
+  "capabilities": {
+    "supports_layout": false,
+    "supports_performance_drc": true,
+    "supports_lvs_lite_signoff": false,
+    "supports_spice_export": false
+  },
+  "layer_stack": [
+    {"name": "si_core", "gds_layer": 100, "gds_datatype": 0, "material": "Si", "thickness_um": 0.30},
+    {"name": "box", "gds_layer": 200, "gds_datatype": 0, "material": "SiO2", "thickness_um": 0.14},
+    {"name": "ge_pd", "gds_layer": 101, "gds_datatype": 0, "material": "SiGe", "thickness_um": 0.20}
+  ],
+  "component_cells": [
+    {"name": "strip_waveguide", "library": "gf_45clo", "cell": "WG_STRIP", "ports": ["in", "out"], "maps_to_internal_kind": "pic.waveguide", "default_params": {"loss_db_per_cm": 1.0}},
+    {"name": "mzm_depletion", "library": "gf_45clo", "cell": "MZM_PN", "ports": ["in", "out"], "maps_to_internal_kind": "pic.mzm", "default_params": {"V_pi_L_pi_Vcm": 2.5, "insertion_loss_db": 5.0, "phase_shifter_length_mm": 2.0}},
+    {"name": "sige_photodetector", "library": "gf_45clo", "cell": "SIGE_PD", "ports": ["in", "out"], "maps_to_internal_kind": "pic.photodetector", "default_params": {"alpha_per_cm": 4000.0, "length_um": 15.0}}
+  ],
+  "interop": null
+}

@@ -1,0 +1,7 @@
+# AWG Wavelength Demultiplexer (PIC)
+name: pic_awg_demux
+runner: design_pic
+config:
+  components:
+    - awg
+  wavelength_nm: 1550.0

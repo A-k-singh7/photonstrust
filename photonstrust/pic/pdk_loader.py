@@ -25,6 +25,18 @@ _PDK_NAME_ALIASES: dict[str, str] = {
     "aim_photonics": "aim_photonics",
     "aim_300nm_sin": "aim_photonics_300nm_sin",
     "aim_photonics_300nm_sin": "aim_photonics_300nm_sin",
+    "imec": "imec_isipp50g",
+    "imec_isipp50g": "imec_isipp50g",
+    "isipp50g": "imec_isipp50g",
+    "ligentec": "ligentec_an800",
+    "ligentec_an800": "ligentec_an800",
+    "an800": "ligentec_an800",
+    "gf_45clo": "gf_45clo",
+    "gf45clo": "gf_45clo",
+    "globalfoundries_45clo": "gf_45clo",
+    "lionix": "lionix_triplex",
+    "lionix_triplex": "lionix_triplex",
+    "triplex": "lionix_triplex",
 }
 
 _BUILTIN_PDK_MANIFESTS: dict[str, dict[str, Any]] = {

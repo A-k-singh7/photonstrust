@@ -1,0 +1,15 @@
+# 3-Node Linear QKD Network
+name: network_3node
+runner: plan_network
+config:
+  nodes:
+    - Alice
+    - Relay
+    - Bob
+  links:
+    - a: Alice
+      b: Relay
+      distance_km: 20
+    - a: Relay
+      b: Bob
+      distance_km: 30
