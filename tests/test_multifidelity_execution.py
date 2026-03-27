@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from photonstrust.benchmarks.schema import validate_instance
 from photonstrust.qkd import compute_sweep
 from photonstrust.sweep import run_scenarios
@@ -94,3 +96,11 @@ def test_run_scenarios_writes_schema_valid_multifidelity_report(tmp_path):
     assert payload["kind"] == "multifidelity.report"
     assert payload["run_id"] == "phase51_w08_multifidelity"
     assert "qiskit:repeater_primitive" in payload["backend_results"]
+
+
+def test_run_scenarios_rejects_output_dir_outside_output_root(tmp_path):
+    scenario = _scenario("preview")
+    scenario["output_dir"] = str(tmp_path.parent / "escaped-output")
+
+    with pytest.raises(ValueError, match="scenario output_dir must stay within output_root"):
+        run_scenarios([scenario], tmp_path, run_id="phase51_w08_escape")

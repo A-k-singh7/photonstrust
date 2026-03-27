@@ -24,6 +24,7 @@ import RightSidebarTabs from "./features/shell/RightSidebarTabs";
 import StatusFooter from "./features/shell/StatusFooter";
 import { PRODUCT_STAGE_ITEMS, PRODUCT_STAGE_ROUTES, stageLabel, stageSubtitle } from "./features/shell/copy";
 import WorkspaceContextBar from "./features/workspace/WorkspaceContextBar";
+import { createOpaqueId, randomToken } from "./state/randomId";
 import { createUiSessionId, createUiTelemetrySink } from "./state/uiTelemetry";
 import {
   buildProjectWorkspaceSnapshot,
@@ -267,10 +268,7 @@ function _saveGuidedProgress(progress) {
 function _ensureNewcomerId() {
   const existing = String(localStorage.getItem("pt_newcomer_id") || "").trim();
   if (existing) return existing;
-  const generated =
-    typeof globalThis?.crypto?.randomUUID === "function"
-      ? globalThis.crypto.randomUUID()
-      : `anon-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const generated = createOpaqueId("anon");
   localStorage.setItem("pt_newcomer_id", generated);
   return generated;
 }
@@ -325,7 +323,7 @@ function _nextNodeId(kind, existingNodes) {
     const candidate = `${slug}_${i}`;
     if (!taken.has(candidate)) return candidate;
   }
-  return `${slug}_${Math.floor(Math.random() * 1e9)}`;
+  return `${slug}_${randomToken(4)}`;
 }
 
 function _flowFromGraph(graph, registryByKind = null) {

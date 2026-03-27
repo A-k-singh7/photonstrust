@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 
 
 # Constants
-R_EARTH_KM = 6371.0
-MU_EARTH = 3.986004418e5  # km^3/s^2
-J2 = 1.08263e-3
+R_EARTH_KM = 6371.0  # physics-constant-ok
+MU_EARTH = 3.986004418e5  # km^3/s^2  # physics-constant-ok
+J2 = 1.08263e-3  # physics-constant-ok
 OMEGA_SUN = 2 * math.pi / (365.25 * 86400)  # rad/s (Earth's orbital rate)
 
 

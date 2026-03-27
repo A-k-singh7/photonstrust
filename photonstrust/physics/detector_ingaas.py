@@ -26,7 +26,7 @@ from typing import Any
 
 
 # Boltzmann constant in eV/K
-K_B_EV = 8.617333262e-5
+K_B_EV = 8.617333262e-5  # physics-constant-ok
 
 
 @dataclass(frozen=True)

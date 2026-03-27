@@ -10,6 +10,7 @@ ChipVerify workflows. The v1 philosophy:
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -87,6 +88,31 @@ def component_forward_matrix(kind: str, params: dict, wavelength_nm: float | Non
 def component_all_ports(kind: str, params: dict | None = None) -> tuple[str, ...]:
     ports = component_ports(kind, params=params)
     return tuple([*ports.in_ports, *ports.out_ports])
+
+
+_TOUCHSTONE_SUFFIX_RE = re.compile(r"\.s\d+p$")
+
+
+def _resolve_touchstone_path(params: dict, *, kind: str) -> str:
+    path_value = params.get("touchstone_path") or params.get("path")
+    if not path_value:
+        raise ValueError(f"{kind} requires params.touchstone_path (or params.path)")
+
+    base_value = params.get("touchstone_root")
+    base_dir = Path(str(base_value)).expanduser().resolve() if base_value else Path.cwd().resolve()
+    candidate = Path(str(path_value)).expanduser()
+    resolved = candidate.resolve() if candidate.is_absolute() else (base_dir / candidate).resolve()
+
+    try:
+        resolved.relative_to(base_dir)
+    except ValueError as exc:
+        raise ValueError(f"{kind} touchstone_path must resolve within touchstone_root or the current working directory") from exc
+
+    if not resolved.is_file():
+        raise ValueError(f"{kind} touchstone_path does not exist: {resolved}")
+    if not _TOUCHSTONE_SUFFIX_RE.fullmatch(resolved.suffix.lower()):
+        raise ValueError(f"{kind} touchstone_path must point to a .sNp file")
+    return str(resolved)
 
 
 def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | None = None) -> np.ndarray:
@@ -204,14 +230,11 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
 
     if kind == "pic.touchstone_2port":
         # Use the full S-parameter matrix at the requested wavelength.
-        path = params.get("touchstone_path") or params.get("path")
-        if not path:
-            raise ValueError("pic.touchstone_2port requires params.touchstone_path (or params.path)")
         if wavelength_nm is None:
             raise ValueError("pic.touchstone_2port requires wavelength_nm to evaluate S-parameters")
         allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
-        ts_path = str(Path(str(path)).expanduser().resolve())
+        ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_2port")
         data = load_touchstone_2port(ts_path)
 
         c_m_s = 299_792_458.0
@@ -226,15 +249,12 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
 
     if kind == "pic.touchstone_nport":
         # Use the full S-parameter matrix at the requested wavelength.
-        path = params.get("touchstone_path") or params.get("path")
-        if not path:
-            raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
         if wavelength_nm is None:
             raise ValueError("pic.touchstone_nport requires wavelength_nm to evaluate S-parameters")
 
         allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
-        ts_path = str(Path(str(path)).expanduser().resolve())
+        ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_nport")
         n_ports = params.get("n_ports")
         if n_ports is None:
             n_ports = infer_touchstone_n_ports(ts_path)
@@ -348,10 +368,10 @@ def _matrix_phase_shifter(params: dict, wavelength_nm: float | None) -> jnp.ndar
     # Uses jnp functions to enable Autodiff through phase_rad.
     phi = params.get("phase_rad", 0.0)
     phi = phi if phi is not None else 0.0
-    
+
     loss_db = params.get("insertion_loss_db", 0.0)
     loss_db = float(loss_db) if loss_db is not None else 0.0
-    
+
     eta = _eta_from_loss_db(loss_db)
     t = jnp.sqrt(eta) * (jnp.cos(phi) + 1j * jnp.sin(phi))
     return jnp.array([[t]], dtype=jnp.complex128)
@@ -441,10 +461,10 @@ def _matrix_coupler(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
     kappa = params.get("coupling_ratio", 0.5)
     kappa = kappa if kappa is not None else 0.5
     kappa = jnp.clip(kappa, 0.0, 1.0)
-    
+
     il_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
     eta = _eta_from_loss_db(il_db)
-    
+
     t = jnp.sqrt(1.0 - kappa)
     k = jnp.sqrt(kappa)
     m = jnp.array([[t, 1j * k], [1j * k, t]], dtype=jnp.complex128)
@@ -454,9 +474,6 @@ def _matrix_coupler(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
 def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.ndarray:
     # Touchstone S-parameter import (2-port), mapped to a forward scalar transfer.
     # Default mapping: S21 (port1 -> port2) == out due to in.
-    path = params.get("touchstone_path") or params.get("path")
-    if not path:
-        raise ValueError("pic.touchstone_2port requires params.touchstone_path (or params.path)")
     if wavelength_nm is None:
         raise ValueError("pic.touchstone_2port requires wavelength_nm to evaluate S-parameters")
 
@@ -464,7 +481,7 @@ def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.nd
     allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
     # Resolve to an absolute path for stable caching and provenance behavior.
-    ts_path = str(Path(str(path)).expanduser().resolve())
+    ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_2port")
     data = load_touchstone_2port(ts_path)
 
     c_m_s = 299_792_458.0
@@ -485,13 +502,11 @@ def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.nd
 
 
 def _touchstone_nport_ports(params: dict) -> ComponentPorts:
-    path = params.get("touchstone_path") or params.get("path")
-    if not path:
-        raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
+    ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_nport")
 
     n_ports = params.get("n_ports")
     if n_ports is None:
-        n_ports = infer_touchstone_n_ports(str(path))
+        n_ports = infer_touchstone_n_ports(ts_path)
     if n_ports is None:
         raise ValueError("pic.touchstone_nport requires n_ports or a .sNp filename")
     n_ports = int(n_ports)
@@ -532,15 +547,12 @@ def _touchstone_nport_ports(params: dict) -> ComponentPorts:
 
 
 def _matrix_touchstone_nport(params: dict, wavelength_nm: float | None) -> np.ndarray:
-    path = params.get("touchstone_path") or params.get("path")
-    if not path:
-        raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
     if wavelength_nm is None:
         raise ValueError("pic.touchstone_nport requires wavelength_nm to evaluate S-parameters")
 
     allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
-    ts_path = str(Path(str(path)).expanduser().resolve())
+    ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_nport")
     n_ports = params.get("n_ports")
     if n_ports is None:
         n_ports = infer_touchstone_n_ports(ts_path)

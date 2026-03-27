@@ -22,7 +22,24 @@ from photonstrust.report import (
 from photonstrust.workflow.schema import multifidelity_report_schema_path
 
 
+def _resolve_scenario_output_dir(output_root: Path, scenario: dict, *, scenario_id: str, band: str) -> Path:
+    base_dir = output_root.resolve()
+    raw_output_dir = scenario.get("output_dir")
+    if raw_output_dir is None or str(raw_output_dir).strip() == "":
+        candidate = base_dir / scenario_id / band
+    else:
+        user_path = Path(str(raw_output_dir)).expanduser()
+        candidate = user_path.resolve() if user_path.is_absolute() else (Path.cwd() / user_path).resolve()
+
+    try:
+        candidate.relative_to(base_dir)
+    except ValueError as exc:
+        raise ValueError(f"scenario output_dir must stay within output_root: {base_dir}") from exc
+    return candidate
+
+
 def run_scenarios(scenarios: list[dict], output_root: Path, *, run_id: str | None = None) -> dict:
+    output_root = output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     grouped = {}
     cards = []
@@ -30,7 +47,7 @@ def run_scenarios(scenarios: list[dict], output_root: Path, *, run_id: str | Non
     for scenario in scenarios:
         scenario_id = scenario["scenario_id"]
         band = scenario["band"]
-        output_dir = Path(scenario.get("output_dir", output_root / scenario_id / band))
+        output_dir = _resolve_scenario_output_dir(output_root, scenario, scenario_id=scenario_id, band=band)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         sweep = compute_sweep(scenario)

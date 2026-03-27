@@ -1,3 +1,5 @@
+import { createOpaqueId } from "./randomId";
+
 const RUN_COLLECTIONS_KEY = "pt_run_collections_v1";
 
 export const MAX_COLLECTIONS = 24;
@@ -49,8 +51,7 @@ function _toIso(value) {
 }
 
 function _id(prefix) {
-  const rand = Math.random().toString(36).slice(2, 10);
-  return `${prefix}_${Date.now().toString(36)}_${rand}`;
+  return createOpaqueId(prefix);
 }
 
 function _uniqueTextList(values, max) {
