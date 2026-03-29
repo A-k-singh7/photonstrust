@@ -41,7 +41,7 @@ def _base_scenario() -> dict:
 
 
 def test_protocol_registry_resolution_and_aliases() -> None:
-    assert available_protocols() == ("amdi_qkd", "bb84_decoy", "bbm92", "mdi_qkd", "pm_qkd", "tf_qkd")
+    assert available_protocols() == ("amdi_qkd", "bb84_decoy", "bbm92", "cv_qkd", "di_qkd", "mdi_qkd", "pm_qkd", "sns_tf_qkd", "tf_qkd")
 
     assert resolve_protocol_module(None).protocol_id == "bbm92"
     assert resolve_protocol_module("bb84").protocol_id == "bb84_decoy"
@@ -49,6 +49,12 @@ def test_protocol_registry_resolution_and_aliases() -> None:
     assert resolve_protocol_module("amdi").protocol_id == "amdi_qkd"
     assert resolve_protocol_module("pm").protocol_id == "pm_qkd"
     assert resolve_protocol_module("tf").protocol_id == "tf_qkd"
+    assert resolve_protocol_module("cv").protocol_id == "cv_qkd"
+    assert resolve_protocol_module("gg02").protocol_id == "cv_qkd"
+    assert resolve_protocol_module("sns").protocol_id == "sns_tf_qkd"
+    assert resolve_protocol_module("sns_tf").protocol_id == "sns_tf_qkd"
+    assert resolve_protocol_module("di").protocol_id == "di_qkd"
+    assert resolve_protocol_module("device_independent").protocol_id == "di_qkd"
 
 
 def test_protocol_applicability_enforces_relay_fiber_constraint() -> None:
@@ -67,10 +73,12 @@ def test_protocol_applicability_enforces_relay_fiber_constraint() -> None:
 def test_protocol_gate_policy_routes_plob_by_protocol_family() -> None:
     assert protocol_gate_policy("bbm92")["plob_repeaterless_bound"] == "apply"
     assert protocol_gate_policy("bb84_decoy")["plob_repeaterless_bound"] == "apply"
+    assert protocol_gate_policy("cv_qkd")["plob_repeaterless_bound"] == "apply"
     assert protocol_gate_policy("mdi_qkd")["plob_repeaterless_bound"] == "skip"
     assert protocol_gate_policy("amdi_qkd")["plob_repeaterless_bound"] == "skip"
     assert protocol_gate_policy("pm_qkd")["plob_repeaterless_bound"] == "skip"
     assert protocol_gate_policy("tf_qkd")["plob_repeaterless_bound"] == "skip"
+    assert protocol_gate_policy("sns_tf_qkd")["plob_repeaterless_bound"] == "skip"
 
 
 def test_compute_point_assigns_explicit_protocol_name_for_relay_variants() -> None:

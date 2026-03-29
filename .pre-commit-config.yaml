@@ -2,10 +2,21 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
+      - id: end-of-file-fixer
+        exclude: ^(results/|docs/results/)
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: ^(results/|docs/results/)
       - id: check-yaml
       - id: check-json
         files: ^(configs/|schemas/|tests/fixtures/|datasets/|graphs/|reports/|docs/).*\.json$
       - id: check-toml
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: ^(results/|docs/results/)
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-case-conflict
       - id: check-merge-conflict
       - id: debug-statements
 

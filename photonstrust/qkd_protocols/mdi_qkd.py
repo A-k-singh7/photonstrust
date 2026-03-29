@@ -376,3 +376,73 @@ def _y11_z_lower_bound_two_decoy(
         return 0.0
     y11_l = numer / denom
     return max(0.0, float(y11_l))
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class MDIQKDParams(BaseModel):
+    """Protocol-specific parameters for MDI-QKD."""
+
+    mu_s: float = Field(0.5, gt=0.0, description="Signal intensity")
+    mu_1: float = Field(0.1, gt=0.0, description="Weak decoy intensity")
+    mu_2: float = Field(0.0, ge=0.0, description="Vacuum/second decoy intensity")
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+
+
+class MDIQKDProtocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the MDI-QKD protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="mdi_qkd",
+            title="MDI-QKD",
+            aliases=("mdi",),
+            description=(
+                "Measurement-device-independent QKD using two-decoy state "
+                "analysis with relay-based Bell-state measurement."
+            ),
+            channel_models=("fiber",),
+            gate_policy={"plob_repeaterless_bound": "skip"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return MDIQKDParams
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_mdi_qkd(scenario, distance_km, runtime_overrides)
+
+    @classmethod
+    def applicability(cls, scenario: dict[str, Any]) -> ProtocolApplicability:
+        channel = (scenario or {}).get("channel", {}) or {}
+        model = str(channel.get("model", "fiber")).lower()
+        if model != "fiber":
+            return ProtocolApplicability(
+                status="fail",
+                reasons=(
+                    f"MDI-QKD currently supports fiber channel only, got model={model!r}",
+                ),
+            )
+        return ProtocolApplicability(status="pass", reasons=())

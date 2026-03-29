@@ -55,7 +55,7 @@ def performance_drc_crosstalk(payload: dict[str, Any] = Body(...)) -> dict[str, 
     try:
         report = run_parallel_waveguide_crosstalk_check(payload, output_dir=run_dir, run_id=run_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="performance DRC run failed") from exc
     report = dict(report)
 
     generated_at = generated_at_utc()

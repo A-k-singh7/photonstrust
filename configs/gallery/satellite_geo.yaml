@@ -1,0 +1,6 @@
+# GEO Satellite QKD (Challenging)
+name: satellite_geo
+runner: plan_satellite
+config:
+  orbit_altitude_km: 36000
+  protocol: bb84

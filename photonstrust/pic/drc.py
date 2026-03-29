@@ -206,6 +206,85 @@ def run_graph_drc(compiled_or_netlist: Any, *, pdk: Any) -> dict[str, Any]:
                 node_id=node_id,
             )
 
+    # ---- Phase C2 DRC rules ------------------------------------------------
+
+    # PIC.DRC.MIN_HEATER_SPACING — warn if heater nodes are placed too close.
+    min_heater_spacing_um = float(rules.get("min_heater_spacing_um", 100.0) or 100.0)
+    heater_nodes = [
+        n for n in nodes
+        if str(n["kind"]) == "pic.heater"
+    ]
+    for i in range(len(heater_nodes)):
+        for j in range(i + 1, len(heater_nodes)):
+            n_i = heater_nodes[i]
+            n_j = heater_nodes[j]
+            p_i = n_i["params"] if isinstance(n_i["params"], dict) else {}
+            p_j = n_j["params"] if isinstance(n_j["params"], dict) else {}
+            x_i = _safe_float(p_i.get("x_um"))
+            y_i = _safe_float(p_i.get("y_um"))
+            x_j = _safe_float(p_j.get("x_um"))
+            y_j = _safe_float(p_j.get("y_um"))
+            if x_i is not None and y_i is not None and x_j is not None and y_j is not None:
+                import math as _math
+                dist = _math.sqrt((x_i - x_j) ** 2 + (y_i - y_j) ** 2)
+                if dist < min_heater_spacing_um:
+                    add_item(
+                        code="PIC.DRC.MIN_HEATER_SPACING",
+                        severity="warning",
+                        message=(
+                            f"heater nodes '{n_i['node_id']}' and '{n_j['node_id']}' "
+                            f"are {dist:.6g} um apart, below min_heater_spacing_um="
+                            f"{min_heater_spacing_um:.6g}"
+                        ),
+                        node_id=str(n_i["node_id"]),
+                    )
+
+    # PIC.DRC.MAX_CROSSINGS — warn if crossing count exceeds threshold.
+    max_crossings = int(rules.get("max_crossings", 20) or 20)
+    crossing_count = sum(1 for n in nodes if str(n["kind"]) == "pic.crossing")
+    if crossing_count > max_crossings:
+        add_item(
+            code="PIC.DRC.MAX_CROSSINGS",
+            severity="warning",
+            message=(
+                f"number of pic.crossing nodes ({crossing_count}) exceeds "
+                f"max_crossings={max_crossings}"
+            ),
+        )
+
+    # PIC.DRC.MODULATOR_LENGTH — check MZM phase_shifter_length_mm bounds.
+    max_modulator_length_mm = float(rules.get("max_modulator_length_mm", 10.0) or 10.0)
+    min_modulator_length_mm = float(rules.get("min_modulator_length_mm", 0.1) or 0.1)
+    for node in nodes:
+        if str(node["kind"]) != "pic.mzm":
+            continue
+        node_id = str(node["node_id"])
+        params = node["params"] if isinstance(node["params"], dict) else {}
+        ps_len = _safe_float(params.get("phase_shifter_length_mm"))
+        if ps_len is not None:
+            if ps_len > max_modulator_length_mm:
+                add_item(
+                    code="PIC.DRC.MODULATOR_LENGTH",
+                    severity="warning",
+                    message=(
+                        f"phase_shifter_length_mm={ps_len:.6g} exceeds "
+                        f"max_modulator_length_mm={max_modulator_length_mm:.6g}"
+                    ),
+                    node_id=node_id,
+                )
+            elif ps_len < min_modulator_length_mm:
+                add_item(
+                    code="PIC.DRC.MODULATOR_LENGTH",
+                    severity="warning",
+                    message=(
+                        f"phase_shifter_length_mm={ps_len:.6g} is below "
+                        f"min_modulator_length_mm={min_modulator_length_mm:.6g}"
+                    ),
+                    node_id=node_id,
+                )
+
+    # ---- end Phase C2 DRC rules --------------------------------------------
+
     items.sort(
         key=lambda row: (
             _SEVERITY_RANK.get(str(row.get("severity", "info")).lower(), 99),

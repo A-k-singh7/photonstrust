@@ -2,19 +2,33 @@
 
 This is the shortest path to seeing PhotonTrust work.
 
-## Option 1: CLI quick smoke
+## Option 1: Generate a Reliability Card
 
 ```bash
 pip install -e .
 photonstrust run configs/quickstart/qkd_quick_smoke.yml --output results/smoke_quick
+photonstrust card validate results/smoke_quick/demo1_quick_smoke/nir_850/reliability_card.json
 ```
 
 Expected outcome:
 
-- a successful QKD run
-- artifacts written under `results/smoke_quick/`
+- `results/smoke_quick/run_registry.json`
+- `results/smoke_quick/demo1_quick_smoke/nir_850/reliability_card.json`
+- `results/smoke_quick/demo1_quick_smoke/nir_850/report.html`
+- `results/smoke_quick/demo1_quick_smoke/nir_850/report.pdf`
 
-## Option 2: React product UI
+## Option 2: Compile a QKD Graph
+
+```bash
+photonstrust graph compile graphs/demo8_qkd_link_graph.json --output results/graphs_demo
+```
+
+Expected outcome:
+
+- `results/graphs_demo/demo8_qkd_link/compiled_config.yml`
+- `results/graphs_demo/demo8_qkd_link/assumptions.md`
+
+## Option 3: Launch the Product UI
 
 ```bash
 pip install -e .[api]
@@ -29,20 +43,12 @@ Open:
 - UI: `http://127.0.0.1:5173`
 - API health: `http://127.0.0.1:8000/healthz`
 
-Recommended first actions:
+Use `product-ui.md` for the maintained UI walkthrough.
 
-1. `Guided QKD quickstart`
-2. `Guided PIC quickstart`
-3. `Open compare lab`
+## Where to Go Next
 
-## Option 3: Orbit quickstart
-
-```bash
-photonstrust run configs/quickstart/orbit_pass_envelope.yml --output results/orbit_demo11
-```
-
-## Where to go next
-
-- Config catalog: `../../configs/README.md`
-- Examples: `../../examples/README.md`
-- Product walkthrough: `../operations/product/10_minute_quickstart_2026-02-18.md`
+- `../guide/getting-started.md`
+- `../guide/reliability-card.md`
+- `../guide/limitations.md`
+- `product-ui.md`
+- `../../configs/README.md`

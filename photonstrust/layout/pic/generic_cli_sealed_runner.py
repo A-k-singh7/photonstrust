@@ -194,6 +194,31 @@ def _has_relative_parent_reference(path_text: str) -> bool:
     return (not path.is_absolute()) and any(part == ".." for part in path.parts)
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_runner_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.fspath(_repo_root())),
+        os.path.realpath(os.getcwd()),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _is_within_allowed_roots(path_text: str) -> bool:
+    return any(_is_within_root(path_text, root_text) for root_text in _allowed_runner_roots())
+
+
 def _validate_path_map(path_map: dict[str, str]) -> bool:
     for value in path_map.values():
         path_text = str(value).strip()
@@ -214,17 +239,17 @@ def _resolve_cwd(cwd_value: str | None) -> tuple[str | None, str | None]:
         return None, "invalid_cwd"
 
     try:
-        cwd_path = Path(cwd_text)
-        if not cwd_path.is_absolute():
-            cwd_path = (Path.cwd() / cwd_path).resolve()
-        else:
-            cwd_path = cwd_path.resolve()
+        candidate = cwd_text if os.path.isabs(cwd_text) else os.path.join(os.getcwd(), cwd_text)
+        resolved_text = os.path.realpath(candidate)
     except OSError:
         return None, "invalid_cwd"
 
+    if not _is_within_allowed_roots(resolved_text):
+        return None, "invalid_cwd"
+    cwd_path = Path(resolved_text)
     if not cwd_path.exists() or not cwd_path.is_dir():
         return None, "invalid_cwd"
-    return str(cwd_path), None
+    return resolved_text, None
 
 
 def _resolve_path(path_text: str, *, cwd: str | None) -> tuple[Path | None, str | None]:
@@ -235,16 +260,15 @@ def _resolve_path(path_text: str, *, cwd: str | None) -> tuple[Path | None, str 
         return None, "invalid_path"
 
     try:
-        path = Path(raw)
-        if not path.is_absolute():
-            base = Path(cwd) if cwd else Path.cwd()
-            path = (base / path).resolve()
-        else:
-            path = path.resolve()
+        base_text = str(cwd).strip() if cwd else os.getcwd()
+        candidate = raw if os.path.isabs(raw) else os.path.join(base_text, raw)
+        resolved_text = os.path.realpath(candidate)
     except OSError:
         return None, "invalid_path"
 
-    return path, None
+    if not _is_within_allowed_roots(resolved_text):
+        return None, "invalid_path"
+    return Path(resolved_text), None
 
 
 def _build_run_env(

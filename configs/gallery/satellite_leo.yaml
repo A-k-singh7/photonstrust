@@ -1,0 +1,6 @@
+# LEO Satellite QKD Downlink
+name: satellite_leo
+runner: plan_satellite
+config:
+  orbit_altitude_km: 500
+  protocol: bb84

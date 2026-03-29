@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "photonstrust.component_catalog_entry.v0",
+  "title": "PhotonTrust Component Catalog Entry",
+  "description": "Schema for a single component catalog entry.",
+  "type": "object",
+  "required": ["component_id", "category", "version", "params"],
+  "properties": {
+    "component_id": {
+      "type": "string",
+      "description": "Unique identifier for the component."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["detector", "source", "band", "fiber", "modulator"],
+      "description": "Component category."
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Sub-classification within category."
+    },
+    "vendor": {
+      "type": ["string", "null"],
+      "description": "Vendor name, or null for generic components."
+    },
+    "model": {
+      "type": ["string", "null"],
+      "description": "Vendor model identifier."
+    },
+    "version": {
+      "type": "string",
+      "description": "Catalog entry version."
+    },
+    "params": {
+      "type": "object",
+      "description": "Component parameters (same shape as presets.py dicts)."
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Searchable tags."
+    },
+    "datasheet_url": {
+      "type": ["string", "null"],
+      "description": "Optional link to vendor datasheet."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text notes."
+    }
+  },
+  "additionalProperties": false
+}

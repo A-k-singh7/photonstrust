@@ -1,26 +1,39 @@
 ## Summary
 - Linked issue(s):
+- Scope:
 - What changed:
 - Why:
 
+## Change Type
+- [ ] Docs or repo hygiene only
+- [ ] Behavior change
+- [ ] Schema, config, or contract change
+- [ ] Release or automation workflow change
+
 ## Contract impact
 - [ ] No public contract changes
-- [ ] Public contract changes included in `docs/operations/week1/api_contract_table_2026-02-12.md`
-- Impacted contracts:
+- [ ] Public contract/config/schema docs were updated
+- Impacted contracts, configs, or schemas:
 
 ## Validation
-- [ ] Ran local smoke checks (`python scripts/validation/ci_checks.py --pytest-args "-q <targeted tests>"`)
+- [ ] Ran the smallest relevant local checks
 - [ ] Added/updated tests for changed behavior
 - [ ] Schema validation unaffected or updated (`tests/test_schema_validation.py`)
 - [ ] Regression/golden checks reviewed when outputs changed
+- [ ] Ran `npm run build` for web changes
+- [ ] Ran `npm run lint` for web changes
 
 ## Documentation
 - [ ] No doc changes required
 - [ ] Updated docs and listed files:
-- [ ] Updated changelog/release notes for external behavior changes
+- [ ] Updated `CHANGELOG.md` for external behavior or workflow changes
+- [ ] Updated contributor/release docs when repo workflow changed
 
 ## Repository Hygiene
+- [ ] Branch is scoped to one logical change
+- [ ] `git diff --check` is clean
 - [ ] No generated local artifacts included by accident (`__pycache__`, `.egg-info`, `web/test-results`, scratch logs, etc.)
+- [ ] No secrets, tokens, or local environment files included by accident
 
 ## Reproducibility
 - [ ] Seeds/configs retained or documented

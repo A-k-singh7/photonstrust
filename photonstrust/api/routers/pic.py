@@ -31,7 +31,7 @@ def _compile_pic_netlist_or_400(graph: dict[str, Any], *, route_name: str) -> di
     try:
         compiled = compile_graph(graph, require_schema=False)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="PIC graph compilation failed") from exc
     if compiled.profile != "pic_circuit":
         raise HTTPException(status_code=400, detail=f"{route_name} expects profile=pic_circuit")
 
@@ -258,7 +258,7 @@ def _run_pic_invdesign(
     try:
         result = solver(netlist, **invdesign_kwargs)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="inverse design run failed") from exc
 
     best_value = float(getattr(result, best_attr))
     optimized_graph = _optimized_graph_with_updated_param(
@@ -300,7 +300,7 @@ def pic_simulate(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
             wn = float(wavelength_nm) if wavelength_nm is not None else None
             results = simulate_pic_netlist(netlist, wavelength_nm=wn)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="PIC simulation failed") from exc
 
     return {
         "generated_at": generated_at_utc(),
@@ -330,7 +330,7 @@ def pic_spice_export(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
             require_schema=require_schema,
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="PIC SPICE export failed") from exc
 
     generated_at = generated_at_utc()
     report_rel = "spice_export_report.json"

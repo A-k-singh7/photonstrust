@@ -37,7 +37,7 @@ from photonstrust.qkd_protocols.common import (
     misalignment_error_with_visibility_factor,
     relay_split_distances_km,
 )
-from photonstrust.qkd_protocols.finite_key import apply_composable_finite_key
+from photonstrust.qkd_protocols.finite_key import apply_finite_key_dispatch
 from photonstrust.qkd_types import QKDResult
 from photonstrust.utils import binary_entropy, clamp
 
@@ -248,10 +248,15 @@ def compute_point_bbm92(
     h2 = binary_entropy(qber_total)
     privacy_term_asymptotic = max(0.0, 1.0 - f_ec * h2 - h2)
 
-    fk = apply_composable_finite_key(
+    fk = apply_finite_key_dispatch(
         finite_key_cfg=scenario.get("finite_key"),
         sifting=sifting,
         privacy_term_asymptotic=privacy_term_asymptotic,
+        protocol_name="bbm92",
+        single_photon_yield_lb=0.0,
+        single_photon_error_ub=float(qber_total),
+        qber=float(qber_total),
+        f_ec=f_ec,
     )
 
     key_rate = r_herald * fk.sifting_effective * fk.privacy_term_effective
@@ -353,6 +358,67 @@ def _q_true_given_n_asym(*, eta_a: float, eta_b: float, n_pairs: int) -> float:
     if n <= 0:
         return 0.0
     return float(n * eta_a * eta_b * ((1.0 - eta_a) ** (n - 1)) * ((1.0 - eta_b) ** (n - 1)))
+
+
+# ---------------------------------------------------------------------------
+# QKDProtocolBase wrapper
+# ---------------------------------------------------------------------------
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase, QKDProtocolMeta
+from photonstrust.qkd_protocols.base import ProtocolApplicability
+
+
+class BBM92Params(BaseModel):
+    """Protocol-specific parameters for BBM92 / E91 entanglement-based QKD."""
+
+    mu: float = Field(0.01, ge=0.0, description="Mean photon-pair number per pulse")
+    coincidence_window_ns: float = Field(
+        1.0, gt=0.0, description="Coincidence window width in nanoseconds"
+    )
+    ec_efficiency: float = Field(
+        1.16, ge=1.0, description="Error-correction efficiency factor (f >= 1)"
+    )
+    sifting_factor: float = Field(
+        0.5, gt=0.0, le=1.0, description="Basis sifting fraction"
+    )
+    misalignment_prob: float = Field(
+        0.015, ge=0.0, le=0.5, description="Optical misalignment probability"
+    )
+
+
+class BBM92Protocol(QKDProtocolBase):
+    """QKDProtocolBase wrapper for the BBM92 / E91 protocol."""
+
+    @classmethod
+    def meta(cls) -> QKDProtocolMeta:
+        return QKDProtocolMeta(
+            protocol_id="bbm92",
+            title="BBM92/E91",
+            aliases=("e91",),
+            description=(
+                "Entanglement-based QKD using coincidence counting with SPDC "
+                "or emitter photon-pair sources."
+            ),
+            channel_models=("fiber", "free_space"),
+            gate_policy={"plob_repeaterless_bound": "apply"},
+        )
+
+    @classmethod
+    def params_schema(cls) -> type[BaseModel]:
+        return BBM92Params
+
+    @classmethod
+    def compute_point(
+        cls,
+        scenario: dict[str, Any],
+        distance_km: float,
+        runtime_overrides: dict[str, Any] | None = None,
+    ) -> QKDResult:
+        return compute_point_bbm92(scenario, distance_km, runtime_overrides)
 
 
 def _spdc_total_coincidence(*, mu: float, eta: float, b: float) -> tuple[float, float]:

@@ -36,6 +36,28 @@ export async function apiGetKindRegistry(baseUrl) {
   return payload;
 }
 
+export async function apiGetComponentRegistry(baseUrl) {
+  const url = `${_base(baseUrl)}/v0/registry/components`;
+  const res = await fetch(url, { method: "GET" });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+export async function apiGetProtocolRegistry(baseUrl) {
+  const url = `${_base(baseUrl)}/v0/registry/protocols`;
+  const res = await fetch(url, { method: "GET" });
+  const payload = await _readJson(res);
+  if (!res.ok) {
+    const msg = payload?.detail || payload?._raw || res.statusText || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
 export async function apiCompileGraph(baseUrl, graph, { requireSchema = false } = {}) {
   const url = `${_base(baseUrl)}/v0/graph/compile`;
   const res = await fetch(url, {

@@ -1,3 +1,5 @@
+import { createOpaqueId } from "./randomId";
+
 const VIEW_PRESETS_KEY = "pt_view_presets_v1";
 const RECENT_ACTIVITY_KEY = "pt_recent_activity_v1";
 
@@ -42,8 +44,7 @@ function _writeList(key, items) {
 }
 
 function _id(prefix) {
-  const rand = Math.random().toString(36).slice(2, 10);
-  return `${prefix}_${Date.now().toString(36)}_${rand}`;
+  return createOpaqueId(prefix);
 }
 
 function _trimmed(value, fallback = "") {

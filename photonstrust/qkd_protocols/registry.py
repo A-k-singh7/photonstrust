@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from photonstrust.errors import ProtocolError
 from photonstrust.qkd_protocols.base import ProtocolApplicability, QKDProtocolModule
 from photonstrust.qkd_protocols.amdi_qkd import compute_point_amdi_qkd
 from photonstrust.qkd_protocols.bb84_decoy import compute_point_bb84_decoy
 from photonstrust.qkd_protocols.bbm92 import compute_point_bbm92
 from photonstrust.qkd_protocols.common import normalize_protocol_name
+from photonstrust.qkd_protocols.cv_qkd import compute_point_cv_qkd
 from photonstrust.qkd_protocols.mdi_qkd import compute_point_mdi_qkd
 from photonstrust.qkd_protocols.pm_qkd import compute_point_pm_qkd
+from photonstrust.qkd_protocols.di_qkd import compute_point_di_qkd
+from photonstrust.qkd_protocols.sns_tf_qkd import compute_point_sns_tf_qkd
 
 
 def _applicability_direct(_: dict) -> ProtocolApplicability:
@@ -104,6 +108,36 @@ _PROTOCOLS: dict[str, QKDProtocolModule] = {
             "rationale": "TF-family protocol; naive direct-link repeaterless bound gate would produce false assertions.",
         },
     ),
+    "cv_qkd": QKDProtocolModule(
+        protocol_id="cv_qkd",
+        aliases=("cv", "gg02", "gaussian", "continuous_variable"),
+        evaluator=compute_point_cv_qkd,
+        applicability_fn=_applicability_direct,
+        gate_policy={
+            "plob_repeaterless_bound": "apply",
+            "rationale": "Direct-link CV protocol; repeaterless bound sanity gate is applicable.",
+        },
+    ),
+    "sns_tf_qkd": QKDProtocolModule(
+        protocol_id="sns_tf_qkd",
+        aliases=("sns", "sns_tf", "sending_or_not_sending"),
+        evaluator=compute_point_sns_tf_qkd,
+        applicability_fn=_applicability_pm_tf,
+        gate_policy={
+            "plob_repeaterless_bound": "skip",
+            "rationale": "SNS-TF protocol; relay-based, direct-link repeaterless bound is not applied.",
+        },
+    ),
+    "di_qkd": QKDProtocolModule(
+        protocol_id="di_qkd",
+        aliases=("di", "device_independent", "chsh_qkd"),
+        evaluator=compute_point_di_qkd,
+        applicability_fn=_applicability_direct,
+        gate_policy={
+            "plob_repeaterless_bound": "apply",
+            "rationale": "Direct-link DI protocol; repeaterless bound sanity gate is applicable.",
+        },
+    ),
 }
 
 
@@ -117,7 +151,11 @@ def resolve_protocol_module(name: str | None) -> QKDProtocolModule:
         return _PROTOCOLS["bbm92"]
     protocol = _PROTOCOLS.get(normalized)
     if protocol is None:
-        raise ValueError(f"Unsupported QKD protocol name: {name!r}")
+        available = ", ".join(sorted(_PROTOCOLS.keys()))
+        raise ProtocolError(
+            f"Unsupported QKD protocol name: {name!r}",
+            suggestion=f"Available protocols: {available}.",
+        )
     return protocol
 
 
@@ -133,3 +171,51 @@ def protocol_gate_policy(name: str | None) -> dict[str, Any]:
         "protocol_name": protocol.protocol_id,
         **dict(gate_policy),
     }
+
+
+# ---------------------------------------------------------------------------
+# Class-based protocol registry (auto-discovered from QKDProtocolBase)
+# ---------------------------------------------------------------------------
+
+_PROTOCOL_CLASSES: dict[str, type] = {}
+_PROTO_CLASSES_DISCOVERED = False
+
+
+def _discover_protocol_classes() -> None:
+    """Auto-discover all QKDProtocolBase subclasses from protocol modules."""
+    global _PROTO_CLASSES_DISCOVERED  # noqa: PLW0603
+    if _PROTO_CLASSES_DISCOVERED:
+        return
+    _PROTO_CLASSES_DISCOVERED = True
+
+    from photonstrust.qkd_protocols.protocol_base import QKDProtocolBase  # noqa: E402
+
+    # Force imports so subclasses are registered.
+    from photonstrust.qkd_protocols import (  # noqa: F401
+        bb84_decoy,
+        bbm92,
+        cv_qkd,
+        mdi_qkd,
+        amdi_qkd,
+        pm_qkd,
+        sns_tf_qkd,
+        di_qkd,
+    )
+
+    for cls in QKDProtocolBase.__subclasses__():
+        meta = cls.meta()
+        _PROTOCOL_CLASSES[meta.protocol_id] = cls
+
+
+def protocol_class(name: str) -> type | None:
+    """Return the QKDProtocolBase subclass for *name*, or ``None``."""
+    if not _PROTO_CLASSES_DISCOVERED:
+        _discover_protocol_classes()
+    return _PROTOCOL_CLASSES.get(name)
+
+
+def all_protocol_classes() -> dict[str, type]:
+    """Return a dict mapping protocol IDs to QKDProtocolBase subclasses."""
+    if not _PROTO_CLASSES_DISCOVERED:
+        _discover_protocol_classes()
+    return dict(_PROTOCOL_CLASSES)

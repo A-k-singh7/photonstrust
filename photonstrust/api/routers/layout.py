@@ -51,7 +51,7 @@ def pic_layout_build(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
             require_schema=require_schema,
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="layout build failed") from exc
 
     generated_at = generated_at_utc()
     report_rel = "layout_build_report.json"
@@ -143,7 +143,7 @@ def pic_layout_lvs_lite(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         try:
             layout_dir = run_store.run_dir_for_id(layout_run_id)
         except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            raise HTTPException(status_code=400, detail="invalid layout_run_id") from exc
         if not layout_dir.exists():
             raise HTTPException(status_code=404, detail="layout_run_id not found")
 
@@ -155,7 +155,7 @@ def pic_layout_lvs_lite(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
             ports = json.loads(ports_path.read_text(encoding="utf-8"))
             routes = json.loads(routes_path.read_text(encoding="utf-8"))
         except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"Failed to read layout sidecars from run {layout_run_id}: {exc}") from exc
+            raise HTTPException(status_code=400, detail="failed to read layout sidecars") from exc
 
     if not isinstance(ports, dict) or not isinstance(routes, dict):
         raise HTTPException(status_code=400, detail="Provide ports/routes objects or layout_run_id")
@@ -193,7 +193,7 @@ def pic_layout_lvs_lite(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     try:
         report = run_pic_lvs_lite(request_payload, require_schema=require_schema)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="lvs_lite run failed") from exc
 
     generated_at = generated_at_utc()
     report_rel = "lvs_lite_report.json"
@@ -299,7 +299,7 @@ def pic_layout_klayout_run(payload: dict[str, Any] = Body(...)) -> dict[str, Any
     except FileNotFoundError as exc:
         raise HTTPException(status_code=400, detail=f"GDS artifact not found in source run: {gds_rel}") from exc
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="failed to resolve source GDS artifact") from exc
 
     settings_raw_obj = payload.get("settings")
     settings_raw: dict[str, Any] = settings_raw_obj if isinstance(settings_raw_obj, dict) else {}
@@ -348,7 +348,7 @@ def pic_layout_klayout_run(payload: dict[str, Any] = Body(...)) -> dict[str, Any
             allow_missing_tool=True,
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="klayout artifact pack failed") from exc
 
     generated_at = generated_at_utc()
     pdk_manifest_rel = write_pdk_manifest_artifact(run_dir, pdk_manifest)

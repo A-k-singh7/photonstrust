@@ -1,0 +1,9 @@
+# MDI-QKD Untrusted Relay
+name: mdi_relay
+runner: simulate_qkd_link
+config:
+  protocol: mdi_qkd
+  distance_km: 50
+  band: c_1550
+  detector: snspd
+  include_uncertainty: false

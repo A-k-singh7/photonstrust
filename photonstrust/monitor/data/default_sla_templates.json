@@ -1,0 +1,7 @@
+{
+  "templates": [
+    {"sla_id": "sla_metro", "name": "Metro Network SLA", "metric_name": "key_rate_bps", "target_value": 10000, "condition": "gte", "measurement_window_hours": 720, "minimum_uptime_fraction": 0.999},
+    {"sla_id": "sla_backbone", "name": "Backbone Network SLA", "metric_name": "key_rate_bps", "target_value": 1000, "condition": "gte", "measurement_window_hours": 720, "minimum_uptime_fraction": 0.99},
+    {"sla_id": "sla_qber_metro", "name": "Metro QBER SLA", "metric_name": "qber", "target_value": 0.05, "condition": "lte", "measurement_window_hours": 720, "minimum_uptime_fraction": 0.999}
+  ]
+}

@@ -60,6 +60,9 @@ function SelectField({ label, value, options, placeholder, onChange, disabled })
 export default function WorkspaceContextBar({
   projects,
   selectedProjectId = "",
+  currentStageLabel = "",
+  activeRunId = "",
+  roleLabel = "",
   onProjectChange,
   rolePresets,
   selectedRolePreset = "",
@@ -78,51 +81,77 @@ export default function WorkspaceContextBar({
     .map((item, idx) => activityFromItem(item, idx))
     .filter(Boolean)
     .slice(0, 8);
+  const runLabel = asText(activeRunId, "");
+  const runShort = runLabel ? (runLabel.length > 14 ? `${runLabel.slice(0, 12)}...` : runLabel) : "Not selected";
 
   return (
     <section className="ptCard" aria-label="Workspace context bar">
-      <div className="ptWorkspaceContextHead">
-        <div className="ptRightTitle">Workspace essentials</div>
-        <div className="ptHint">Project, role, and saved view controls stay here so the main workspace can stay focused.</div>
-      </div>
+      <div className="ptWorkspaceContextTop">
+        <div className="ptWorkspaceContextHead">
+          <div className="ptRightTitle">Session context</div>
+          <div className="ptHint">Keep project, role, and active evidence aligned before you move deeper into the workflow.</div>
+        </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "end" }}>
-        <SelectField
-          label="Project"
-          value={selectedProjectId}
-          options={projects}
-          placeholder="(select project)"
-          onChange={onProjectChange}
-          disabled={disabled}
-        />
-
-        <SelectField
-          label="Role preset"
-          value={selectedRolePreset}
-          options={rolePresets}
-          placeholder="(select role preset)"
-          onChange={onRolePresetChange}
-          disabled={disabled}
-        />
-
-        <SelectField
-          label="Saved view"
-          value={selectedSavedViewId}
-          options={savedViews}
-          placeholder="(select saved view)"
-          onChange={onSavedViewChange}
-          disabled={disabled}
-        />
-
-        <div className="ptBtnRow" style={{ marginLeft: "auto" }}>
-          <button className="ptBtn ptBtnPrimary" type="button" onClick={() => onSaveView && onSaveView()} disabled={Boolean(saveViewDisabled || disabled)}>
-            {asText(saveViewLabel, "Save view")}
-          </button>
+        <div className="ptContextMetrics" aria-label="Current workspace context">
+          <article className="ptContextMetric">
+            <div className="ptContextMetricLabel">Project</div>
+            <div className="ptContextMetricValue">{asText(selectedProjectId, "Not selected")}</div>
+          </article>
+          <article className="ptContextMetric">
+            <div className="ptContextMetricLabel">Stage</div>
+            <div className="ptContextMetricValue">{asText(currentStageLabel, "Build")}</div>
+          </article>
+          <article className="ptContextMetric">
+            <div className="ptContextMetricLabel">Role</div>
+            <div className="ptContextMetricValue">{asText(roleLabel || selectedRolePreset, "Builder")}</div>
+          </article>
+          <article className="ptContextMetric">
+            <div className="ptContextMetricLabel">Active run</div>
+            <div className="ptContextMetricValue ptMono">{runShort}</div>
+          </article>
         </div>
       </div>
 
+      <details className="ptWorkspaceControls">
+        <summary>Change project, role, and saved view</summary>
+        <div className="ptWorkspaceControlsBody">
+          <SelectField
+            label="Project"
+            value={selectedProjectId}
+            options={projects}
+            placeholder="(select project)"
+            onChange={onProjectChange}
+            disabled={disabled}
+          />
+
+          <SelectField
+            label="Role preset"
+            value={selectedRolePreset}
+            options={rolePresets}
+            placeholder="(select role preset)"
+            onChange={onRolePresetChange}
+            disabled={disabled}
+          />
+
+          <SelectField
+            label="Saved view"
+            value={selectedSavedViewId}
+            options={savedViews}
+            placeholder="(select saved view)"
+            onChange={onSavedViewChange}
+            disabled={disabled}
+          />
+
+          <div className="ptBtnRow" style={{ marginLeft: "auto" }}>
+            <button className="ptBtn ptBtnPrimary" type="button" onClick={() => onSaveView && onSaveView()} disabled={Boolean(saveViewDisabled || disabled)}>
+              {asText(saveViewLabel, "Save view")}
+            </button>
+          </div>
+        </div>
+      </details>
+
       {activityRows.length ? (
-        <div style={{ marginTop: 10 }}>
+        <div className="ptWorkspaceActivity">
           <div className="ptHint" style={{ marginBottom: 6 }}>
             Recent activity
           </div>

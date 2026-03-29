@@ -1,0 +1,10 @@
+# MZI Optical Switch (PIC)
+name: pic_mzi_switch
+runner: design_pic
+config:
+  components:
+    - mmi_2x2
+    - mmi_2x2
+  connections:
+    - from: [0, out1]
+      to: [1, in1]

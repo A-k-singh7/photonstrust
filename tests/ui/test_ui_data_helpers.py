@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import sys
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -18,6 +21,12 @@ from ui.data import (
     save_ui_run_profile,
     stable_json_hash,
 )
+
+
+def _disallowed_results_root() -> Path:
+    if os.name == "nt":
+        return Path(os.environ.get("SystemRoot", "C:\\Windows")) / "System32" / "photonstrust_test_results"
+    return Path("/var/opt/photonstrust_test_results")
 
 
 def test_stable_json_hash_is_order_independent() -> None:
@@ -42,6 +51,12 @@ def test_save_ui_run_profile_named_filename_is_sanitized(tmp_path: Path) -> None
     path = save_ui_run_profile(results_root=tmp_path, profile=profile, profile_name="My Profile 01!")
     assert path.exists()
     assert path.name == "my_profile_01.json"
+
+
+def test_save_ui_run_profile_rejects_disallowed_results_root() -> None:
+    profile = {"schema_version": "0.1", "kind": "photonstrust.ui_run_profile", "builder_state": {"mu": 0.5}}
+    with pytest.raises(ValueError, match="results_root"):
+        save_ui_run_profile(results_root=_disallowed_results_root(), profile=profile)
 
 
 def test_diagnose_api_runtime_error_connectivity() -> None:

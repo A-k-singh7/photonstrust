@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata as importlib_metadata
 import json
+import os
 import re
 import shutil
+import tempfile
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,6 +26,29 @@ from photonstrust.workflow.schema import evidence_bundle_publish_manifest_schema
 _BUNDLE_FIXED_DT = (1980, 1, 1, 0, 0, 0)
 _BUNDLE_CHUNK_BYTES = 1024 * 1024
 _BUNDLE_DIGEST_RE = re.compile(r"^[a-f0-9]{64}$")
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_bundle_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.fspath(run_store.runs_root())),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_bundle_dir_candidate(path_value: Path | str) -> Path:
+    resolved = os.path.realpath(os.fspath(Path(path_value)))
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_bundle_roots()):
+        raise HTTPException(status_code=400, detail="bundle directory must stay within the runs, home, or temp directories")
+    return Path(resolved)
 
 
 def iter_manifest_artifact_relpaths(manifest: dict[str, Any]) -> list[str]:
@@ -102,17 +127,19 @@ def bundle_relpath(include_children: bool) -> str:
 
 
 def published_bundles_root() -> Path:
-    root = run_store.runs_root() / "_published_bundles" / "sha256"
+    root = _resolve_bundle_dir_candidate(run_store.runs_root() / "_published_bundles" / "sha256")
     root.mkdir(parents=True, exist_ok=True)
     return root
 
 
 def published_bundle_path(digest: str) -> Path:
-    return published_bundles_root() / f"{digest}.zip"
+    value = validate_bundle_digest(digest)
+    return published_bundles_root() / f"{value}.zip"
 
 
 def published_bundle_manifest_path(digest: str) -> Path:
-    return published_bundles_root() / f"{digest}.manifest.json"
+    value = validate_bundle_digest(digest)
+    return published_bundles_root() / f"{value}.manifest.json"
 
 
 def validate_bundle_digest(digest: str) -> str:
@@ -223,6 +250,7 @@ def export_bundle_for_run(
     rebuild: bool,
     fetch_manifest: Callable[[str], dict[str, Any]],
 ) -> Path:
+    root_dir = _resolve_bundle_dir_candidate(root_dir)
     bundle_path = root_dir / bundle_relpath(include_children)
     tmp_path = root_dir / f"{bundle_path.name}.tmp"
     if bundle_path.exists() and bundle_path.is_file() and not rebuild:

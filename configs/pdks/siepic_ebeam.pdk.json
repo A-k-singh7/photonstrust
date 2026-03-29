@@ -124,6 +124,50 @@
       "ports": ["common", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7", "ch8"],
       "support_level": "layout_only",
       "recommended_workflows": ["layout", "packaging", "wavelength_routing"]
+    },
+    {
+      "name": "mmi_1x2_te",
+      "library": "siepic_ebeam",
+      "cell": "MMI_1X2_TE",
+      "ports": ["in", "out1", "out2"],
+      "nominal_excess_loss_db": 0.25,
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.mmi",
+      "default_params": {"insertion_loss_db": 0.25, "n_ports_in": 1, "n_ports_out": 2},
+      "recommended_workflows": ["layout", "gds", "splitter_combiner"]
+    },
+    {
+      "name": "mmi_2x2_te",
+      "library": "siepic_ebeam",
+      "cell": "MMI_2X2_TE",
+      "ports": ["in1", "in2", "out1", "out2"],
+      "nominal_excess_loss_db": 0.30,
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.mmi",
+      "default_params": {"insertion_loss_db": 0.30, "n_ports_in": 2, "n_ports_out": 2},
+      "recommended_workflows": ["layout", "gds", "splitter_combiner"]
+    },
+    {
+      "name": "y_branch_te",
+      "library": "siepic_ebeam",
+      "cell": "Y_BRANCH_TE",
+      "ports": ["in", "out1", "out2"],
+      "nominal_excess_loss_db": 0.20,
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.y_branch",
+      "default_params": {"insertion_loss_db": 0.20},
+      "recommended_workflows": ["layout", "gds", "splitter_combiner"]
+    },
+    {
+      "name": "waveguide_crossing",
+      "library": "siepic_ebeam",
+      "cell": "WG_CROSSING",
+      "ports": ["in1", "in2", "out1", "out2"],
+      "nominal_excess_loss_db": 0.10,
+      "support_level": "modeled",
+      "maps_to_internal_kind": "pic.crossing",
+      "default_params": {"insertion_loss_db": 0.10, "crosstalk_db": -40.0},
+      "recommended_workflows": ["layout", "gds", "routing"]
     }
   ],
   "interop": {

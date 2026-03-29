@@ -1,0 +1,10 @@
+# Underwater Harbor QKD
+name: underwater_harbor
+runner: simulate_qkd_link
+config:
+  protocol: bb84
+  distance_km: 0.5
+  band: nir_850
+  detector: si_apd
+  channel_model: fiber
+  include_uncertainty: false

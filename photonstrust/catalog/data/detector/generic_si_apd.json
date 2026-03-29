@@ -1,0 +1,17 @@
+{
+  "component_id": "generic_si_apd",
+  "category": "detector",
+  "subcategory": "si_apd",
+  "vendor": null,
+  "model": null,
+  "version": "1.0",
+  "params": {
+    "pde": 0.70,
+    "dark_counts_cps": 100,
+    "jitter_ps_fwhm": 50,
+    "dead_time_ns": 50,
+    "afterpulsing_prob": 0.005
+  },
+  "tags": ["si_apd", "silicon", "avalanche_photodiode", "visible_nir"],
+  "notes": "Generic Silicon APD baseline matching original presets.py values."
+}

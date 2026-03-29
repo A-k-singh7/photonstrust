@@ -179,3 +179,120 @@ def _gate_diagnostics(
 
 def _gaussian_likelihood(values, target, sigma):
     return np.exp(-0.5 * ((values - target) / sigma) ** 2)
+
+
+def mcmc_fit(
+    obs: dict,
+    priors: dict,
+    n_chains: int = 2,
+    n_samples: int = 2000,
+    seed: int = 42,
+) -> dict:
+    """Metropolis-Hastings MCMC with R-hat convergence diagnostic.
+
+    Parameters
+    ----------
+    obs : dict
+        Observed data (parameter name -> target value).
+    priors : dict
+        Prior ranges (parameter name -> (low, high)).
+    n_chains : int
+        Number of independent chains.
+    n_samples : int
+        Samples per chain (after burn-in).
+    """
+    rng = np.random.default_rng(seed)
+    param_names = sorted(priors.keys())
+    n_params = len(param_names)
+    burn_in = n_samples // 4
+    total_samples = n_samples + burn_in
+
+    all_chains = []
+
+    for chain_idx in range(n_chains):
+        # Initialize from prior
+        current = {}
+        for p in param_names:
+            lo, hi = priors[p]
+            current[p] = rng.uniform(lo, hi)
+
+        # Proposal sigma: 5% of prior range
+        proposal_sigma = {p: 0.05 * (priors[p][1] - priors[p][0]) for p in param_names}
+
+        def log_likelihood(params):
+            ll = 0.0
+            for key, target in obs.items():
+                if key in params:
+                    lo, hi = priors[key]
+                    sigma = max(1e-6, 0.05 * abs(target) + 1e-6, 0.10 * (hi - lo))
+                    ll -= 0.5 * ((params[key] - target) / sigma) ** 2
+            return ll
+
+        chain = []
+        current_ll = log_likelihood(current)
+
+        for step in range(total_samples):
+            # Propose
+            proposed = {}
+            for p in param_names:
+                lo, hi = priors[p]
+                proposed[p] = np.clip(
+                    current[p] + rng.normal(0, proposal_sigma[p]),
+                    lo, hi,
+                )
+
+            proposed_ll = log_likelihood(proposed)
+            log_alpha = proposed_ll - current_ll
+
+            if log_alpha > 0 or rng.uniform() < math.exp(min(log_alpha, 0)):
+                current = proposed
+                current_ll = proposed_ll
+
+            if step >= burn_in:
+                chain.append({p: current[p] for p in param_names})
+
+        all_chains.append(chain)
+
+    # Combine chains
+    all_samples = {p: [] for p in param_names}
+    for chain in all_chains:
+        for sample in chain:
+            for p in param_names:
+                all_samples[p].append(sample[p])
+
+    summary = {}
+    for p in param_names:
+        vals = np.array(all_samples[p])
+        summary[p] = {
+            "mean": float(np.mean(vals)),
+            "std": float(np.std(vals)),
+            "p5": float(np.percentile(vals, 5)),
+            "p95": float(np.percentile(vals, 95)),
+        }
+
+    # R-hat diagnostic (Gelman-Rubin)
+    r_hat = {}
+    for p in param_names:
+        chain_means = []
+        chain_vars = []
+        for chain in all_chains:
+            vals = np.array([s[p] for s in chain])
+            chain_means.append(np.mean(vals))
+            chain_vars.append(np.var(vals, ddof=1))
+
+        B = n_samples * np.var(chain_means, ddof=1)  # between-chain variance
+        W = np.mean(chain_vars)  # within-chain variance
+
+        var_hat = (1 - 1/n_samples) * W + B / n_samples
+        r_hat[p] = float(math.sqrt(var_hat / max(W, 1e-30)))
+
+    best = {p: summary[p]["mean"] for p in param_names}
+
+    return {
+        "summary": summary,
+        "best": best,
+        "r_hat": r_hat,
+        "n_chains": n_chains,
+        "n_samples_per_chain": n_samples,
+        "converged": all(v < 1.1 for v in r_hat.values()),
+    }

@@ -10,6 +10,9 @@ ChipVerify workflows. The v1 philosophy:
 from __future__ import annotations
 
 import math
+import os
+import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -25,6 +28,10 @@ from photonstrust.components.pic.touchstone import (
     load_touchstone_nport,
 )
 
+# Phase C component imports are deferred to _register_phase_c_components()
+# to avoid circular imports (the component modules import ComponentPorts from
+# this module).
+
 
 @dataclass(frozen=True)
 class ComponentPorts:
@@ -33,10 +40,12 @@ class ComponentPorts:
 
 
 def supported_component_kinds() -> set[str]:
+    _register_phase_c_components()
     return set(_LIB.keys())
 
 
 def component_ports(kind: str, params: dict | None = None) -> ComponentPorts:
+    _register_phase_c_components()
     kind = _normalize_kind(kind)
     if kind not in _LIB:
         raise KeyError(f"Unsupported PIC component kind: {kind}")
@@ -45,6 +54,21 @@ def component_ports(kind: str, params: dict | None = None) -> ComponentPorts:
         if params is None:
             params = {}
         return _touchstone_nport_ports(params)
+
+    if kind == "pic.mmi":
+        if params is None:
+            params = {}
+        from photonstrust.components.pic.mmi import mmi_ports
+        return mmi_ports(params)
+
+    if kind == "pic.awg":
+        if params is None:
+            params = {}
+        n_ch = int(params.get("n_channels", 8))
+        return ComponentPorts(
+            in_ports=("in",),
+            out_ports=tuple(f"out{i+1}" for i in range(n_ch)),
+        )
 
     return _LIB[kind]["ports"]  # type: ignore[return-value]
 
@@ -55,6 +79,7 @@ def component_forward_matrix(kind: str, params: dict, wavelength_nm: float | Non
     Shape: (n_out, n_in), complex dtype.
     """
 
+    _register_phase_c_components()
     kind = _normalize_kind(kind)
     if kind not in _LIB:
         raise KeyError(f"Unsupported PIC component kind: {kind}")
@@ -65,6 +90,62 @@ def component_forward_matrix(kind: str, params: dict, wavelength_nm: float | Non
 def component_all_ports(kind: str, params: dict | None = None) -> tuple[str, ...]:
     ports = component_ports(kind, params=params)
     return tuple([*ports.in_ports, *ports.out_ports])
+
+
+_TOUCHSTONE_SUFFIX_RE = re.compile(r"\.s\d+p$")
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _workspace_root() -> str:
+    return os.path.realpath(os.getcwd())
+
+
+def _allowed_roots() -> tuple[str, ...]:
+    roots = (
+        _workspace_root(),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _is_within_allowed_roots(path_text: str) -> bool:
+    return any(_is_within_root(path_text, root_text) for root_text in _allowed_roots())
+
+
+def _resolve_touchstone_root(params: dict, *, kind: str) -> str:
+    base_value = params.get("touchstone_root")
+    if base_value is None or str(base_value).strip() == "":
+        return _workspace_root()
+
+    base_dir = os.path.realpath(os.path.join(_workspace_root(), os.path.expanduser(str(base_value).strip())))
+    if not _is_within_allowed_roots(base_dir):
+        raise ValueError(f"{kind} touchstone_root must stay within the workspace, home, or temp directories")
+    return base_dir
+
+
+def _resolve_touchstone_path(params: dict, *, kind: str) -> str:
+    path_value = params.get("touchstone_path") or params.get("path")
+    if not path_value:
+        raise ValueError(f"{kind} requires params.touchstone_path (or params.path)")
+
+    base_dir = _resolve_touchstone_root(params, kind=kind)
+    resolved = os.path.realpath(os.path.join(base_dir, os.path.expanduser(str(path_value).strip())))
+    if not _is_within_root(resolved, base_dir):
+        raise ValueError(f"{kind} touchstone_path must resolve within touchstone_root or the current working directory")
+
+    resolved_path = Path(resolved)
+    if not resolved_path.is_file():
+        raise ValueError(f"{kind} touchstone_path does not exist: {resolved}")
+    if not _TOUCHSTONE_SUFFIX_RE.fullmatch(resolved_path.suffix.lower()):
+        raise ValueError(f"{kind} touchstone_path must point to a .sNp file")
+    return resolved
 
 
 def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | None = None) -> np.ndarray:
@@ -82,6 +163,7 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
     - For Touchstone-imported components we use the full 2x2 S matrix at the evaluated wavelength.
     """
 
+    _register_phase_c_components()
     kind = _normalize_kind(kind)
     ports = component_ports(kind, params=params)
     all_ports = component_all_ports(kind, params=params)
@@ -172,16 +254,20 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
         s[0:2, 2:4] = fwd.T
         return s
 
+    # Phase C multiport components with dedicated scattering models.
+    if kind in {"pic.mmi", "pic.y_branch", "pic.crossing", "pic.awg"}:
+        scat_fn = _LIB[kind].get("scattering_fn")
+        if scat_fn is not None:
+            return scat_fn(params, wavelength_nm)
+        raise ValueError(f"No scattering function registered for {kind!r}")
+
     if kind == "pic.touchstone_2port":
         # Use the full S-parameter matrix at the requested wavelength.
-        path = params.get("touchstone_path") or params.get("path")
-        if not path:
-            raise ValueError("pic.touchstone_2port requires params.touchstone_path (or params.path)")
         if wavelength_nm is None:
             raise ValueError("pic.touchstone_2port requires wavelength_nm to evaluate S-parameters")
         allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
-        ts_path = str(Path(str(path)).expanduser().resolve())
+        ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_2port")
         data = load_touchstone_2port(ts_path)
 
         c_m_s = 299_792_458.0
@@ -196,15 +282,12 @@ def component_scattering_matrix(kind: str, params: dict, wavelength_nm: float | 
 
     if kind == "pic.touchstone_nport":
         # Use the full S-parameter matrix at the requested wavelength.
-        path = params.get("touchstone_path") or params.get("path")
-        if not path:
-            raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
         if wavelength_nm is None:
             raise ValueError("pic.touchstone_nport requires wavelength_nm to evaluate S-parameters")
 
         allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
-        ts_path = str(Path(str(path)).expanduser().resolve())
+        ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_nport")
         n_ports = params.get("n_ports")
         if n_ports is None:
             n_ports = infer_touchstone_n_ports(ts_path)
@@ -315,13 +398,13 @@ def _matrix_insertion_loss_2port(params: dict, wavelength_nm: float | None) -> n
 
 def _matrix_phase_shifter(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
     # Explicit phase control is the core; loss is optional.
-    # We use jnp functions to enable Autodiff through phase_rad.
+    # Uses jnp functions to enable Autodiff through phase_rad.
     phi = params.get("phase_rad", 0.0)
     phi = phi if phi is not None else 0.0
-    
+
     loss_db = params.get("insertion_loss_db", 0.0)
     loss_db = float(loss_db) if loss_db is not None else 0.0
-    
+
     eta = _eta_from_loss_db(loss_db)
     t = jnp.sqrt(eta) * (jnp.cos(phi) + 1j * jnp.sin(phi))
     return jnp.array([[t]], dtype=jnp.complex128)
@@ -411,10 +494,10 @@ def _matrix_coupler(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
     kappa = params.get("coupling_ratio", 0.5)
     kappa = kappa if kappa is not None else 0.5
     kappa = jnp.clip(kappa, 0.0, 1.0)
-    
+
     il_db = float(params.get("insertion_loss_db", 0.0) or 0.0)
     eta = _eta_from_loss_db(il_db)
-    
+
     t = jnp.sqrt(1.0 - kappa)
     k = jnp.sqrt(kappa)
     m = jnp.array([[t, 1j * k], [1j * k, t]], dtype=jnp.complex128)
@@ -424,9 +507,6 @@ def _matrix_coupler(params: dict, wavelength_nm: float | None) -> jnp.ndarray:
 def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.ndarray:
     # Touchstone S-parameter import (2-port), mapped to a forward scalar transfer.
     # Default mapping: S21 (port1 -> port2) == out due to in.
-    path = params.get("touchstone_path") or params.get("path")
-    if not path:
-        raise ValueError("pic.touchstone_2port requires params.touchstone_path (or params.path)")
     if wavelength_nm is None:
         raise ValueError("pic.touchstone_2port requires wavelength_nm to evaluate S-parameters")
 
@@ -434,7 +514,7 @@ def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.nd
     allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
     # Resolve to an absolute path for stable caching and provenance behavior.
-    ts_path = str(Path(str(path)).expanduser().resolve())
+    ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_2port")
     data = load_touchstone_2port(ts_path)
 
     c_m_s = 299_792_458.0
@@ -455,13 +535,11 @@ def _matrix_touchstone_2port(params: dict, wavelength_nm: float | None) -> np.nd
 
 
 def _touchstone_nport_ports(params: dict) -> ComponentPorts:
-    path = params.get("touchstone_path") or params.get("path")
-    if not path:
-        raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
+    ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_nport")
 
     n_ports = params.get("n_ports")
     if n_ports is None:
-        n_ports = infer_touchstone_n_ports(str(path))
+        n_ports = infer_touchstone_n_ports(ts_path)
     if n_ports is None:
         raise ValueError("pic.touchstone_nport requires n_ports or a .sNp filename")
     n_ports = int(n_ports)
@@ -502,15 +580,12 @@ def _touchstone_nport_ports(params: dict) -> ComponentPorts:
 
 
 def _matrix_touchstone_nport(params: dict, wavelength_nm: float | None) -> np.ndarray:
-    path = params.get("touchstone_path") or params.get("path")
-    if not path:
-        raise ValueError("pic.touchstone_nport requires params.touchstone_path (or params.path)")
     if wavelength_nm is None:
         raise ValueError("pic.touchstone_nport requires wavelength_nm to evaluate S-parameters")
 
     allow_extrapolation = bool(params.get("allow_extrapolation", False))
 
-    ts_path = str(Path(str(path)).expanduser().resolve())
+    ts_path = _resolve_touchstone_path(params, kind="pic.touchstone_nport")
     n_ports = params.get("n_ports")
     if n_ports is None:
         n_ports = infer_touchstone_n_ports(ts_path)
@@ -581,3 +656,131 @@ _LIB: dict[str, dict] = {
         "matrix_fn": _matrix_touchstone_nport,
     },
 }
+
+
+_PHASE_C_REGISTERED = False
+
+
+def _register_phase_c_components() -> None:
+    """Lazily register Phase C components to avoid circular imports."""
+    global _PHASE_C_REGISTERED  # noqa: PLW0603
+    if _PHASE_C_REGISTERED:
+        return
+    _PHASE_C_REGISTERED = True
+
+    from photonstrust.components.pic.mmi import (
+        mmi_forward_matrix,
+        mmi_scattering_matrix,
+    )
+    from photonstrust.components.pic.y_branch import (
+        y_branch_forward_matrix,
+        y_branch_scattering_matrix,
+    )
+    from photonstrust.components.pic.crossing import (
+        crossing_forward_matrix,
+        crossing_scattering_matrix,
+    )
+    from photonstrust.components.pic.mzm import (
+        mzm_forward_matrix,
+        mzm_scattering_matrix,
+    )
+    from photonstrust.components.pic.photodetector import (
+        photodetector_forward_matrix,
+        photodetector_scattering_matrix,
+    )
+    from photonstrust.components.pic.awg import (
+        awg_forward_matrix,
+        awg_scattering_matrix,
+    )
+    from photonstrust.components.pic.heater import (
+        heater_forward_matrix,
+        heater_scattering_matrix,
+    )
+    from photonstrust.components.pic.ssc import (
+        ssc_forward_matrix,
+        ssc_scattering_matrix,
+    )
+
+    _LIB.update({
+        "pic.mmi": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out1", "out2")),
+            "matrix_fn": mmi_forward_matrix,
+            "scattering_fn": mmi_scattering_matrix,
+        },
+        "pic.y_branch": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out1", "out2")),
+            "matrix_fn": y_branch_forward_matrix,
+            "scattering_fn": y_branch_scattering_matrix,
+        },
+        "pic.crossing": {
+            "ports": ComponentPorts(in_ports=("in1", "in2"), out_ports=("out1", "out2")),
+            "matrix_fn": crossing_forward_matrix,
+            "scattering_fn": crossing_scattering_matrix,
+        },
+        "pic.mzm": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": mzm_forward_matrix,
+            "scattering_fn": mzm_scattering_matrix,
+        },
+        "pic.photodetector": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": photodetector_forward_matrix,
+            "scattering_fn": photodetector_scattering_matrix,
+        },
+        "pic.awg": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out1", "out2", "out3", "out4", "out5", "out6", "out7", "out8")),
+            "matrix_fn": awg_forward_matrix,
+            "scattering_fn": awg_scattering_matrix,
+        },
+        "pic.heater": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": heater_forward_matrix,
+            "scattering_fn": heater_scattering_matrix,
+        },
+        "pic.ssc": {
+            "ports": ComponentPorts(in_ports=("in",), out_ports=("out",)),
+            "matrix_fn": ssc_forward_matrix,
+            "scattering_fn": ssc_scattering_matrix,
+        },
+    })
+
+
+# ---------------------------------------------------------------------------
+# Class-based component registry (auto-discovered from PICComponentBase)
+# ---------------------------------------------------------------------------
+
+_COMPONENT_CLASSES: dict[str, type] = {}
+_CLASSES_DISCOVERED = False
+
+
+def _discover_component_classes() -> None:
+    """Auto-discover all PICComponentBase subclasses from component modules."""
+    global _CLASSES_DISCOVERED  # noqa: PLW0603
+    if _CLASSES_DISCOVERED:
+        return
+    _CLASSES_DISCOVERED = True
+
+    _register_phase_c_components()
+
+    from photonstrust.components.pic.base import PICComponentBase  # noqa: E402
+
+    # Force import of inline wrappers so their subclasses are visible.
+    import photonstrust.components.pic.inline_components  # noqa: F401
+
+    for cls in PICComponentBase.__subclasses__():
+        meta = cls.meta()
+        _COMPONENT_CLASSES[meta.kind] = cls
+
+
+def component_class(kind: str) -> type | None:
+    """Return the PICComponentBase subclass for *kind*, or ``None``."""
+    if not _CLASSES_DISCOVERED:
+        _discover_component_classes()
+    return _COMPONENT_CLASSES.get(_normalize_kind(kind))
+
+
+def all_component_classes() -> dict[str, type]:
+    """Return a dict mapping kind strings to PICComponentBase subclasses."""
+    if not _CLASSES_DISCOVERED:
+        _discover_component_classes()
+    return dict(_COMPONENT_CLASSES)

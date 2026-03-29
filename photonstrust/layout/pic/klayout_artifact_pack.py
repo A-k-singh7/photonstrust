@@ -14,8 +14,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import sys
+import tempfile
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -28,6 +30,31 @@ from photonstrust.layout.pic.klayout_runner import ExternalToolNotFoundError, ru
 def _repo_root() -> Path:
     # .../photonstrust/layout/pic/klayout_artifact_pack.py -> parents[3] is repo root.
     return Path(__file__).resolve().parents[3]
+
+
+def _is_within_root(path_text: str, root_text: str) -> bool:
+    try:
+        return os.path.commonpath([path_text, root_text]) == root_text
+    except ValueError:
+        return False
+
+
+def _allowed_pack_roots() -> tuple[str, ...]:
+    roots = (
+        os.path.realpath(os.fspath(_repo_root())),
+        os.path.realpath(tempfile.gettempdir()),
+        os.path.realpath(str(Path.home())),
+    )
+    return tuple(dict.fromkeys(roots))
+
+
+def _resolve_allowed_path(path_value: str | Path, *, label: str) -> Path:
+    raw = os.path.expanduser(os.fspath(path_value))
+    candidate = raw if os.path.isabs(raw) else os.path.join(os.getcwd(), raw)
+    resolved = os.path.realpath(candidate)
+    if not any(_is_within_root(resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError(f"{label} must stay within the repository, home, or temp directories")
+    return Path(resolved)
 
 
 def default_klayout_macro_template_path() -> Path:
@@ -103,11 +130,21 @@ def build_klayout_run_artifact_pack(
     pack with `status="skipped"` and a clear `execution.error` message.
     """
 
-    input_gds = Path(input_gds_path)
+    input_gds_raw = os.path.expanduser(os.fspath(input_gds_path))
+    input_gds_candidate = input_gds_raw if os.path.isabs(input_gds_raw) else os.path.join(os.getcwd(), input_gds_raw)
+    input_gds_resolved = os.path.realpath(input_gds_candidate)
+    if not any(_is_within_root(input_gds_resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError("input_gds_path must stay within the repository, home, or temp directories")
+    input_gds = Path(input_gds_resolved)
     if not input_gds.exists() or not input_gds.is_file():
         raise FileNotFoundError(str(input_gds))
 
-    out_dir = Path(output_dir)
+    out_dir_raw = os.path.expanduser(os.fspath(output_dir))
+    out_dir_candidate = out_dir_raw if os.path.isabs(out_dir_raw) else os.path.join(os.getcwd(), out_dir_raw)
+    out_dir_resolved = os.path.realpath(out_dir_candidate)
+    if not any(_is_within_root(out_dir_resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError("output_dir must stay within the repository, home, or temp directories")
+    out_dir = Path(out_dir_resolved)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     s = dict(settings or {})
@@ -125,7 +162,14 @@ def build_klayout_run_artifact_pack(
     endpoint_snap_tol_um = float(s.get("endpoint_snap_tol_um", 2.0) or 2.0)
     top_cell = str(s.get("top_cell", "") or "").strip() or None
 
-    macro = Path(macro_path) if macro_path is not None else default_klayout_macro_template_path()
+    macro_raw = os.path.expanduser(
+        os.fspath(macro_path if macro_path is not None else default_klayout_macro_template_path())
+    )
+    macro_candidate = macro_raw if os.path.isabs(macro_raw) else os.path.join(os.getcwd(), macro_raw)
+    macro_resolved = os.path.realpath(macro_candidate)
+    if not any(_is_within_root(macro_resolved, root_text) for root_text in _allowed_pack_roots()):
+        raise ValueError("macro_path must stay within the repository, home, or temp directories")
+    macro = Path(macro_resolved)
     if not macro.exists() or not macro.is_file():
         raise FileNotFoundError(str(macro))
 
@@ -252,4 +296,3 @@ def build_klayout_run_artifact_pack(
 
     _write_json(paths.pack_json, pack)
     return pack
-

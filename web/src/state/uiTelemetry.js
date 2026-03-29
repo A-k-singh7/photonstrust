@@ -1,3 +1,5 @@
+import { createOpaqueId } from "./randomId";
+
 export const UI_TELEMETRY_EVENTS = [
   "ui_session_started",
   "ui_guided_flow_started",
@@ -18,8 +20,7 @@ export const UI_TELEMETRY_EVENTS = [
 const LOCAL_BUFFER_KEY = "pt_ui_events_buffer_v1";
 
 function _sessionId() {
-  const seed = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  return `ui_${seed}`;
+  return createOpaqueId("ui");
 }
 
 function _normalizeOutcome(value) {

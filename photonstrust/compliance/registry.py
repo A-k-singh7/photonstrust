@@ -6,8 +6,10 @@ from typing import Any
 
 from photonstrust.compliance.checkers.gs_qkd_002 import check_use_case
 from photonstrust.compliance.checkers.gs_qkd_004 import check_f1, check_f2, check_f3, check_f4
+from photonstrust.compliance.checkers.gs_qkd_005 import check_sp1, check_sp2, check_sp3, check_sp4, check_sp5
 from photonstrust.compliance.checkers.gs_qkd_008 import check_s1, check_s2, check_s3, check_s4
 from photonstrust.compliance.checkers.gs_qkd_011 import check_c1, check_c2, check_c3, check_c4
+from photonstrust.compliance.checkers.gs_qkd_014 import check_k1, check_k2, check_k3, check_k4
 from photonstrust.compliance.types import ETSIRequirement, RequirementResult, normalize_status
 
 
@@ -51,6 +53,59 @@ _REQ_004 = (
         check_fn=check_f4,
         inputs_required=("sweep_result", "scenario", "epsilon_target"),
         category="functional",
+    ),
+)
+
+_REQ_005 = (
+    ETSIRequirement(
+        id="GS-QKD-005-SP1",
+        standard="GS-QKD-005",
+        version="V1.1.1 (2022)",
+        clause="5.2",
+        description="Proof method is approved and applicable to the protocol family.",
+        check_fn=check_sp1,
+        inputs_required=("scenario",),
+        category="security_proof",
+    ),
+    ETSIRequirement(
+        id="GS-QKD-005-SP2",
+        standard="GS-QKD-005",
+        version="V1.1.1 (2022)",
+        clause="5.3",
+        description="Epsilon budget decomposition is valid (components sum correctly, all positive).",
+        check_fn=check_sp2,
+        inputs_required=("sweep_result", "scenario"),
+        category="security_proof",
+    ),
+    ETSIRequirement(
+        id="GS-QKD-005-SP3",
+        standard="GS-QKD-005",
+        version="V1.1.1 (2022)",
+        clause="5.4",
+        description="Smooth min-entropy lower bound computation is consistent with the proof method.",
+        check_fn=check_sp3,
+        inputs_required=("sweep_result", "scenario"),
+        category="security_proof",
+    ),
+    ETSIRequirement(
+        id="GS-QKD-005-SP4",
+        standard="GS-QKD-005",
+        version="V1.1.1 (2022)",
+        clause="5.5",
+        description="Privacy amplification output length is consistent with leftover hash lemma.",
+        check_fn=check_sp4,
+        inputs_required=("sweep_result", "scenario"),
+        category="security_proof",
+    ),
+    ETSIRequirement(
+        id="GS-QKD-005-SP5",
+        standard="GS-QKD-005",
+        version="V1.1.1 (2022)",
+        clause="5.6",
+        description="Parameter estimation uses appropriate statistical bound with valid configuration.",
+        check_fn=check_sp5,
+        inputs_required=("scenario",),
+        category="security_proof",
     ),
 )
 
@@ -151,7 +206,50 @@ _REQ_USE_CASE = ETSIRequirement(
     category="use_case",
 )
 
-_CANONICAL_REQUIREMENTS = (*_REQ_004, *_REQ_008, *_REQ_011)
+_REQ_014 = (
+    ETSIRequirement(
+        id="GS-QKD-014-K1",
+        standard="GS-QKD-014",
+        version="V1.1.1 (2019-04)",
+        clause="6.1",
+        description="Key delivery interface exposes status endpoint.",
+        check_fn=check_k1,
+        inputs_required=("scenario",),
+        category="key_delivery",
+    ),
+    ETSIRequirement(
+        id="GS-QKD-014-K2",
+        standard="GS-QKD-014",
+        version="V1.1.1 (2019-04)",
+        clause="6.2",
+        description="Delivered keys use unique UUIDs.",
+        check_fn=check_k2,
+        inputs_required=("scenario",),
+        category="key_delivery",
+    ),
+    ETSIRequirement(
+        id="GS-QKD-014-K3",
+        standard="GS-QKD-014",
+        version="V1.1.1 (2019-04)",
+        clause="6.3",
+        description="Key size matches requested specification.",
+        check_fn=check_k3,
+        inputs_required=("scenario",),
+        category="key_delivery",
+    ),
+    ETSIRequirement(
+        id="GS-QKD-014-K4",
+        standard="GS-QKD-014",
+        version="V1.1.1 (2019-04)",
+        clause="6.4",
+        description="Key pool replenishment rate matches simulated QKD key rate.",
+        check_fn=check_k4,
+        inputs_required=("sweep_result", "scenario"),
+        category="key_delivery",
+    ),
+)
+
+_CANONICAL_REQUIREMENTS = (*_REQ_004, *_REQ_005, *_REQ_008, *_REQ_011, *_REQ_014)
 
 
 def get_requirements(standards: list[str] | None) -> list[ETSIRequirement]:
@@ -205,10 +303,14 @@ def _normalize_standard_id(value: Any) -> str:
         return "GS-QKD-002"
     if "QKD004" in normalized:
         return "GS-QKD-004"
+    if "QKD005" in normalized:
+        return "GS-QKD-005"
     if "QKD008" in normalized:
         return "GS-QKD-008"
     if "QKD011" in normalized:
         return "GS-QKD-011"
+    if "QKD014" in normalized:
+        return "GS-QKD-014"
     if raw.startswith("GS-QKD-"):
         return raw
     return raw

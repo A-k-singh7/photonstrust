@@ -1,0 +1,12 @@
+# Twin-Field QKD Long-Haul
+name: tf_long_haul
+runner: simulate_qkd_link
+config:
+  protocol: tf_qkd
+  distance_km:
+    start: 0
+    stop: 400
+    step: 20
+  band: c_1550
+  detector: snspd
+  include_uncertainty: false

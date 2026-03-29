@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: "23 4 * * 1"
 
+permissions:
+  contents: read
+
 jobs:
   pip-audit-runtime:
     runs-on: ubuntu-latest
@@ -17,16 +20,27 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
-      - name: Install runtime deps and pip-audit
+      - name: Export runtime requirements
+        run: |
+          python - <<'PY'
+          import pathlib
+          import tomllib
+
+          pyproject = pathlib.Path("pyproject.toml")
+          data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+          deps = data.get("project", {}).get("dependencies", [])
+          pathlib.Path("runtime-requirements.txt").write_text("\n".join(str(dep) for dep in deps) + "\n", encoding="utf-8")
+          PY
+
+      - name: Install pip-audit
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
           pip install pip-audit
 
       - name: Audit Python dependencies
-        run: pip-audit --progress-spinner off
+        run: pip-audit --requirement runtime-requirements.txt --progress-spinner off
 
   web-determinism-and-audit:
     runs-on: ubuntu-latest

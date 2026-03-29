@@ -13,6 +13,7 @@ Output is a single .html file with embedded CSS — no external dependencies.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import math
 import platform
@@ -61,6 +62,10 @@ border-bottom:1px solid rgba(45,55,72,.3)}
 @media print{body{background:#fff;color:#000}.card{border:1px solid #ccc;box-shadow:none}}
 """
 
+
+def _h(value: Any) -> str:
+    return html.escape(str(value), quote=True)
+
 def _badge(ok: bool, ok_label: str = "PASS", fail_label: str = "FAIL") -> str:
     cls = "ok" if ok else "err"
     label = ok_label if ok else fail_label
@@ -86,7 +91,7 @@ def _yield_bar(y: float) -> str:
 # ---------------------------------------------------------------------------
 
 def _section_header(title: str, badge: str = "") -> str:
-    return f'<div class="card"><h2>{title} {badge}</h2>'
+    return f'<div class="card"><h2>{_h(title)} {badge}</h2>'
 
 
 def _build_overview(title: str, timestamp: str, provenance: dict) -> str:
@@ -94,9 +99,9 @@ def _build_overview(title: str, timestamp: str, provenance: dict) -> str:
     ver = provenance.get("version", sys.version.split()[0])
     return f"""
 <div class="card">
-  <h1>🔬 {title}</h1>
-  <p class="meta">Generated: {timestamp} &nbsp;·&nbsp; Python {ver} &nbsp;·&nbsp; {platform.system()}</p>
-  <div class="sig">Provenance SHA-256: {sha}</div>
+  <h1>🔬 {_h(title)}</h1>
+  <p class="meta">Generated: {_h(timestamp)} &nbsp;·&nbsp; Python {_h(ver)} &nbsp;·&nbsp; {_h(platform.system())}</p>
+  <div class="sig">Provenance SHA-256: {_h(sha)}</div>
 </div>"""
 
 
@@ -113,7 +118,7 @@ def _build_simulation_section(sim_result: Optional[dict]) -> str:
         phase = o.get("phase_rad")
         pdb_s = f"{pdb:.2f} dB" if pdb is not None else "—"
         phase_s = f"{math.degrees(phase):.1f}°" if phase is not None else "—"
-        rows += f"<tr><td>{node}</td><td>{port}</td><td>{pdb_s}</td><td>{phase_s}</td></tr>"
+        rows += f"<tr><td>{_h(node)}</td><td>{_h(port)}</td><td>{_h(pdb_s)}</td><td>{_h(phase_s)}</td></tr>"
     if not rows:
         rows = "<tr><td colspan='4' style='color:var(--muted)'>No outputs</td></tr>"
     return f"""
@@ -135,9 +140,9 @@ def _build_drc_section(drc_result: Optional[dict]) -> str:
         sev = v.get("severity", "error")
         cls = "warn" if sev == "warning" else "err"
         rows += (
-            f"<tr><td>{v.get('rule','?')}</td>"
-            f"<td><span class='badge {cls}'>{sev}</span></td>"
-            f"<td>{v.get('message','')}</td></tr>"
+            f"<tr><td>{_h(v.get('rule','?'))}</td>"
+            f"<td><span class='badge {cls}'>{_h(sev)}</span></td>"
+            f"<td>{_h(v.get('message',''))}</td></tr>"
         )
     viol_tbl = f"""<table style="margin-top:.75rem">
 <thead><tr><th>Rule</th><th>Severity</th><th>Message</th></tr></thead>
@@ -208,7 +213,7 @@ def _build_spice_section(spice_text: Optional[str]) -> str:
 <details style="margin-top:.75rem">
   <summary style="cursor:pointer;color:var(--muted);font-size:.8rem">View SPICE snippet (first 20 lines)</summary>
   <pre style="font-size:.7rem;overflow:auto;background:#0d1117;padding:.75rem;
-border-radius:8px;margin-top:.5rem;color:{{}};max-height:200px">{chr(10).join(spice_text.splitlines()[:20])}</pre>
+border-radius:8px;margin-top:.5rem;color:{{}};max-height:200px">{_h(chr(10).join(spice_text.splitlines()[:20]))}</pre>
 </details></div>"""
 
 
@@ -360,13 +365,14 @@ def generate_reliability_card_html(
     ])
 
     overall_badge = _badge(all_ok, "ALL PASS", "ISSUES FOUND")
+    safe_title = _h(title)
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title}</title>
+<title>{safe_title}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>{_CSS}</style>

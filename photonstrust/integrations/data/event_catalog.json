@@ -1,0 +1,28 @@
+{
+  "events": {
+    "run.completed": {
+      "description": "QKD simulation run completed",
+      "payload_fields": ["protocol_name", "distance_km", "key_rate_bps", "qber"]
+    },
+    "alert.fired": {
+      "description": "Health monitoring alert triggered",
+      "payload_fields": ["alert_id", "link_id", "severity", "metric_name", "metric_value"]
+    },
+    "sla.breached": {
+      "description": "SLA violation detected",
+      "payload_fields": ["sla_id", "link_id", "actual_value", "target_value"]
+    },
+    "compliance.failed": {
+      "description": "Compliance check failed",
+      "payload_fields": ["requirement_id", "standard", "status"]
+    },
+    "maintenance.predicted": {
+      "description": "Component failure predicted",
+      "payload_fields": ["component_id", "link_id", "predicted_failure_date_iso", "urgency"]
+    },
+    "plan.generated": {
+      "description": "Deployment plan generated",
+      "payload_fields": ["plan_id", "score", "total_cost_usd"]
+    }
+  }
+}

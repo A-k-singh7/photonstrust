@@ -36,6 +36,12 @@ export default function RunModePanel({
   if (mode === "runs") return null;
 
   const decisionContext = decision && typeof decision === "object" ? decision : {};
+  const selectedRunForStage = String(runResult?.run_id || decisionContext?.payload?.run_id || "").trim();
+  const openCertifyStage = (source = null) => {
+    const sourceRunId = String(source?.run_id || source?.runId || "").trim();
+    const nextRunId = sourceRunId || selectedRunForStage;
+    onOpenProgramStage && onOpenProgramStage("certify", nextRunId ? { selectedRunId: nextRunId } : {});
+  };
 
   return (
     <div id={`pt-panel-${mode}-run`} role="tabpanel" aria-labelledby={`pt-tab-${mode}-run`} className="ptRightBody">
@@ -48,8 +54,8 @@ export default function RunModePanel({
             riskLevel={decisionContext.riskLevel}
             blockers={decisionContext.blockers}
             highlights={decisionContext.highlights}
-            onOpenEvidence={() => onOpenProgramStage && onOpenProgramStage("certify")}
-            onProceed={() => onOpenProgramStage && onOpenProgramStage("certify")}
+            onOpenEvidence={(source) => openCertifyStage(source)}
+            onProceed={(source) => openCertifyStage(source)}
           />
           <ConfidenceUncertaintyLayer
             payload={decisionContext.payload}
@@ -68,7 +74,7 @@ export default function RunModePanel({
               if (actionId === "diff") {
                 onOpenProgramStage && onOpenProgramStage("compare");
               } else if (actionId === "certify") {
-                onOpenProgramStage && onOpenProgramStage("certify");
+                openCertifyStage();
               } else if (actionId === "packet") {
                 onExportDecisionPacket && onExportDecisionPacket();
               } else if (actionId === "save") {
