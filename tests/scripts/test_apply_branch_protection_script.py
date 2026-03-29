@@ -98,6 +98,40 @@ def test_main_dry_run_strict_profile(
     ]
 
 
+def test_main_dry_run_main_future_safe_profile(
+    monkeypatch,
+    capsys,
+) -> None:
+    module = _load_script_module()
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "apply_branch_protection.py",
+            "--repo",
+            "photonstrust/photonstrust",
+            "--profile",
+            "main-future-safe",
+        ],
+    )
+
+    assert module.main() == 0
+    output = json.loads(capsys.readouterr().out.strip())
+    assert output["profile"] == "main-future-safe"
+    assert output["required_checks"] == [
+        "CodeQL",
+        "ci-smoke / core-smoke",
+        "ci-smoke / api-contract-smoke",
+        "Web Playwright Tests / playwright-ui",
+        "cv-quick-verify / verify",
+        "cv-quick-verify / Tapeout Gate Final",
+        "security-baseline / pip-audit-runtime",
+        "security-baseline / web-determinism-and-audit",
+        "tapeout-gate / PIC Tapeout Gate",
+    ]
+
+
 def test_main_explicit_checks_override_profile(
     monkeypatch,
     capsys,

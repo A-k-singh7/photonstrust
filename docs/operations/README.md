@@ -8,12 +8,18 @@ current operational entry points.
 
 - `../dev/release_process.md`
   - Release-gate, packet, and release-documentation workflow.
+- `../dev/repository_governance.md`
+  - Main branch protection, baseline tags, and reproducibility refresh rules.
 - `../dev/testing.md`
   - Validation entry points used before release and merge.
 - `../dev/git_and_docs_workflow.md`
   - Branch, PR, and documentation-sync rules for maintainers.
 - `../../scripts/README.md`
   - Script inventory, including release and validation commands.
+- `main_branch_protection_2026-03-29.json`
+  - Snapshot payload for the maintained `main` branch protection profile.
+- `main_green_baseline_2026-03-29.md`
+  - Human-readable notes for the current known-good repository baseline.
 - `../../README.md`
   - User-facing command examples and product startup paths.
 

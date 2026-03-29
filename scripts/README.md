@@ -34,6 +34,8 @@ the repository is easier to navigate.
   - `validation/validate_recent_research_examples.py`
   - `validation/compare_recent_research_benchmarks.py`
 - Release and governance
+  - `apply_branch_protection.py`
+  - `refresh_repo_baselines.py`
   - `release/release_gate_check.py`
   - `release/build_release_gate_packet.py`
   - `release/refresh_release_gate_packet.py`
@@ -59,6 +61,7 @@ python scripts/validation/ci_checks.py
 python scripts/validation/run_validation_harness.py --output-root results/validation
 python scripts/dev/start_product_local.py
 python scripts/product/product_readiness_gate.py --spawn-api
+python scripts/refresh_repo_baselines.py --all
 ```
 
 If a script supports `--help`, prefer reading that output before reading the

@@ -25,6 +25,17 @@ REQUIRED_CHECK_PROFILES: dict[str, tuple[str, ...]] = {
         "security-baseline / pip-audit-runtime",
         "security-baseline / web-determinism-and-audit",
     ),
+    "main-future-safe": (
+        "CodeQL",
+        "ci-smoke / core-smoke",
+        "ci-smoke / api-contract-smoke",
+        "Web Playwright Tests / playwright-ui",
+        "cv-quick-verify / verify",
+        "cv-quick-verify / Tapeout Gate Final",
+        "security-baseline / pip-audit-runtime",
+        "security-baseline / web-determinism-and-audit",
+        "tapeout-gate / PIC Tapeout Gate",
+    ),
 }
 DEFAULT_PROFILE = "startup-fast"
 

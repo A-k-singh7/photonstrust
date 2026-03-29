@@ -11,6 +11,7 @@ This section is the best entry point for contributors and maintainers.
 - `git_and_docs_workflow.md`
 - `testing.md`
 - `release_process.md`
+- `repository_governance.md`
 
 ## Main Topics
 
@@ -25,6 +26,7 @@ This section is the best entry point for contributors and maintainers.
 - `git_and_docs_workflow.md`
 - `testing.md`
 - `release_process.md`
+- `repository_governance.md`
 - `repo_inventory_matrix_2026-03-13.md`
 - `docs_cleanup_matrix_2026-03-13.md`
 - `scripts_and_configs_cleanup_matrix_2026-03-13.md`
@@ -42,6 +44,7 @@ pytest -q tests/test_docs_experience.py
 python scripts/validation/ci_checks.py
 python scripts/validation/run_validation_harness.py --output-root results/validation
 python scripts/validation/validate_recent_research_examples.py
+python scripts/refresh_repo_baselines.py --all
 python scripts/dev/clean_local_workspace.py --dry-run
 git diff --check
 ```

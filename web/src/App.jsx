@@ -20,11 +20,43 @@ import AppTopBar from "./features/shell/AppTopBar";
 import GuidanceStrip from "./features/shell/GuidanceStrip";
 import GraphJsonModals from "./features/shell/GraphJsonModals";
 import LeftSidebarByMode from "./features/shell/LeftSidebarByMode";
+import PanelLoading from "./features/shell/PanelLoading";
 import RightSidebarTabs from "./features/shell/RightSidebarTabs";
 import StatusFooter from "./features/shell/StatusFooter";
+import {
+  DEFAULT_API_BASE,
+  DEFAULT_LANDING_DEMO_CASE_ID,
+  DEFAULT_LANDING_PROJECT_ID,
+  DEFAULT_ORBIT_PASS_CONFIG,
+  DEFAULT_PIC_CIRCUIT,
+  DEFAULT_QKD_SCENARIO,
+  GUIDED_FLOW_VERSION,
+  GUIDED_GLOSSARY_TERMS,
+  GUIDED_STEP_ITEMS,
+  ROLE_PRESET_OPTIONS,
+} from "./features/shell/appDefaults";
+import {
+  _cloneJson,
+  _defaultGraphIdForProfile,
+  _demoScenePlan,
+  _ensureNewcomerId,
+  _flowFromGraph,
+  _kindAvailability,
+  _kindBlueprint,
+  _loadGuidedProgress,
+  _nextNodeId,
+  _nodePortDomain,
+  _pretty,
+  _publishedBundleUrl,
+  _rolePresetBehavior,
+  _runArtifactUrl,
+  _runBundleUrl,
+  _runManifestUrl,
+  _safeParseJson,
+  _saveGuidedProgress,
+} from "./features/shell/appSupport";
 import { PRODUCT_STAGE_ITEMS, PRODUCT_STAGE_ROUTES, stageLabel, stageSubtitle } from "./features/shell/copy";
 import WorkspaceContextBar from "./features/workspace/WorkspaceContextBar";
-import { createOpaqueId, randomToken } from "./state/randomId";
 import { createUiSessionId, createUiTelemetrySink } from "./state/uiTelemetry";
 import {
   buildProjectWorkspaceSnapshot,
@@ -43,7 +75,7 @@ import {
 } from "./state/runCollectionsState";
 import { loadRecentActivity, loadViewPresets, saveRecentActivity, saveViewPreset } from "./state/workspaceState";
 
-import { BAND_OPTIONS, KIND_DEFS, kindDef, portDomainFor } from "./photontrust/kinds";
+import { BAND_OPTIONS, KIND_DEFS, kindDef } from "./photontrust/kinds";
 import { templatePicChain, templatePicMzi, templatePicSpiceImportHarness, templateQkdLink, templatePicBalancedReceiver, templatePicAwgDemux, templatePicRingFilter, templatePicCoherentRx, templatePicModulatorTx, templatePicSwitch2x2 } from "./photontrust/templates";
 import { buildGraphPayload } from "./photontrust/graph";
 import PtNode from "./photontrust/PtNode";
@@ -86,454 +118,6 @@ const CenterWorkspacePane = lazy(() => import("./features/shell/CenterWorkspaceP
 const LandingWorkspace = lazy(() => import("./features/shell/LandingWorkspace"));
 const ProvenanceTimeline = lazy(() => import("./features/trust/ProvenanceTimeline"));
 const RunCollectionsPanel = lazy(() => import("./features/workspace/RunCollectionsPanel"));
-
-const DEFAULT_API_BASE = import.meta.env.VITE_PHOTONTRUST_API_BASE_URL || "http://127.0.0.1:8000";
-const DEFAULT_LANDING_PROJECT_ID = "pilot_demo";
-const DEFAULT_LANDING_DEMO_CASE_ID = "bbm92_metro_50km";
-
-const DEFAULT_QKD_SCENARIO = {
-  id: "ui_qkd_link",
-  distance_km: 10,
-  band: "c_1550",
-  wavelength_nm: 1550,
-  execution_mode: "preview",
-};
-
-const DEFAULT_PIC_CIRCUIT = {
-  id: "ui_pic_circuit",
-  wavelength_nm: 1550,
-};
-
-const DEFAULT_ORBIT_PASS_CONFIG = {
-  orbit_pass: {
-    id: "ui_orbit_pass_envelope",
-    band: "c_1550",
-    dt_s: 30,
-    samples: [
-      { t_s: 0, distance_km: 1200, elevation_deg: 20, background_counts_cps: 5000 },
-      { t_s: 30, distance_km: 900, elevation_deg: 40, background_counts_cps: 2000 },
-      { t_s: 60, distance_km: 600, elevation_deg: 70, background_counts_cps: 300 },
-      { t_s: 90, distance_km: 900, elevation_deg: 40, background_counts_cps: 2000 },
-      { t_s: 120, distance_km: 1200, elevation_deg: 20, background_counts_cps: 5000 },
-    ],
-    cases: [
-      {
-        id: "best",
-        label: "Best case (night-like, low turbulence)",
-        channel_overrides: {
-          atmospheric_extinction_db_per_km: 0.01,
-          pointing_jitter_urad: 1.0,
-          turbulence_scintillation_index: 0.08,
-          background_counts_cps_scale: 0.3,
-        },
-      },
-      { id: "median", label: "Median", channel_overrides: {} },
-      {
-        id: "worst",
-        label: "Worst case (day-like, high turbulence)",
-        channel_overrides: {
-          atmospheric_extinction_db_per_km: 0.05,
-          pointing_jitter_urad: 3.0,
-          turbulence_scintillation_index: 0.25,
-          background_counts_cps_scale: 2.0,
-        },
-      },
-    ],
-  },
-  source: {
-    type: "emitter_cavity",
-    physics_backend: "analytic",
-    rep_rate_mhz: 150,
-    collection_efficiency: 0.38,
-    coupling_efficiency: 0.62,
-    radiative_lifetime_ns: 1.0,
-    purcell_factor: 5,
-    dephasing_rate_per_ns: 0.5,
-    g2_0: 0.02,
-    pulse_window_ns: 5.0,
-  },
-  channel: {
-    model: "free_space",
-    connector_loss_db: 1.0,
-    dispersion_ps_per_km: 0.0,
-    tx_aperture_m: 0.12,
-    rx_aperture_m: 0.3,
-    beam_divergence_urad: 12.0,
-    pointing_jitter_urad: 1.5,
-    atmospheric_extinction_db_per_km: 0.02,
-    turbulence_scintillation_index: 0.15,
-    background_counts_cps: 0.0,
-    elevation_deg: 45.0,
-  },
-  detector: {
-    class: "snspd",
-    pde: 0.3,
-    dark_counts_cps: 100,
-    jitter_ps_fwhm: 30,
-    dead_time_ns: 100,
-    afterpulsing_prob: 0.001,
-  },
-  timing: {
-    sync_drift_ps_rms: 10,
-    coincidence_window_ps: 250,
-  },
-  protocol: {
-    name: "BBM92",
-    sifting_factor: 0.5,
-    ec_efficiency: 1.16,
-  },
-  uncertainty: {},
-};
-
-const GUIDED_GLOSSARY_TERMS = [
-  {
-    term: "QBER",
-    meaning: "Quantum bit error rate. Lower values generally indicate cleaner key generation conditions.",
-  },
-  {
-    term: "Key rate",
-    meaning: "Estimated secure key bits per second produced by a run.",
-  },
-  {
-    term: "Baseline",
-    meaning: "Reference run used for candidate comparison and promotion decisions.",
-  },
-  {
-    term: "Reliability card",
-    meaning: "Decision artifact summarizing assumptions, outputs, and trust posture.",
-  },
-  {
-    term: "Evidence bundle",
-    meaning: "Portable run package for integrity verification, audit, and review.",
-  },
-];
-
-const GUIDED_FLOW_VERSION = "2026-03-guided-power-v1";
-
-const GUIDED_STEP_ITEMS = [
-  { id: "api_health", label: "Check API health" },
-  { id: "first_run", label: "Run first simulation" },
-  { id: "compare", label: "Compare baseline vs candidate" },
-  { id: "decision", label: "Review decision and blockers" },
-];
-
-function _defaultGuidedProgress() {
-  const steps = {};
-  for (const step of GUIDED_STEP_ITEMS) {
-    steps[String(step.id)] = false;
-  }
-  return {
-    steps,
-    completed: false,
-    completed_at: null,
-  };
-}
-
-function _loadGuidedProgress() {
-  try {
-    const raw = localStorage.getItem("pt_guided_progress_v1");
-    if (!raw) return _defaultGuidedProgress();
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return _defaultGuidedProgress();
-    const out = _defaultGuidedProgress();
-    const sourceSteps = parsed.steps && typeof parsed.steps === "object" ? parsed.steps : {};
-    for (const step of GUIDED_STEP_ITEMS) {
-      out.steps[String(step.id)] = sourceSteps[String(step.id)] === true;
-    }
-    out.completed = Boolean(parsed.completed === true);
-    out.completed_at = parsed.completed_at ? String(parsed.completed_at) : null;
-    return out;
-  } catch {
-    return _defaultGuidedProgress();
-  }
-}
-
-function _saveGuidedProgress(progress) {
-  try {
-    const safe = _defaultGuidedProgress();
-    const source = progress && typeof progress === "object" ? progress : {};
-    const sourceSteps = source.steps && typeof source.steps === "object" ? source.steps : {};
-    for (const step of GUIDED_STEP_ITEMS) {
-      safe.steps[String(step.id)] = sourceSteps[String(step.id)] === true;
-    }
-    safe.completed = source.completed === true;
-    safe.completed_at = source.completed_at ? String(source.completed_at) : null;
-    localStorage.setItem("pt_guided_progress_v1", JSON.stringify(safe));
-    return safe;
-  } catch {
-    return _defaultGuidedProgress();
-  }
-}
-
-function _ensureNewcomerId() {
-  const existing = String(localStorage.getItem("pt_newcomer_id") || "").trim();
-  if (existing) return existing;
-  const generated = createOpaqueId("anon");
-  localStorage.setItem("pt_newcomer_id", generated);
-  return generated;
-}
-
-function _pretty(obj) {
-  return JSON.stringify(obj ?? null, null, 2);
-}
-
-function _cloneJson(obj) {
-  return JSON.parse(JSON.stringify(obj ?? null));
-}
-
-function _safeParseJson(text) {
-  try {
-    return { ok: true, value: JSON.parse(text) };
-  } catch (err) {
-    return { ok: false, error: String(err?.message || err) };
-  }
-}
-
-function _baseUrl(baseUrl) {
-  const raw = String(baseUrl || "").trim();
-  if (!raw) return "";
-  return raw.endsWith("/") ? raw.slice(0, -1) : raw;
-}
-
-function _runManifestUrl(baseUrl, runId) {
-  const base = _baseUrl(baseUrl);
-  return `${base}/v0/runs/${encodeURIComponent(String(runId || ""))}`;
-}
-
-function _runArtifactUrl(baseUrl, runId, relPath) {
-  const base = _baseUrl(baseUrl);
-  return `${base}/v0/runs/${encodeURIComponent(String(runId || ""))}/artifact?path=${encodeURIComponent(String(relPath || ""))}`;
-}
-
-function _runBundleUrl(baseUrl, runId) {
-  const base = _baseUrl(baseUrl);
-  return `${base}/v0/runs/${encodeURIComponent(String(runId || ""))}/bundle`;
-}
-
-function _publishedBundleUrl(baseUrl, digest) {
-  const base = _baseUrl(baseUrl);
-  return `${base}/v0/evidence/bundle/by-digest/${encodeURIComponent(String(digest || ""))}`;
-}
-
-function _nextNodeId(kind, existingNodes) {
-  const slug0 = String(kind || "node").replace(/[^A-Za-z0-9_-]+/g, "_");
-  const slug = slug0 && /[A-Za-z0-9]/.test(slug0[0]) ? slug0 : `n_${slug0}`;
-  const taken = new Set((existingNodes || []).map((n) => String(n.id)));
-  for (let i = 1; i <= 9999; i++) {
-    const candidate = `${slug}_${i}`;
-    if (!taken.has(candidate)) return candidate;
-  }
-  return `${slug}_${randomToken(4)}`;
-}
-
-function _flowFromGraph(graph, registryByKind = null) {
-  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
-  const edges = Array.isArray(graph?.edges) ? graph.edges : [];
-  const byKind = registryByKind && typeof registryByKind === "object" ? registryByKind : {};
-  const flowNodes = nodes.map((n, idx) => {
-    const kind = String(n?.kind || "");
-    const blueprint = _kindBlueprint(kind, byKind?.[kind]);
-    const pos = n?.ui?.position || n?.ui || {};
-    const x = Number(pos?.x ?? 80 + idx * 220);
-    const y = Number(pos?.y ?? 90);
-    return {
-      id: String(n.id),
-      type: "ptNode",
-      position: { x, y },
-      data: {
-        id: String(n.id),
-        kind,
-        label: n.label || blueprint.title || kind,
-        title: blueprint.title,
-        category: blueprint.category,
-        inPorts: blueprint.inPorts,
-        outPorts: blueprint.outPorts,
-        portDomains: blueprint.portDomains,
-        params: n.params && typeof n.params === "object" ? n.params : {},
-      },
-    };
-  });
-  const flowEdges = edges.map((e, idx) => ({
-    id: String(e.id || `e${idx + 1}`),
-    source: String(e.from),
-    target: String(e.to),
-    sourceHandle: e.from_port == null ? undefined : String(e.from_port),
-    targetHandle: e.to_port == null ? undefined : String(e.to_port),
-    label: e.label == null ? undefined : String(e.label),
-  }));
-  return { nodes: flowNodes, edges: flowEdges };
-}
-
-function _defaultGraphIdForProfile(profile) {
-  if (profile === "pic_circuit") return "ui_pic_circuit";
-  return "ui_qkd_link";
-}
-
-function _normalizeStringList(items) {
-  if (!Array.isArray(items)) return [];
-  return items
-    .map((v) => String(v || "").trim())
-    .filter(Boolean);
-}
-
-function _defaultDomainForKind(kind, category) {
-  const k = String(kind || "");
-  const cat = String(category || "");
-  if (cat === "pic" || k.startsWith("pic.")) return "optical";
-  return "control";
-}
-
-function _mergePortDomains(kind, category, inPorts, outPorts, ...domainSpecs) {
-  const fallback = _defaultDomainForKind(kind, category);
-  const out = { in: {}, out: {} };
-  for (const spec of domainSpecs) {
-    if (!spec || typeof spec !== "object") continue;
-    for (const dir of ["in", "out"]) {
-      const byPort = spec?.[dir];
-      if (!byPort || typeof byPort !== "object") continue;
-      for (const [port, domain] of Object.entries(byPort)) {
-        const p = String(port || "").trim();
-        const d = String(domain || "").trim();
-        if (!p || !d) continue;
-        out[dir][p] = d;
-      }
-    }
-  }
-  for (const p of inPorts) {
-    if (!Object.prototype.hasOwnProperty.call(out.in, p)) out.in[p] = fallback;
-  }
-  for (const p of outPorts) {
-    if (!Object.prototype.hasOwnProperty.call(out.out, p)) out.out[p] = fallback;
-  }
-  return out;
-}
-
-function _kindBlueprint(kind, kindRegistryEntry = null) {
-  const kindId = String(kind || "").trim();
-  const def = kindDef(kindId);
-  const meta = kindRegistryEntry && typeof kindRegistryEntry === "object" ? kindRegistryEntry : null;
-  const categoryGuess = kindId.startsWith("pic.") ? "pic" : kindId.startsWith("qkd.") ? "qkd" : "custom";
-  const category = String(meta?.category || def?.category || categoryGuess);
-  const metaInPorts = _normalizeStringList(meta?.in_ports);
-  const metaOutPorts = _normalizeStringList(meta?.out_ports);
-  const defInPorts = _normalizeStringList(def?.ports?.in);
-  const defOutPorts = _normalizeStringList(def?.ports?.out);
-  const inPorts = metaInPorts.length ? metaInPorts : defInPorts;
-  const outPorts = metaOutPorts.length ? metaOutPorts : defOutPorts;
-  const defaultParams = def?.defaultParams && typeof def.defaultParams === "object" ? { ...def.defaultParams } : {};
-  if (Array.isArray(meta?.params)) {
-    for (const p of meta.params) {
-      if (!p || typeof p !== "object") continue;
-      const key = String(p?.name || "").trim();
-      if (!key) continue;
-      if (Object.prototype.hasOwnProperty.call(defaultParams, key)) continue;
-      if (Object.prototype.hasOwnProperty.call(p, "default") && p.default !== undefined) {
-        defaultParams[key] = p.default;
-      } else if (p.required) {
-        defaultParams[key] = null;
-      }
-    }
-  }
-  const portDomains = _mergePortDomains(kindId, category, inPorts, outPorts, def?.portDomains, meta?.port_domains);
-  return {
-    kind: kindId,
-    title: String(meta?.title || def?.title || kindId || "Node"),
-    category,
-    inPorts,
-    outPorts,
-    defaultParams,
-    portDomains,
-    meta,
-    def,
-  };
-}
-
-function _kindAvailability(kind, kindRegistryEntry = null) {
-  const kindId = String(kind || "").trim();
-  const def = kindDef(kindId);
-  const meta = kindRegistryEntry && typeof kindRegistryEntry === "object" ? kindRegistryEntry : null;
-  const apiEnabled =
-    typeof meta?.availability?.api_enabled === "boolean"
-      ? meta.availability.api_enabled
-      : typeof def?.availability?.api_enabled === "boolean"
-        ? def.availability.api_enabled
-        : true;
-  const cliEnabled =
-    typeof meta?.availability?.cli_enabled === "boolean"
-      ? meta.availability.cli_enabled
-      : typeof def?.availability?.cli_enabled === "boolean"
-        ? def.availability.cli_enabled
-        : true;
-  return { apiEnabled, cliEnabled };
-}
-
-function _nodePortDomain(node, direction, portName) {
-  const dir = String(direction || "").toLowerCase() === "in" ? "in" : "out";
-  const port = String(portName || "").trim();
-  const byPort = node?.data?.portDomains?.[dir];
-  if (byPort && typeof byPort === "object") {
-    const d = String(byPort?.[port] || "").trim();
-    if (d) return d;
-  }
-  return portDomainFor(String(node?.data?.kind || ""), dir, port);
-}
-
-const ROLE_PRESET_OPTIONS = [
-  { id: "builder", label: "Builder" },
-  { id: "reviewer", label: "Reviewer" },
-  { id: "exec", label: "Exec" },
-];
-
-const DEMO_SCENE_PLANS = {
-  benchmark: {
-    scene: "benchmark",
-    stage: "compare",
-    mode: "runs",
-    tab: "diff",
-    statusText: "Demo scene: Benchmark. Compare baseline and candidate outcomes.",
-  },
-  trust: {
-    scene: "trust",
-    stage: "certify",
-    mode: "runs",
-    tab: "manifest",
-    statusText: "Demo scene: Trust. Review provenance and certification posture.",
-  },
-  decision: {
-    scene: "decision",
-    stage: "run",
-    mode: "graph",
-    tab: "run",
-    statusText: "Demo scene: Decision. Present recommendation and confidence framing.",
-  },
-  packet: {
-    scene: "packet",
-    stage: "export",
-    mode: "runs",
-    tab: "manifest",
-    statusText: "Demo scene: Packet. Export meeting-ready evidence.",
-  },
-};
-
-function _demoScenePlan(sceneId) {
-  const key = String(sceneId || "benchmark").trim().toLowerCase();
-  return DEMO_SCENE_PLANS[key] || DEMO_SCENE_PLANS.benchmark;
-}
-
-function _rolePresetBehavior(roleId) {
-  const role = String(roleId || "builder");
-  if (role === "reviewer") return { stage: "compare", mode: "runs", tab: "diff" };
-  if (role === "exec") return { stage: "export", mode: "runs", tab: "manifest" };
-  return { stage: "build", mode: "graph", tab: "inspect" };
-}
-
-function PanelLoading({ message }) {
-  return (
-    <div className="ptRightSection ptPanelLoading" role="status" aria-live="polite" aria-busy="true">
-      <div className="ptHint">{String(message || "Loading panel...")}</div>
-    </div>
-  );
-}
 
 export default function App() {
   const nodeTypes = useMemo(() => ({ ptNode: PtNode }), []);

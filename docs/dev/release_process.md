@@ -23,6 +23,7 @@ Use `git_and_docs_workflow.md` for the branch and PR side of this flow.
 python scripts/release/release_gate_check.py --output results/release_gate/release_gate_report.json
 python scripts/release/build_release_gate_packet.py
 python scripts/release/refresh_release_gate_packet.py
+python scripts/refresh_repo_baselines.py --release-gate --normalize-milestones
 python scripts/release/sign_release_gate_packet.py
 python scripts/release/verify_release_gate_packet.py
 python scripts/release/verify_release_gate_packet_signature.py
@@ -38,6 +39,7 @@ python scripts/release/verify_release_gate_packet_signature.py
    `results/` subtrees.
 6. Confirm `CHANGELOG.md`, `README.md`, and `scripts/README.md` describe the
    release correctly before merge or tag creation.
+7. Cut a named known-good baseline when `main` is repo-wide green.
 
 ## Release Documentation Surfaces
 

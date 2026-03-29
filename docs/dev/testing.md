@@ -11,6 +11,7 @@ first, then expand to broader gates when needed.
 pytest -q tests/test_docs_experience.py
 python scripts/validation/ci_checks.py
 python -m pytest -q tests/api tests/scripts tests/ui
+python -m pytest -q tests/scripts/test_apply_branch_protection_script.py tests/scripts/test_refresh_repo_baselines_script.py
 ```
 
 ### Full validation harness
@@ -35,6 +36,7 @@ npm run test:ui
 pytest -q tests/test_docs_experience.py
 cd web
 node tests/helpers/capture-doc-assets.mjs
+python scripts/refresh_repo_baselines.py --measurement-fixtures
 ```
 
 ## Test Groups
@@ -53,6 +55,7 @@ node tests/helpers/capture-doc-assets.mjs
 - bug fix in Python logic: affected unit/integration tests + `ci_checks.py`
 - API changes: `tests/api/` + relevant contract/schema tests
 - script changes: relevant `tests/scripts/` tests
+- fixture, milestone, or release-packet changes: `python scripts/refresh_repo_baselines.py --all` plus affected script or ingestion tests
 - UI changes: `npm run build` + targeted Playwright specs
 - docs or onboarding changes: `tests/test_docs_experience.py` + affected CLI or
   UI smoke commands
