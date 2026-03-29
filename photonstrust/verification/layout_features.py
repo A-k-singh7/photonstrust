@@ -64,4 +64,3 @@ def extract_parallel_waveguide_runs_from_request(request: dict) -> dict[str, Any
         "summary": summary,
         "parallel_runs": runs,
     }
-

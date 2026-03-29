@@ -49,4 +49,3 @@ def test_recommended_gap_meets_target_spec():
     )
     # Allow small numerical slack due to log/float rounding.
     assert achieved <= target + 1e-6
-

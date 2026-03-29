@@ -39,4 +39,3 @@ def validate_graph(graph: dict, *, require_jsonschema: bool = False) -> None:
         validate(instance=graph, schema=schema)
     except Exception as exc:
         raise SchemaValidationError(str(exc)) from exc
-

@@ -56,4 +56,3 @@ This document covers risks for both chip and satellite expansion.
 ## Related docs
 - `12_web_research_update_2026-02-12.md`
 - `13_business_expansion_and_build_plan_2026-02-12.md`
-

@@ -66,4 +66,3 @@ def test_klayout_artifact_pack_optional_real_run(tmp_path: Path) -> None:
     validate_instance(pack, klayout_run_artifact_pack_schema_path())
     assert pack["status"] in ("pass", "fail", "error")
     assert (out_dir / "drc_lite.json").exists() or pack["status"] == "skipped"
-

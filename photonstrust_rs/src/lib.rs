@@ -50,10 +50,10 @@ fn process_events_heap_rs(
 ) -> PyResult<(Vec<f64>, usize, usize)> {
 
     let mut events = BinaryHeap::new();
-    
+
     // Seed RNG
     let mut rng = StdRng::seed_from_u64(seed);
-    
+
     // Using simple Gaussian dist
     let ap_jitter = f64::max(1.0, jitter_ps * 0.25);
     let normal = if ap_jitter > 0.0 {
@@ -76,14 +76,14 @@ fn process_events_heap_rs(
 
     while let Some(event) = events.pop() {
         processed += 1;
-        
+
         if dead_time_ps > 0.0 && (event.time_ps - last_click) < dead_time_ps {
             continue;
         }
-        
+
         clicks.push(event.time_ps);
         last_click = event.time_ps;
-        
+
         if event.origin != Origin::Signal {
             false_clicks += 1;
         }

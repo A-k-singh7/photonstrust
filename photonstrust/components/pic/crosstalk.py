@@ -124,4 +124,3 @@ def recommended_min_gap_um(
         return float("inf")
     gap = -gap_decay_um * math.log(ratio)
     return max(0.0, float(gap))
-

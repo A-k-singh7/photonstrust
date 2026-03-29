@@ -75,4 +75,3 @@ def run_ngspice(
         log_path=log_path,
         raw_path=raw_path,
     )
-

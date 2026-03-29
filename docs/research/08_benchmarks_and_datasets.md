@@ -85,4 +85,3 @@ consent-aware way to support calibration and academic reproducibility.
 
 ## Web Research Extension (2026-02-12)
 See `12_web_research_update_2026-02-12.md` section `08 Benchmarks and datasets: governance and drift control`.
-

@@ -39,4 +39,3 @@ def test_gds_extract_roundtrip_when_gdstk_available(tmp_path: Path):
     assert stats.routes == 2
     assert len(routes) == 2
     assert all(r.get("width_um") == 0.5 for r in routes)
-

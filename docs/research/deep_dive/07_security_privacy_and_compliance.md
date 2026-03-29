@@ -38,4 +38,3 @@ Applied to: threat model coverage, security controls, privacy/compliance alignme
 - NIST PQC FIPS announcement (FIPS 203/204/205, August 2024): https://www.nist.gov/news-events/news/2024/08/announcing-approval-three-federal-information-processing-standards-fips
 - NIST SP 800-227 (KEM recommendations, September 18, 2025): https://www.nist.gov/publications/nist-special-publication-800-227-recommendations-key-encapsulation-mechanisms
 - OpenSSF Best Practices Badge program: https://openssf.org/best-practices-badge/
-

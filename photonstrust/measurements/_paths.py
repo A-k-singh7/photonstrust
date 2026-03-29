@@ -16,4 +16,3 @@ def schemas_dir() -> Path:
 
 def open_measurements_dir() -> Path:
     return repo_root() / "datasets" / "measurements" / "open"
-

@@ -17,4 +17,3 @@ __all__ = [
     "component_power_transmission",
     "supported_component_kinds",
 ]
-

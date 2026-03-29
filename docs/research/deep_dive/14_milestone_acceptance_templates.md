@@ -171,4 +171,3 @@ Applied to: milestone evidence criteria, regression gate discipline, and release
 - SLSA v1.0 notes: https://slsa.dev/spec/v1.0/whats-new
 - Sigstore cosign signature verification: https://docs.sigstore.dev/cosign/verifying/verify/
 - NIST CSF 2.0: https://doi.org/10.6028/NIST.CSWP.29
-

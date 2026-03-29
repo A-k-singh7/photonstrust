@@ -64,4 +64,3 @@ Applied to: protocol set, validation dimensions, and baseline/tolerance policies
 - Quantum repeater baseline (Briegel et al., 1998): https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.81.5932
 - Link layer protocol for quantum networks: https://arxiv.org/abs/1903.09778
 - RFC 9340 architecture guidance: https://www.rfc-editor.org/info/rfc9340
-

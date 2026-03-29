@@ -234,4 +234,3 @@ Week 4:
   - https://arxiv.org/abs/0708.0241
 - SPDC/TMSV statistics context:
   - https://arxiv.org/abs/quant-ph/9412001
-

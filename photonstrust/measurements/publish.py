@@ -146,4 +146,3 @@ def _photonstrust_version() -> str | None:
         except Exception:
             return None
     return None
-

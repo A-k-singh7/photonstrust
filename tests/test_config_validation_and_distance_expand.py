@@ -46,4 +46,3 @@ def test_validate_scenarios_or_raise_aggregates_errors() -> None:
     }
     with pytest.raises(ConfigValidationError, match="Invalid scenario configuration"):
         validate_scenarios_or_raise([scenario])
-

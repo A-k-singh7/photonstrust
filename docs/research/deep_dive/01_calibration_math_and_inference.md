@@ -104,4 +104,3 @@ Applied to: calibration objective, probabilistic model, posterior diagnostics, a
 - Improved R-hat diagnostic (Vehtari et al.): https://arxiv.org/abs/1903.08008
 - ArviZ diagnostics reference: https://python.arviz.org/en/stable/api/diagnostics.html
 - Stan posterior predictive checks: https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html
-

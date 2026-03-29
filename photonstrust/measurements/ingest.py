@@ -124,4 +124,3 @@ def _update_index(open_root: Path, bundle: dict, manifest_path: Path) -> None:
         index.append(record)
     index.sort(key=lambda r: str(r.get("dataset_id", "")).lower())
     index_path.write_text(json.dumps(index, indent=2), encoding="utf-8")
-

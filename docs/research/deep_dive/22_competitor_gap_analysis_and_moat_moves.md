@@ -357,4 +357,3 @@ PIC CAD / verification:
 - Luceda IPKISS: https://www.lucedaphotonics.com/ipkiss
 - Ansys Lumerical: https://www.ansys.com/products/optics/ansys-lumerical
 - Synopsys photonic solutions: https://www.synopsys.com/photonic-solutions.html
-

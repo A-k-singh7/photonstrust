@@ -21,4 +21,3 @@ def test_pic_crosstalk_calibration_recovers_synthetic_params():
     assert abs(float(fitted["kappa0_per_um"]) - float(expected["kappa0_per_um"])) / float(expected["kappa0_per_um"]) < 1e-6
     assert abs(float(fitted["gap_decay_um"]) - float(expected["gap_decay_um"])) / float(expected["gap_decay_um"]) < 1e-6
     assert abs(float(fitted["lambda_exp"]) - float(expected["lambda_exp"])) < 1e-6
-

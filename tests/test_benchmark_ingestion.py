@@ -102,4 +102,3 @@ def test_ingest_bundle_overwrite_guard(tmp_path: Path):
     ingest_bundle_file(bundle_path, open_root=open_root)
     with pytest.raises(FileExistsError):
         ingest_bundle_file(bundle_path, open_root=open_root, overwrite=False)
-

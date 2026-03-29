@@ -40,4 +40,3 @@ Applied to: flagship playbook scenarios, benchmarking baselines, and expected pe
 - MDI-QKD reference protocol: https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.108.130503
 - Twin-field QKD at 1000 km (PRL 130, 210801): https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.130.210801
 - Link layer protocol for quantum networks: https://arxiv.org/abs/1903.09778
-

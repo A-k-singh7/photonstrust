@@ -7,4 +7,3 @@ Design goals:
 - Always emit route/port sidecars for downstream checks (e.g., Performance DRC).
 - Optionally emit GDS and run external layout checks when tools are available.
 """
-

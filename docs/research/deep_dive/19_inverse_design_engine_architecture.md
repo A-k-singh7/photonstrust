@@ -243,4 +243,3 @@ Release gating:
   https://meep.readthedocs.io/en/latest/License_and_Copyright/
 - Ceviche:
   https://github.com/fancompute/ceviche
-

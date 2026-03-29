@@ -43,4 +43,3 @@ Applied to: bottleneck map, optimization tactics, profiling workflow, and scalin
 - Qiskit primitives guide: https://qiskit.org/documentation/guides/primitives.html
 - Qiskit transpiler stages: https://qiskit.org/documentation/guides/transpiler-stages.html
 - Bayesian optimization for repeater protocol search: https://arxiv.org/abs/2502.02208
-

@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "kind": "photonstrust.rc_baseline_lock",
+  "generated_at": "2026-02-16T16:07:39.585071+00:00",
+  "fixtures": [
+    {
+      "path": "tests/fixtures/baselines.json",
+      "sha256": "6347c512bd69daab46f74f1c00fd14e70c19b150264a14c058c33ee8b1ea9b23",
+      "bytes": 5386
+    },
+    {
+      "path": "tests/fixtures/canonical_phase41_baselines.json",
+      "sha256": "2ea616817086f609b6b695ca995960fbfb2a34e233bb1f7afde69d1a199b372b",
+      "bytes": 4129
+    },
+    {
+      "path": "tests/fixtures/canonical_phase54_satellite_baselines.json",
+      "sha256": "2cced54f2310712eda32be003c894f73020a1a81593f70b575fd56e7d6d0f740",
+      "bytes": 2419
+    },
+    {
+      "path": "tests/fixtures/pic_crosstalk_calibration_baseline.json",
+      "sha256": "5d7e7313bf18f91adb231f03ca8aa2a50f1768bf411b4082c0bdc7b64cdd5b0e",
+      "bytes": 423
+    },
+    {
+      "path": "tests/fixtures/report_hashes.json",
+      "sha256": "774b7784988808c8b3d051bdd15efbcfb4eeaaf1f5be870319a62e72d59d7786",
+      "bytes": 329
+    }
+  ],
+  "fixture_set_sha256": "1ef31de81cbb8581d6d54798ab7bb5fd4c0f6a3d7607d31b0de4e8f2231d8fb3"
+}

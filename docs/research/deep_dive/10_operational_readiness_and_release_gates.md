@@ -39,4 +39,3 @@ Applied to: release gates, reproducibility checks, and release-candidate integri
 - SLSA v1.0 notes: https://slsa.dev/spec/v1.0/whats-new
 - Sigstore cosign signature verification: https://docs.sigstore.dev/cosign/verifying/verify/
 - GitHub CODEOWNERS and review enforcement context: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
-

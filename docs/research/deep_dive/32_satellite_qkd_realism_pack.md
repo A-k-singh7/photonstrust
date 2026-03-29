@@ -254,4 +254,3 @@ Satellite QKD anchors:
 Constraints and analysis examples:
 - Finite key effects in satellite QKD (npj Quantum Information, 2022), DOI: 10.1038/s41534-022-00610-6
 - Practical constraints in satellite QKD (Communications Physics, 2023), DOI: 10.1038/s42005-023-01190-0
-

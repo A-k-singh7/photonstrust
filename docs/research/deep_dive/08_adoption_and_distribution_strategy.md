@@ -40,4 +40,3 @@ Applied to: adoption targets, value propositions, distribution channels, and sta
 - NetSquid reference simulator paper: https://www.nature.com/articles/s42005-021-00647-8
 - SeQUeNCe project page (Argonne): https://www.anl.gov/sequence-simulator-of-quantum-network-communication
 - SeQUeNCe paper index (Argonne publication record): https://www.anl.gov/argonne-scientific-publications/pub/170140
-

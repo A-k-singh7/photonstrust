@@ -42,4 +42,3 @@ def test_ring_resonance_not_flat_in_sweep():
     hi = max(etas)
     assert hi > 0.5
     assert lo < 0.25 * hi
-

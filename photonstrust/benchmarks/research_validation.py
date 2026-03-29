@@ -308,4 +308,3 @@ def _deep_copy_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
         else:
             out[key] = value
     return out
-

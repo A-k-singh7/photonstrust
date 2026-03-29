@@ -42,4 +42,3 @@ Applied to: benchmark governance model, dataset quality requirements, and public
 - ACM Artifact Review and Badging (current policy): https://www.acm.org/publications/policies/artifact-review-and-badging-current
 - CodeMeta metadata project: https://codemeta.github.io/
 - W3C PROV overview: https://www.w3.org/TR/prov-overview/
-

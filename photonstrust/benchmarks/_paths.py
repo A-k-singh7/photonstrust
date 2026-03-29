@@ -21,4 +21,3 @@ def schemas_dir() -> Path:
 
 def open_benchmarks_dir() -> Path:
     return repo_root() / "datasets" / "benchmarks" / "open"
-

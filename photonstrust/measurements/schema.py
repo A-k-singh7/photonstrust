@@ -40,4 +40,3 @@ def measurement_bundle_schema_path() -> Path:
 
 def artifact_pack_manifest_schema_path() -> Path:
     return schemas_dir() / "photonstrust.artifact_pack_manifest.v0.schema.json"
-

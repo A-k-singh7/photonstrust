@@ -266,4 +266,3 @@ GraphSpec (TOML) is "real" when:
 
 - gdsfactory paper (YAML design flow mention): https://gdsfactory.github.io/photonics_paper/
 - Nazca license (context for why we avoid embedding AGPL into commercial core): https://github.com/nickersonm/nazca-design/blob/master/LICENSE.txt
-

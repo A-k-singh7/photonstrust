@@ -164,7 +164,7 @@ with sweep_tab:
 with invdes_tab:
     st.subheader("JAX Gradient-Based Inverse Design")
     st.markdown("""
-    Adjust a **target transmission** and let JAX trace gradients back through the 
+    Adjust a **target transmission** and let JAX trace gradients back through the
     scattering matrix solver to find the optimum parameter values automatically.
     """)
 

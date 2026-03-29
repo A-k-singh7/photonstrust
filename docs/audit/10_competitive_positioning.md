@@ -198,4 +198,3 @@ Academic adoption requires:
 | v0.3 | gdsfactory interop + MDI/TF-QKD | PIC designers + QKD researchers |
 | v0.4 | ETSI/ISO compliance metadata | Industry / certification bodies |
 | v1.0 | Network topology + full protocol library | General quantum networking |
-

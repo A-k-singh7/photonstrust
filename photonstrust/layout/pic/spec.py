@@ -112,4 +112,3 @@ def node_ui_position_um(node: dict[str, Any], *, ui_scale_um_per_unit: float) ->
         except Exception:
             return None
     return None
-
