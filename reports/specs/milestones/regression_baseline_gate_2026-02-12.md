@@ -23,4 +23,3 @@
 - Notes:
   - `pytest -q` passed (`32 passed`).
   - `py -3 scripts/validation/check_benchmark_drift.py` passed.
-

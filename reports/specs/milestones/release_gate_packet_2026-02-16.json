@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "kind": "photonstrust.release_gate_packet",
-  "generated_at": "2026-03-29T12:39:07.055509+00:00",
+  "generated_at": "2026-03-29T12:44:43.435954+00:00",
   "required_artifact_count": 12,
   "artifact_count": 12,
   "artifacts": [
@@ -32,8 +32,8 @@
     },
     {
       "path": "reports/specs/milestones/rc_baseline_lock_2026-02-16.json",
-      "sha256": "1ae5170cecc97a2ad295849e94c690dde1913244a26ec26dac1744c496fd7ff4",
-      "bytes": 1131
+      "sha256": "f7c3c66038e7fd079f4589c2e98a7ecd3ad02f9c6e7aee26a24c053c619ab7b9",
+      "bytes": 1132
     },
     {
       "path": "reports/specs/milestones/regression_baseline_gate_2026-02-16.md",
@@ -91,5 +91,5 @@
       }
     ]
   },
-  "artifact_set_sha256": "9158bd3ff401ea78dee5127b84f5f9d8dd44bc8c9e7d31cbf2e6d823c9b7bd9a"
+  "artifact_set_sha256": "4bac45bb0bfb900827a8155421b57ce0ec15e1477242dea9eff623f3d252665f"
 }

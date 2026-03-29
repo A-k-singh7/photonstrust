@@ -67,7 +67,7 @@ def sign_release_gate_packet(
 
     resolved_signature.parent.mkdir(parents=True, exist_ok=True)
     with resolved_signature.open("w", encoding="utf-8", newline="\n") as handle:
-        handle.write(json.dumps(payload, indent=2))
+        handle.write(json.dumps(payload, indent=2) + "\n")
     return True, str(resolved_signature)
 
 

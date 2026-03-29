@@ -44,4 +44,3 @@ Deferred:
 - TL sign-off: Approved
 - QA sign-off: Approved
 - Date: 2026-02-12
-
