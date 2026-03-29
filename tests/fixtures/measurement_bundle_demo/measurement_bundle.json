@@ -23,7 +23,7 @@
   "files": [
     {
       "path": "data/demo_measurements.csv",
-      "sha256": "140d5746cd195030eae3cfaac3c2cb00e94fa542b1ab4eec03139fab8aa0af92",
+      "sha256": "ff8dbf9f2d40f6327ac32de07d5e40adc882f5ff8b13bcc0f0f1f48dcda092eb",
       "content_type": "text/csv",
       "description": "Synthetic loss measurements."
     }
