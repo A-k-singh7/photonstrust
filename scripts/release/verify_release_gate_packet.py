@@ -7,7 +7,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from release_gate_paths import DEFAULT_PACKET_PATH, resolve_repo_path
+try:
+    from scripts.release.release_gate_paths import DEFAULT_PACKET_PATH, resolve_repo_path
+except ModuleNotFoundError:  # pragma: no cover - supports direct script execution
+    from release_gate_paths import DEFAULT_PACKET_PATH, resolve_repo_path
 
 
 REQUIRED_APPROVER_ROLES: tuple[str, ...] = ("TL", "QA", "DOC")

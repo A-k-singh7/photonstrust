@@ -7,12 +7,20 @@ import subprocess
 import sys
 from pathlib import Path
 
-from release_gate_paths import (
-    DEFAULT_PACKET_PATH,
-    DEFAULT_PRIVATE_KEY_PATH,
-    DEFAULT_PUBLIC_KEY_PATH,
-    DEFAULT_SIGNATURE_PATH,
-)
+try:
+    from scripts.release.release_gate_paths import (
+        DEFAULT_PACKET_PATH,
+        DEFAULT_PRIVATE_KEY_PATH,
+        DEFAULT_PUBLIC_KEY_PATH,
+        DEFAULT_SIGNATURE_PATH,
+    )
+except ModuleNotFoundError:  # pragma: no cover - supports direct script execution
+    from release_gate_paths import (
+        DEFAULT_PACKET_PATH,
+        DEFAULT_PRIVATE_KEY_PATH,
+        DEFAULT_PUBLIC_KEY_PATH,
+        DEFAULT_SIGNATURE_PATH,
+    )
 
 
 def _run(cmd: list[str], *, repo_root: Path) -> int:
