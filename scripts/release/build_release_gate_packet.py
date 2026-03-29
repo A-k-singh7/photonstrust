@@ -9,7 +9,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
-from release_gate_paths import DEFAULT_APPROVALS_PATH, DEFAULT_PACKET_PATH
+try:
+    from scripts.release.release_gate_paths import DEFAULT_APPROVALS_PATH, DEFAULT_PACKET_PATH
+except ModuleNotFoundError:  # pragma: no cover - supports direct script execution
+    from release_gate_paths import DEFAULT_APPROVALS_PATH, DEFAULT_PACKET_PATH
 from photonstrust.utils import hash_dict
 
 

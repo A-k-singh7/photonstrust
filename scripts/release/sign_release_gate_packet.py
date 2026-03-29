@@ -9,14 +9,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from photonstrust.evidence.signing import SigningUnavailable, sign_bytes_ed25519, write_keypair
-from release_gate_paths import (
-    DEFAULT_PACKET_PATH,
-    DEFAULT_PRIVATE_KEY_PATH,
-    DEFAULT_PUBLIC_KEY_PATH,
-    DEFAULT_SIGNATURE_PATH,
-    normalize_relpath,
-    resolve_repo_path,
-)
+
+try:
+    from scripts.release.release_gate_paths import (
+        DEFAULT_PACKET_PATH,
+        DEFAULT_PRIVATE_KEY_PATH,
+        DEFAULT_PUBLIC_KEY_PATH,
+        DEFAULT_SIGNATURE_PATH,
+        normalize_relpath,
+        resolve_repo_path,
+    )
+except ModuleNotFoundError:  # pragma: no cover - supports direct script execution
+    from release_gate_paths import (
+        DEFAULT_PACKET_PATH,
+        DEFAULT_PRIVATE_KEY_PATH,
+        DEFAULT_PUBLIC_KEY_PATH,
+        DEFAULT_SIGNATURE_PATH,
+        normalize_relpath,
+        resolve_repo_path,
+    )
 
 
 def _sha256_bytes(data: bytes) -> str:
