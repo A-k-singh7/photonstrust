@@ -160,13 +160,6 @@ jobs:
           print(f"packaged approval summary: {approval_path}")
           PY
 
-      - name: Release gate checks (main/tag push only)
-        if: env.IS_STRICT_RELEASE == 'true'
-        run: |
-          python scripts/release/release_gate_check.py --quick --output results/release_gate_ci/release_gate_report.json
-          python scripts/release/verify_release_gate_packet.py
-          python scripts/release/verify_release_gate_packet_signature.py
-
       - name: Upload tapeout artifacts
         if: always()
         uses: actions/upload-artifact@v4

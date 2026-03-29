@@ -17,4 +17,3 @@ def test_compliance_reference_baselines_are_locked() -> None:
     expected = json.loads(fixture_path.read_text(encoding="utf-8"))
     actual = build_reference_fixture(root)
     assert actual == expected
-

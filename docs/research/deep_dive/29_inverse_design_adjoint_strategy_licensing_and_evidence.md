@@ -240,4 +240,3 @@ Slice D: add external solver runner seam (optional)
 - Meep adjoint: https://meep.readthedocs.io/en/latest/Python_Tutorials/Adjoint_Solver/
 - Ceviche: https://github.com/fancompute/ceviche
 - Lumopt: https://github.com/chriskeraly/lumopt
-

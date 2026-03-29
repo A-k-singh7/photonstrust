@@ -22,4 +22,3 @@ def test_layout_parallel_runs_schema_minimal_instance():
     schema_path = Path("schemas") / "photonstrust.layout_parallel_runs.v0_1.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     validate(instance=result, schema=schema)
-

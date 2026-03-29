@@ -32,4 +32,3 @@ def test_pic_netlist_sweep_returns_points():
         outs = p["dag_solver"]["external_outputs"]
         assert len(outs) == 1
         assert outs[0]["loss_db"] == pytest.approx(3.2, abs=1e-6)
-

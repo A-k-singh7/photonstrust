@@ -33,4 +33,3 @@ def test_ngspice_runner_missing_or_executes(tmp_path: Path):
     res = run_ngspice(netlist, output_dir=tmp_path / "out", ngspice_exe=exe, timeout_s=30.0)
     assert res.ok is True
     assert res.log_path.exists()
-

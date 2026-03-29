@@ -7,6 +7,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from release_gate_paths import DEFAULT_PACKET_PATH, resolve_repo_path
+
 
 REQUIRED_APPROVER_ROLES: tuple[str, ...] = ("TL", "QA", "DOC")
 
@@ -49,7 +51,7 @@ def verify_release_gate_packet(
     check_approvals: bool = True,
 ) -> tuple[bool, list[str], dict]:
     failures: list[str] = []
-    resolved_packet = packet_path if packet_path.is_absolute() else (repo_root / packet_path)
+    resolved_packet = resolve_repo_path(repo_root, packet_path)
     if not resolved_packet.exists():
         return False, [f"missing release gate packet: {resolved_packet}"], {}
 
@@ -89,7 +91,7 @@ def verify_release_gate_packet(
             failures.append(f"{label} missing path")
             continue
 
-        artifact_path = repo_root / Path(relpath)
+        artifact_path = resolve_repo_path(repo_root, Path(relpath))
         if not artifact_path.exists():
             failures.append(f"missing artifact file: {relpath}")
             continue
@@ -113,7 +115,7 @@ def main() -> int:
     parser.add_argument(
         "--packet",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.json"),
+        default=DEFAULT_PACKET_PATH,
         help="Path to release gate packet JSON file.",
     )
     parser.add_argument(

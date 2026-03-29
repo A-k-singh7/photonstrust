@@ -40,4 +40,3 @@ This document defines the event-driven kernel and protocol integration plan.
 
 ## Web Research Extension (2026-02-12)
 See `12_web_research_update_2026-02-12.md` section `04 Network kernel and protocol compiler: protocol-grounded additions`.
-

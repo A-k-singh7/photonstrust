@@ -38,4 +38,3 @@ Applied to: v1.1 schema field design, interoperability, and evidence quality sem
 - ACM Artifact Review and Badging policy: https://www.acm.org/publications/policies/artifact-review-and-badging-current
 - CodeMeta metadata profile: https://codemeta.github.io/
 - W3C PROV overview: https://www.w3.org/TR/prov-overview/
-

@@ -113,4 +113,3 @@ def extract_connectivity_from_routes(
 
     edges.sort(key=lambda e: (str(e.get("a", {}).get("node", "")).lower(), str(e.get("route_id", "")).lower()))
     return ConnectivityExtractResult(edges=edges, dangling_routes=dangling, warnings=warnings)
-

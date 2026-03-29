@@ -12,4 +12,3 @@ def repo_root() -> Path:
 
 def schemas_dir() -> Path:
     return repo_root() / "schemas"
-

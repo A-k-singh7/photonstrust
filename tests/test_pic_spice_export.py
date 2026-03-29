@@ -40,4 +40,3 @@ def test_pic_spice_export_schema_and_determinism(tmp_path: Path):
     # Ignore timestamps by comparing structural lines.
     keep = lambda s: "\n".join([ln for ln in s.splitlines() if not ln.startswith("* generated_at=")])
     assert keep(net1) == keep(net2)
-

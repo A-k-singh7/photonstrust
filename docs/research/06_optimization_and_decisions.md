@@ -24,4 +24,3 @@ This document defines the optimization layer and decision artifacts.
 
 ## Web Research Extension (2026-02-12)
 See `12_web_research_update_2026-02-12.md` section `06 Optimization and decisions: objective hardening`.
-

@@ -74,4 +74,3 @@ def _is_text_like(path: Path) -> bool:
         return True
     # Fallback to content_type heuristics (not available here); keep strict.
     return False
-

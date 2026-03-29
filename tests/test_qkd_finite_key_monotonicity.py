@@ -99,4 +99,3 @@ def test_finite_key_monotonic_with_block_size_and_epsilon():
     res_strict_eps = compute_point(strict_eps, distance_km=20.0)
     res_loose_eps = compute_point(loose_eps, distance_km=20.0)
     assert res_strict_eps.key_rate_bps <= res_loose_eps.key_rate_bps
-

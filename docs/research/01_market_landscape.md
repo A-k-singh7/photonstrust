@@ -71,4 +71,3 @@ schemas and uncertainty diagnostics are held constant across products.
 ## Related docs
 - `12_web_research_update_2026-02-12.md`
 - `13_business_expansion_and_build_plan_2026-02-12.md`
-

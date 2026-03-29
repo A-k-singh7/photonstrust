@@ -38,4 +38,3 @@ def validate_orbit_pass_config(config: dict, *, require_jsonschema: bool = False
         validate(instance=config, schema=schema)
     except Exception as exc:
         raise SchemaValidationError(str(exc)) from exc
-

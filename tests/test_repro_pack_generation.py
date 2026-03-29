@@ -50,4 +50,3 @@ def test_generate_repro_pack_creates_expected_files(tmp_path: Path):
     # Bundle check should pass.
     ok, failures = check_bundle_file(pack_dir / "benchmark_bundle.json")
     assert ok, "\n".join(failures)
-

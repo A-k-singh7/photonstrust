@@ -113,4 +113,3 @@ def test_source_benchmark_json_is_parseable(tmp_path):
     payload = json.loads((tmp_path / "results.json").read_text(encoding="utf-8"))
     assert "projected_key_rate_bps" in payload
     assert "projected_fidelity" in payload
-

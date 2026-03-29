@@ -204,4 +204,3 @@ def fit_parallel_waveguide_crosstalk_model(
             "platform": platform.platform(),
         },
     }
-

@@ -80,4 +80,3 @@ def _update_index(open_root: Path, bundle: dict, bundle_path: Path) -> None:
 
     index.sort(key=lambda r: str(r.get("benchmark_id", "")).lower())
     index_path.write_text(json.dumps(index, indent=2), encoding="utf-8")
-

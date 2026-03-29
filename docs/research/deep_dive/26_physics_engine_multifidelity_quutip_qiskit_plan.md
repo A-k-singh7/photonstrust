@@ -249,4 +249,3 @@ For QuTiP/Qiskit integration to be "trust-grade":
 
 - QuTiP: https://qutip.org/download.html
 - Qiskit release notes (2.2): https://quantum.cloud.ibm.com/docs/en/api/qiskit/release-notes/2.2
-

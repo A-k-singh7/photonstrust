@@ -31,4 +31,3 @@ Applied to: governance rules, contribution flow, triage policy, and repository o
 - OpenSSF Scorecard: https://scorecard.dev/
 - OpenSSF Best Practices Badge: https://openssf.org/best-practices-badge/
 - Conventional Commits 1.0.0: https://www.conventionalcommits.org/en/v1.0.0/
-

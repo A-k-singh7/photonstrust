@@ -7,6 +7,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from release_gate_paths import (
+    DEFAULT_PACKET_PATH,
+    DEFAULT_PRIVATE_KEY_PATH,
+    DEFAULT_PUBLIC_KEY_PATH,
+    DEFAULT_SIGNATURE_PATH,
+)
+
 
 def _run(cmd: list[str], *, repo_root: Path) -> int:
     print("+", " ".join(cmd), flush=True)
@@ -19,25 +26,25 @@ def main() -> int:
     parser.add_argument(
         "--packet",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.json"),
+        default=DEFAULT_PACKET_PATH,
         help="Path to release gate packet JSON.",
     )
     parser.add_argument(
         "--signature",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.ed25519.sig.json"),
+        default=DEFAULT_SIGNATURE_PATH,
         help="Path to release gate packet signature JSON.",
     )
     parser.add_argument(
         "--private-key",
         type=Path,
-        default=Path("results/release_gate_keys/release_gate_packet_2026-02-16.private.pem"),
+        default=DEFAULT_PRIVATE_KEY_PATH,
         help="Path to Ed25519 private key PEM.",
     )
     parser.add_argument(
         "--public-key",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.public.pem"),
+        default=DEFAULT_PUBLIC_KEY_PATH,
         help="Path to Ed25519 public key PEM.",
     )
     args = parser.parse_args()

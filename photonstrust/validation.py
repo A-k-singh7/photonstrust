@@ -88,4 +88,3 @@ def validate_scenarios_or_raise(scenarios: list[dict[str, Any]]) -> None:
         return
     bullet_list = "\n".join(f"  - {e}" for e in errors)
     raise ConfigValidationError(f"Invalid scenario configuration:\n{bullet_list}")
-

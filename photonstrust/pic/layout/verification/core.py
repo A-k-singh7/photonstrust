@@ -1150,7 +1150,7 @@ def estimate_process_yield(
     mc_mode = "independent"
     if samples > 0:
         mc_mode = "correlated" if use_correlation else "independent"
-        
+
         try:
             import photonstrust_rs
 

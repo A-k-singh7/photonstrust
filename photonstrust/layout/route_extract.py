@@ -301,4 +301,3 @@ def _overlap_v(a: _Seg, b: _Seg, *, tol: float) -> dict[str, Any] | None:
         "width_b_um": float(b.width_um),
         "overlap": {"y0_um": float(oy0), "y1_um": float(oy1), "x_a_um": float(xa), "x_b_um": float(xb)},
     }
-

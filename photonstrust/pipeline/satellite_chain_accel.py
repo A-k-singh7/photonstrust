@@ -71,4 +71,3 @@ def _accumulate_key_bits_jax(key_rates_bps: Sequence[float], dt_s: float) -> flo
         return 0.0
     arr = jnp.clip(arr, a_min=0.0)
     return float(jnp.sum(arr) * dt)
-

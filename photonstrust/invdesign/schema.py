@@ -12,4 +12,3 @@ def _repo_root() -> Path:
 
 def invdesign_report_schema_path() -> Path:
     return (_repo_root() / "schemas" / "photonstrust.pic_invdesign_report.v0.schema.json").resolve()
-

@@ -100,4 +100,3 @@ def test_detector_deterministic_for_fixed_seed():
     assert a.variance_p_click == b.variance_p_click
     assert a.click_time_hist == b.click_time_hist
     assert a.click_time_edges_ps == b.click_time_edges_ps
-

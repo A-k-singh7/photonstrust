@@ -7,4 +7,3 @@ defaults, ranges) while keeping thin clients (web/UI) non-authoritative.
 from .kinds import build_kinds_registry
 
 __all__ = ["build_kinds_registry"]
-

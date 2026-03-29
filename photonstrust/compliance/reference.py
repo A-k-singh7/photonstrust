@@ -105,4 +105,3 @@ def _stable(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(key): _stable(value[key]) for key in sorted(value)}
     return value
-

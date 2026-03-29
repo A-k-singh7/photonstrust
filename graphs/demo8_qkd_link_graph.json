@@ -78,4 +78,3 @@
     { "from": "channel_1", "to": "detector_1", "kind": "optical", "label": "propagates" }
   ]
 }
-

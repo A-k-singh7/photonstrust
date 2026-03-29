@@ -30,4 +30,3 @@ def test_accumulate_key_bits_auto_falls_back_to_numpy(monkeypatch: pytest.Monkey
     value = accel_mod.accumulate_key_bits([1.0, 2.0, 3.0], 1.0, backend="auto")
     assert value == pytest.approx(42.5)
     assert calls["numpy"] == 1
-

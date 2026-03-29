@@ -79,4 +79,3 @@ Applied to: uncertainty source modeling, Monte Carlo propagation, interval polic
 - JCGM 106:2012 (uncertainty in conformity assessment): https://www.bipm.org/en/doi/10.59161/jcgm106-2012
 - FAIR data principles (Scientific Data): https://doi.org/10.1038/sdata.2016.18
 - ArviZ diagnostics: https://python.arviz.org/en/stable/api/diagnostics.html
-

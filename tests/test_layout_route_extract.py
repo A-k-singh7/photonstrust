@@ -50,4 +50,3 @@ def test_extract_parallel_runs_rejects_diagonal_segments():
     ]
     with pytest.raises(ValueError, match="non-Manhattan"):
         extract_parallel_run_segments(routes)
-

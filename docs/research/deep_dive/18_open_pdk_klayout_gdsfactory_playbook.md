@@ -235,4 +235,3 @@ The safest product pattern is:
   https://www.klayout.de/about/license/index.html
 - Sky130 KLayout PDK (reference packaging structure):
   https://github.com/efabless/sky130_klayout_pdk
-

@@ -77,4 +77,3 @@ def test_invdesign_reports_validate_against_schema():
         steps=32,
     )
     validate_instance(cpl.report, schema_path)
-

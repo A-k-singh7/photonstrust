@@ -64,4 +64,3 @@ def test_raman_launch_power_penalizes_qkd_metrics():
     assert high.raman_counts_cps > low.raman_counts_cps
     assert high.qber_total >= low.qber_total
     assert high.key_rate_bps <= low.key_rate_bps
-

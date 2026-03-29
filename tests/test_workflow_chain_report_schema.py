@@ -64,4 +64,3 @@ def test_workflow_chain_report_validates_against_schema(tmp_path, monkeypatch: p
 
     schema_path = workflow_invdesign_chain_report_schema_path()
     validate_instance(payload["report"], schema_path)
-

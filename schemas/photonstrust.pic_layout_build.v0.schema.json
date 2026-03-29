@@ -47,4 +47,3 @@
     "warnings": { "type": "array", "items": { "type": "string" } }
   }
 }
-

@@ -71,4 +71,3 @@ Applied to: decision authority, escalation ownership, and governance accountabil
 - GitHub contributor guideline placement and behavior: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors?apiVersion=2022-11-28
 - NIST CSF 2.0 (governance and risk communication): https://doi.org/10.6028/NIST.CSWP.29
 - OpenSSF Scorecard as measurable repository hygiene signal: https://scorecard.dev/
-

@@ -77,4 +77,3 @@ Applied to: staged research-to-build workflow, architecture checks, and audit-tr
 - Qiskit release notes and runtime-facing changes: https://quantum.cloud.ibm.com/docs/en/api/qiskit/release-notes/2.2
 - JCGM 100 uncertainty baseline: https://www.bipm.org/en/doi/10.59161/JCGM100-2008E
 - NIST CSF 2.0 governance baseline: https://doi.org/10.6028/NIST.CSWP.29
-

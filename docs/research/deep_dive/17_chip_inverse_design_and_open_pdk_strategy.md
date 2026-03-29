@@ -287,4 +287,3 @@ See:
 - `18_open_pdk_klayout_gdsfactory_playbook.md`
 - `19_inverse_design_engine_architecture.md`
 - `16_qkd_deployment_realism_pack.md` (fiber QKD realism additions)
-

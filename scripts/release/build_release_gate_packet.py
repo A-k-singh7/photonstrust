@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
+from release_gate_paths import DEFAULT_APPROVALS_PATH, DEFAULT_PACKET_PATH
 from photonstrust.utils import hash_dict
 
 
@@ -27,7 +28,7 @@ DEFAULT_REQUIRED_ARTIFACTS: tuple[str, ...] = (
     "results/release_gate/release_gate_report.json",
 )
 
-DEFAULT_APPROVALS_RELPATH = "reports/specs/milestones/release_approvals_2026-02-16.json"
+DEFAULT_APPROVALS_RELPATH = str(DEFAULT_APPROVALS_PATH)
 REQUIRED_APPROVER_ROLES: tuple[str, ...] = ("TL", "QA", "DOC")
 
 
@@ -138,13 +139,13 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.json"),
+        default=DEFAULT_PACKET_PATH,
         help="Path to write release gate packet JSON.",
     )
     parser.add_argument(
         "--approvals",
         type=Path,
-        default=Path(DEFAULT_APPROVALS_RELPATH),
+        default=DEFAULT_APPROVALS_PATH,
         help="Path to approvals JSON file.",
     )
     parser.add_argument(

@@ -394,4 +394,3 @@ def _validate_schema_if_available(report: dict[str, Any]) -> None:
         return
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     validate(instance=report, schema=schema)
-

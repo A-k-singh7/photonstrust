@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 from photonstrust.evidence.signing import SigningUnavailable, verify_bytes_ed25519
+from release_gate_paths import DEFAULT_PACKET_PATH, DEFAULT_SIGNATURE_PATH, resolve_repo_path
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -23,8 +24,8 @@ def verify_release_gate_packet_signature(
 ) -> tuple[bool, list[str]]:
     failures: list[str] = []
 
-    resolved_packet = packet_path if packet_path.is_absolute() else (repo_root / packet_path)
-    resolved_signature = signature_path if signature_path.is_absolute() else (repo_root / signature_path)
+    resolved_packet = resolve_repo_path(repo_root, packet_path)
+    resolved_signature = resolve_repo_path(repo_root, signature_path)
 
     if not resolved_packet.exists():
         failures.append(f"missing packet: {resolved_packet}")
@@ -54,10 +55,10 @@ def verify_release_gate_packet_signature(
         failures.append("signature_b64 missing from signature artifact")
 
     if public_key_path is not None:
-        resolved_public_key = public_key_path if public_key_path.is_absolute() else (repo_root / public_key_path)
+        resolved_public_key = resolve_repo_path(repo_root, public_key_path)
     else:
         key_field = signature_payload.get("public_key_path")
-        resolved_public_key = repo_root / Path(str(key_field))
+        resolved_public_key = resolve_repo_path(repo_root, Path(str(key_field)))
     if not resolved_public_key.exists():
         failures.append(f"missing public key: {resolved_public_key}")
 
@@ -81,13 +82,13 @@ def main() -> int:
     parser.add_argument(
         "--packet",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.json"),
+        default=DEFAULT_PACKET_PATH,
         help="Path to release gate packet JSON.",
     )
     parser.add_argument(
         "--signature",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.ed25519.sig.json"),
+        default=DEFAULT_SIGNATURE_PATH,
         help="Path to signature artifact JSON.",
     )
     parser.add_argument(

@@ -27,4 +27,3 @@ This document defines calibration workflows and uncertainty propagation.
 
 ## Web Research Extension (2026-02-12)
 See `12_web_research_update_2026-02-12.md` section `05 Calibration and uncertainty: metrology baseline`.
-

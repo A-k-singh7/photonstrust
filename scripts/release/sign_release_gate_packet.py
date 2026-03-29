@@ -9,6 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from photonstrust.evidence.signing import SigningUnavailable, sign_bytes_ed25519, write_keypair
+from release_gate_paths import (
+    DEFAULT_PACKET_PATH,
+    DEFAULT_PRIVATE_KEY_PATH,
+    DEFAULT_PUBLIC_KEY_PATH,
+    DEFAULT_SIGNATURE_PATH,
+    normalize_relpath,
+    resolve_repo_path,
+)
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -25,7 +33,7 @@ def sign_release_gate_packet(
     generate_keypair: bool,
     key_id: str,
 ) -> tuple[bool, str]:
-    resolved_packet = packet_path if packet_path.is_absolute() else (repo_root / packet_path)
+    resolved_packet = resolve_repo_path(repo_root, packet_path)
     resolved_signature = signature_path if signature_path.is_absolute() else (repo_root / signature_path)
     resolved_private_key = private_key_path if private_key_path.is_absolute() else (repo_root / private_key_path)
     resolved_public_key = public_key_path if public_key_path.is_absolute() else (repo_root / public_key_path)
@@ -50,11 +58,11 @@ def sign_release_gate_packet(
         "kind": "photonstrust.release_gate_packet_signature",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "key_id": key_id,
-        "packet_path": str(packet_path).replace("\\", "/"),
+        "packet_path": normalize_relpath(packet_path),
         "packet_sha256": packet_sha256,
         "signature_algorithm": "ed25519",
         "signature_b64": signature_b64,
-        "public_key_path": str(public_key_path).replace("\\", "/"),
+        "public_key_path": normalize_relpath(public_key_path),
     }
 
     resolved_signature.parent.mkdir(parents=True, exist_ok=True)
@@ -68,25 +76,25 @@ def main() -> int:
     parser.add_argument(
         "--packet",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.json"),
+        default=DEFAULT_PACKET_PATH,
         help="Path to release gate packet JSON.",
     )
     parser.add_argument(
         "--signature-output",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.ed25519.sig.json"),
+        default=DEFAULT_SIGNATURE_PATH,
         help="Path to write signature JSON artifact.",
     )
     parser.add_argument(
         "--private-key",
         type=Path,
-        default=Path("results/release_gate_keys/release_gate_packet_2026-02-16.private.pem"),
+        default=DEFAULT_PRIVATE_KEY_PATH,
         help="Path to Ed25519 private key PEM.",
     )
     parser.add_argument(
         "--public-key",
         type=Path,
-        default=Path("reports/specs/milestones/release_gate_packet_2026-02-16.public.pem"),
+        default=DEFAULT_PUBLIC_KEY_PATH,
         help="Path to Ed25519 public key PEM.",
     )
     parser.add_argument(

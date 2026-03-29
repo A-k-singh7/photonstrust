@@ -74,4 +74,3 @@ chip and satellite workflows.
 - `12_web_research_update_2026-02-12.md`
 - `13_business_expansion_and_build_plan_2026-02-12.md`
 - `deep_dive/16_qkd_deployment_realism_pack.md`
-
