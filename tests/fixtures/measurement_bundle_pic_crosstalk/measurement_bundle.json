@@ -23,7 +23,7 @@
   "files": [
     {
       "path": "data/pic_crosstalk_sweep.json",
-      "sha256": "1c76543b4d66acc5f66005d00633d992d24e22284b7b1d3cb1a93c34a513c7e5",
+      "sha256": "71f83c8c6b5755517dd18455af27646f83fb11783d0abead46c4c2d1813e4647",
       "content_type": "application/json",
       "description": "Synthetic crosstalk sweep table."
     }

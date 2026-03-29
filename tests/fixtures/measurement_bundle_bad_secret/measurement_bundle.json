@@ -15,7 +15,7 @@
   "files": [
     {
       "path": "data/leak.txt",
-      "sha256": "7ada0f08ed90066b736973a461e669d248450c1126636d5e0049b2a4193f811c",
+      "sha256": "a99f3a28275ff197dcdf8a3dc730dbd93ba2d8681e4a1990144dd359b040f83c",
       "content_type": "text/plain",
       "description": "Fixture file containing a secret-like token pattern."
     }
