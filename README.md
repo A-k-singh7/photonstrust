@@ -2,8 +2,8 @@
 [![tapeout-gate](https://github.com/photonstrust/photonstrust/actions/workflows/tapeout-gate.yml/badge.svg?branch=main)](https://github.com/photonstrust/photonstrust/actions/workflows/tapeout-gate.yml)
 [![cv-quick-verify](https://github.com/photonstrust/photonstrust/actions/workflows/cv-quick-verify.yml/badge.svg?branch=main)](https://github.com/photonstrust/photonstrust/actions/workflows/cv-quick-verify.yml)
 
-PhotonTrust is an open-source digital twin and reliability card generator for
-teams evaluating photonic quantum links, starting with QKD scenarios and
+PhotonTrust is an open-source QKD digital twin and reliability card generator
+for teams evaluating photonic quantum links, starting with QKD scenarios and
 producing shareable artifacts such as `reliability_card.json`, HTML/PDF reports,
 and graph-compile assumptions.
 
@@ -13,7 +13,7 @@ and graph-compile assumptions.
 - Python: `3.12+`
 - License: `AGPL-3.0-only`
 - Primary product wedge today: QKD link simulation to reliability evidence
-- Expansion surfaces in the repo: graph compile, PIC simulation, orbit/satellite
+- Advanced expansion surfaces: graph compile, PIC simulation, orbit/satellite
   workflows, and certification/evidence tooling
 
 ## Why This Exists
@@ -87,8 +87,8 @@ Typical outcome:
 
 ### Product Evaluator
 
-Use the React product surface when you want to inspect the current UX and
-guided flows rather than work only from YAML and CLI outputs.
+Use the React product surface when you want to inspect the current QKD-first UX
+and guided flows rather than work only from YAML and CLI outputs.
 
 Start here:
 
@@ -174,14 +174,14 @@ Typical outcome:
 
 - `photonstrust run`
   - run QKD and related YAML-driven scenarios
-- `photonstrust graph compile`
-  - turn graph inputs into runnable QKD configs or PIC netlists
-- `photonstrust pic simulate`
-  - simulate compiled PIC netlists
 - `photonstrust card validate`
   - validate generated reliability card artifacts
 - `web/`
   - current React-first product surface
+- `photonstrust graph compile`
+  - advanced path for turning graph inputs into runnable QKD configs or PIC netlists
+- `photonstrust pic simulate`
+  - advanced path for compiled PIC netlists
 - `ui/`
   - legacy Streamlit surface retained for compatibility
 

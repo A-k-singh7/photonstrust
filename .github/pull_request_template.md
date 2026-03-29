@@ -38,3 +38,4 @@
 ## Reproducibility
 - [ ] Seeds/configs retained or documented
 - [ ] Output/fixture updates are explained in this PR
+- [ ] Ran `python scripts/refresh_repo_baselines.py --all` or explained why tracked fixture/release artifacts did not need it

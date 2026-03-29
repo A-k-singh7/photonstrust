@@ -114,6 +114,7 @@ pytest -q tests/test_docs_experience.py
 python scripts/validation/ci_checks.py
 python scripts/validation/check_benchmark_drift.py
 python scripts/validation/run_validation_harness.py --output-root results/validation
+python scripts/refresh_repo_baselines.py --all
 ```
 
 For UI work:
@@ -154,6 +155,7 @@ Contributor workflow changes must also update:
   change is self-contained.
 - Record the validation commands you actually ran.
 - Call out contract, schema, fixture, or result changes explicitly.
+- If tracked fixtures, milestone packets, or release artifacts changed, say whether `python scripts/refresh_repo_baselines.py --all` was run.
 - Do not include unrelated generated artifacts, local scratch outputs, or build
   products.
 
@@ -180,4 +182,6 @@ update:
 - any user-facing command examples in `README.md`
 
 Use `scripts/release/release_gate_check.py` and related release tooling as the
-current execution surface for release-adjacent work.
+current execution surface for release-adjacent work. Use
+`scripts/refresh_repo_baselines.py` when tracked release packets, milestone
+artifacts, or measurement bundle fixtures need to be refreshed together.

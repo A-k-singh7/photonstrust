@@ -8,7 +8,7 @@ output. The current docs optimize for three paths.
 | Persona | Start Here | Best For | Concrete Output |
 |---------|------------|----------|-----------------|
 | Researcher | `getting-started.md` | fast QKD scenario evaluation | reliability card, report, results JSON |
-| Product evaluator | `../user/product-ui.md` | local UI review and guided flows | running UI plus shared run artifacts |
+| Product evaluator | `../user/product-ui.md` | QKD-first local UI review and guided flows | running UI plus shared run artifacts |
 | Maintainer | `../dev/git_and_docs_workflow.md` | repo changes, docs sync, validation | clean diff, passing docs QA, updated docs |
 
 ## Researcher Path
@@ -39,7 +39,7 @@ Choose this path if you need to answer questions like:
 
 - What does the current product surface look like?
 - Is there a usable local React workflow?
-- How does the product layer sit on top of the same engine outputs?
+- How does the QKD-first product layer sit on top of the same engine outputs?
 
 Recommended sequence:
 
@@ -85,5 +85,5 @@ when you specifically need:
 - certification, bundle, or compliance surfaces
 - research and roadmap material under `../research/`
 
-Those surfaces are real, but they are not the first thing a new reader should
-have to parse.
+Those surfaces are real and maintained, but they are intentionally treated as
+advanced paths rather than the first thing a new reader should have to parse.

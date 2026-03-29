@@ -18,9 +18,9 @@ export const PRODUCT_STAGE_ROUTES = {
 
 export const PRODUCT_COPY = {
   valueProposition:
-    "PhotonTrust turns a photonic run into a reviewable decision: simulate it, compare it, certify it, and export the evidence packet.",
+    "PhotonTrust turns a QKD link run into reviewable reliability evidence: simulate it, compare it, certify it, and export the decision packet.",
   startHere:
-    "Pick the shortest path to the artifact you need today. Guided mode keeps the path opinionated; power mode exposes the deeper engineering surface when you need it.",
+    "Pick the shortest path to the artifact you need today. Guided mode keeps the QKD reliability path opinionated; power mode exposes the broader engineering surface only when you need it.",
   quickActions: {
     guidedQkd: "Start guided QKD run",
     guidedPic: "Open PIC layout path",
@@ -31,7 +31,7 @@ export const PRODUCT_COPY = {
     {
       id: "qkd",
       title: "Run a trusted QKD scenario",
-      description: "Start with the shortest guided path and produce a fresh run manifest plus reliability evidence.",
+      description: "Start with the shortest guided QKD path and produce a fresh run manifest plus reliability evidence.",
       artifact: "Ends with a manifest and reliability card",
       duration: "About 5 min",
       action: "guidedQkd",
@@ -46,8 +46,8 @@ export const PRODUCT_COPY = {
     },
     {
       id: "pic",
-      title: "Start the PIC build and layout flow",
-      description: "Switch into the PIC workflow when the goal is layout, optimization, or fabrication-ready evidence.",
+      title: "Open the advanced PIC path",
+      description: "Use the PIC workflow when the goal is layout, optimization, or fabrication evidence beyond the front-door QKD wedge.",
       artifact: "Ends with layout and verification artifacts",
       duration: "Advanced path",
       action: "guidedPic",
@@ -62,8 +62,8 @@ export const PRODUCT_COPY = {
     },
     {
       id: "pic",
-      title: "Generate PIC layout and GDS",
-      description: "Use the PIC flow to build layout artifacts, emit a GDS file, and run KLayout-based extraction and DRC-lite checks.",
+      title: "Use the advanced PIC flow",
+      description: "Use the PIC surface to build layout artifacts, emit a GDS file, and run KLayout-based extraction and DRC-lite checks when you need the broader photonics workflow.",
       outcome: "Produces layout.gds, ports, routes, and KLayout packs.",
     },
     {

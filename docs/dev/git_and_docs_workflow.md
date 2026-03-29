@@ -57,9 +57,9 @@ commit quality, pull request updates, and required documentation sync.
 
 | If you change... | Minimum documentation updates |
 | --- | --- |
-| CLI commands, config semantics, or outputs | `README.md`, `docs/guide/config-reference.md`, relevant examples, `CHANGELOG.md` if user-visible |
+| CLI commands, config semantics, or outputs | `README.md`, `docs/reference/config.md`, relevant examples, `CHANGELOG.md` if user-visible |
 | Scripts or maintainer automation | `scripts/README.md`, `docs/dev/README.md`, `docs/dev/release_process.md` if release-related |
-| Contributor workflow or repo structure | `CONTRIBUTING.md`, `docs/README.md`, `docs/dev/README.md`, GitHub templates if review behavior changed |
+| Contributor workflow or repo structure | `CONTRIBUTING.md`, `docs/README.md`, `docs/dev/README.md`, `docs/dev/repository_governance.md`, GitHub templates if review behavior changed |
 | React UI flows or local product startup | `README.md`, `docs/user/README.md`, `docs/user/quickstart.md` when user steps changed |
 | Research assumptions or validation policy | relevant files in `docs/research/`, `docs/templates/`, and any schema or benchmark references touched by the change |
 | Ignore rules, generated artifacts, or file conventions | `.gitignore`, `.gitattributes`, `.editorconfig`, and this guide when the workflow itself changed |
@@ -91,6 +91,7 @@ Examples:
 - `git diff --check` is clean.
 - The branch contains only intended files.
 - The smallest relevant validation commands were run and recorded in the PR.
+- `python scripts/refresh_repo_baselines.py --all` was run or intentionally not needed when tracked fixtures, milestone artifacts, or release packets changed.
 - The documentation sync matrix above was applied.
 - `CHANGELOG.md` is updated for user-visible behavior, workflow, or release
   changes.
