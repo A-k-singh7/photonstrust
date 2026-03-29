@@ -201,7 +201,7 @@ def _current_contexts(payload: dict[str, Any]) -> set[str]:
 def _write_payload(path: Path, payload: dict[str, Any]) -> None:
     resolved = path if path.is_absolute() else (Path.cwd() / path)
     resolved.parent.mkdir(parents=True, exist_ok=True)
-    resolved.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    resolved.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:

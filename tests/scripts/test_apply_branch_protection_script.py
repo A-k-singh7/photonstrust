@@ -64,6 +64,7 @@ def test_main_dry_run_writes_payload(
         "security-baseline / pip-audit-runtime",
     ]
     assert payload_path.exists()
+    assert payload_path.read_text(encoding="utf-8").endswith("\n")
 
 
 def test_main_dry_run_strict_profile(
