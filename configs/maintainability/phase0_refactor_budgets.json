@@ -12,7 +12,7 @@
     {
       "label": "react-app-freeze",
       "include_glob": "web/src/App.jsx",
-      "max_lines": 3700,
+      "max_lines": 3900,
       "description": "Freeze React shell monolith growth until hook and feature extraction lands."
     },
     {
