@@ -2,7 +2,7 @@
 # Use as a constraints file: pip install -c requirements/runtime.lock.txt -e ".[dev,signing,qutip,qiskit]"
 numpy==2.3.2
 PyYAML==6.0.3
-matplotlib==3.10.6
+matplotlib==3.10.8
 cryptography==46.0.6
 qutip==5.2.2
 qiskit==2.3.0
