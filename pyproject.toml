@@ -31,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 qutip = ["qutip>=4.7"]
-ui = ["streamlit>=1.28", "streamlit-agraph>=0.0.45", "streamlit-echarts>=0.4"]
+ui = ["streamlit>=1.28", "streamlit-agraph>=0.0.45", "streamlit-echarts>=0.6.0"]
 drc = ["rich>=13.0"]
 cli = ["rich>=13.0"]
 ml = ["scikit-learn>=1.3"]
